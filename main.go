@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"crypto/tls"
 	"io/ioutil"
 	"bytes"
+	"net/http/httputil"
 )
 
 const (
@@ -27,27 +27,22 @@ func helloWorld(w http.ResponseWriter, r *http.Request) {
 func info(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "info: %d\n", count)
 	for _, line := range log {
-		fmt.Fprintf(w, "> %s\n", line)
+		fmt.Fprintf(w, "%s\n\n", line)
 	}
 }
 
 
 func redirect(w http.ResponseWriter, req *http.Request) {
 	count = count + 1
+
 	// we need to buffer the body if we want to read it here and send it
 	// in the request.
-
-	reqString := fmt.Sprintf(" OldRequest \n %+v", req)
-	log = append(log, reqString)
 
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	// you can reassign the body if you need to parse it as multipart
-	req.Body = ioutil.NopCloser(bytes.NewReader(body))
 
 	// create a new url from the raw RequestURI sent by the client
 	url := fmt.Sprintf("https://%s%s","10.11.252.10:9293/cf" , req.RequestURI)
@@ -68,19 +63,45 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
-	defer resp.Body.Close()
 
-	reqString = fmt.Sprintf(" NewRequest \n %+v", proxyReq)
-	log = append(log, reqString)
+	// reassign the body for the dump
+	proxyReq.Body = ioutil.NopCloser(bytes.NewReader(body))
 
-	defer resp.Body.Close()
+
+	requestDump, err := httputil.DumpRequest(proxyReq, true)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	log = append(log, "Request: " + string(requestDump))
+
+	defer  func () {
+		resp.Body.Close()
+	} ()
 
 	for name, values := range resp.Header {
 		w.Header()[name] = values
 	}
 
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(body)
+
+	// reassign body for dump
+	resp.Body = ioutil.NopCloser(bytes.NewReader(body))
+	responseDump, err := httputil.DumpResponse(resp, true)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log = append(log, "Response: " + string(responseDump))
+
 }
 
 func main() {
