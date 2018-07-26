@@ -31,6 +31,12 @@ func info(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func parseBody(body []byte) {
+
+	// TODO: Parse json and change fields
+	log = append(log, string(body))
+}
+
 
 func redirect(w http.ResponseWriter, req *http.Request) {
 	count = count + 1
@@ -89,6 +95,8 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	parseBody(body)
 
 	w.Write(body)
 
