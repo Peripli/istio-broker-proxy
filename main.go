@@ -6,59 +6,75 @@ import (
 	"net/http"
 	"os"
 	"crypto/tls"
+	"io/ioutil"
+	"bytes"
 )
 
-//https://10.11.252.10:9293/cf
-//https://broker:VoJniQuzmenuhsowelbahenhukejd755@10.11.252.10:9293/cf/v2/catalog -H "X-Broker-API-Version: 2.13"
-
 const (
-	DEFAULT_PORT = "8080"
+	DefaultPort = "8080"
 )
 
 var (
 	port  string
 	count int
+	log = make([]string, 0)
 )
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello World")
-}
-
-func helloWorld2(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello World again")
 }
 
 func info(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "info: %d", count)
+	fmt.Fprintf(w, "info: %d\n", count)
+	for _, line := range log {
+		fmt.Fprintf(w, "> %s\n", line)
+	}
 }
 
-func redirect(w http.ResponseWriter, r *http.Request) {
+
+func redirect(w http.ResponseWriter, req *http.Request) {
 	count = count + 1
-	path := r.URL.Path
-	//service-fabrik-broker.cf.dev01.aws.istio.sapcloud.io
-	targetPath := "https://broker:VoJniQuzmenuhsowelbahenhukejd755@10.11.252.10:9293/cf" + path
-	req, err := http.NewRequest(r.Method, targetPath, r.Body)
+	// we need to buffer the body if we want to read it here and send it
+	// in the request.
+
+	reqString := fmt.Sprintf(" OldRequest \n %+v", req)
+	log = append(log, reqString)
+
+	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		fmt.Fprintf(w, "Error: %s", err)
-		w.WriteHeader(300)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	//TODO: set Header "X-Broker-API-Version: 2.13"
-	req.Header.Set("X-Broker-API-Version", "2.13")
+
+	// you can reassign the body if you need to parse it as multipart
+	req.Body = ioutil.NopCloser(bytes.NewReader(body))
+
+	// create a new url from the raw RequestURI sent by the client
+	url := fmt.Sprintf("https://%s%s","10.11.252.10:9293/cf" , req.RequestURI)
+	proxyReq, err := http.NewRequest(req.Method, url, bytes.NewReader(body))
+
+	// We may want to filter some headers, otherwise we could just use a shallow copy
+	// proxyReq.Header = req.Header
+	proxyReq.Header = make(http.Header)
+	for h, val := range req.Header {
+		proxyReq.Header[h] = val
+	}
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-	resp, err := client.Do(req)
-	//resp, err := http.Get("https://broker:VoJniQuzmenuhsowelbahenhukejd755@service-fabrik-broker.cf.dev01.aws.istio.sapcloud.io/cf/v2/catalog")
-
+	resp, err := client.Do(proxyReq)
 	if err != nil {
-		fmt.Fprintf(w, "Error: %s", err)
-		w.WriteHeader(300)
+		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
+	defer resp.Body.Close()
+
+	reqString = fmt.Sprintf(" NewRequest \n %+v", proxyReq)
+	log = append(log, reqString)
 
 	defer resp.Body.Close()
+
 	for name, values := range resp.Header {
 		w.Header()[name] = values
 	}
@@ -70,11 +86,10 @@ func redirect(w http.ResponseWriter, r *http.Request) {
 func main() {
 
 	if port = os.Getenv("PORT"); len(port) == 0 {
-		port = DEFAULT_PORT
+		port = DefaultPort
 	}
-	http.HandleFunc("/hello", helloWorld2)
+	http.HandleFunc("/hello", helloWorld)
 	http.HandleFunc("/info", info)
-	//http.HandleFunc("/v2/catalog", redirect)
 	http.HandleFunc("/", redirect)
 	http.ListenAndServe(":"+port, nil)
 }
