@@ -12,6 +12,7 @@ import (
 
 const (
 	DefaultPort = "8080"
+	ServiceFabrikURL = "10.11.252.10:9293/cf"
 )
 
 var (
@@ -51,7 +52,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// create a new url from the raw RequestURI sent by the client
-	url := fmt.Sprintf("https://%s%s","10.11.252.10:9293/cf" , req.RequestURI)
+	url := fmt.Sprintf("https://%s%s",ServiceFabrikURL , req.RequestURI)
 	proxyReq, err := http.NewRequest(req.Method, url, bytes.NewReader(body))
 
 	// We may want to filter some headers, otherwise we could just use a shallow copy
