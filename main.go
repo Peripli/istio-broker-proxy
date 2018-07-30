@@ -15,14 +15,19 @@ const (
 	ServiceFabrikURL = "10.11.252.10:9293/cf"
 )
 
+type ProxyConfig struct {
+	ForwardURL string
+	port string
+}
+
 var (
-	port  string
+	config = ProxyConfig{ServiceFabrikURL, DefaultPort}
 	count int
 	log   = make([]string, 0)
 )
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello World again")
+	fmt.Fprintf(w, "Hello World")
 }
 
 func info(w http.ResponseWriter, r *http.Request) {
@@ -39,6 +44,11 @@ func parseBody(body []byte) []byte {
 	return body
 }
 
+
+func createNewUrl(newHost string, req *http.Request) (string) {
+	return fmt.Sprintf("https://%s%s", newHost, req.URL.Path)
+}
+
 func redirect(w http.ResponseWriter, req *http.Request) {
 	count = count + 1
 
@@ -52,7 +62,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// create a new url from the raw RequestURI sent by the client
-	url := fmt.Sprintf("https://%s%s", ServiceFabrikURL, req.RequestURI)
+	url := createNewUrl(config.ForwardURL, req)
 	proxyReq, err := http.NewRequest(req.Method, url, bytes.NewReader(body))
 
 	// We may want to filter some headers, otherwise we could just use a shallow copy
@@ -113,12 +123,12 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-
-	if port = os.Getenv("PORT"); len(port) == 0 {
-		port = DefaultPort
+	port := os.Getenv("PORT")
+	if len(port) != 0 {
+		config.port = port
 	}
 	http.HandleFunc("/hello", helloWorld)
 	http.HandleFunc("/info", info)
 	http.HandleFunc("/", redirect)
-	http.ListenAndServe(":"+port, nil)
+	http.ListenAndServe(":"+config.port, nil)
 }
