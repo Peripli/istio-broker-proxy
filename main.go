@@ -1,24 +1,24 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-	"os"
-	"crypto/tls"
-	"io/ioutil"
 	"bytes"
+	"crypto/tls"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"net/http/httputil"
+	"os"
 )
 
 const (
-	DefaultPort = "8080"
+	DefaultPort      = "8080"
 	ServiceFabrikURL = "10.11.252.10:9293/cf"
 )
 
 var (
 	port  string
 	count int
-	log = make([]string, 0)
+	log   = make([]string, 0)
 )
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
@@ -32,12 +32,12 @@ func info(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func parseBody(body []byte) {
+func parseBody(body []byte) []byte {
 
 	// TODO: Parse json and change fields
 	log = append(log, string(body))
+	return body
 }
-
 
 func redirect(w http.ResponseWriter, req *http.Request) {
 	count = count + 1
@@ -52,7 +52,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// create a new url from the raw RequestURI sent by the client
-	url := fmt.Sprintf("https://%s%s",ServiceFabrikURL , req.RequestURI)
+	url := fmt.Sprintf("https://%s%s", ServiceFabrikURL, req.RequestURI)
 	proxyReq, err := http.NewRequest(req.Method, url, bytes.NewReader(body))
 
 	// We may want to filter some headers, otherwise we could just use a shallow copy
@@ -74,17 +74,16 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 	// reassign the body for the dump
 	proxyReq.Body = ioutil.NopCloser(bytes.NewReader(body))
 
-
 	requestDump, err := httputil.DumpRequest(proxyReq, true)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	log = append(log, "Request: " + string(requestDump))
+	log = append(log, "Request: "+string(requestDump))
 
-	defer  func () {
+	defer func() {
 		resp.Body.Close()
-	} ()
+	}()
 
 	for name, values := range resp.Header {
 		w.Header()[name] = values
@@ -109,7 +108,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log = append(log, "Response: " + string(responseDump))
+	log = append(log, "Response: "+string(responseDump))
 
 }
 
