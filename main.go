@@ -83,12 +83,10 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 
 	// reassign the body for the dump
 	proxyReq.Body = ioutil.NopCloser(bytes.NewReader(body))
-
 	requestDump, err := httputil.DumpRequest(proxyReq, true)
 	if err != nil {
 		fmt.Println(err)
 	}
-
 	log = append(log, "Request: "+string(requestDump))
 
 	defer func() {
