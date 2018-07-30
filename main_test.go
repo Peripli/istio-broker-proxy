@@ -12,9 +12,9 @@ import (
 
 func TestParseBody(t *testing.T) {
 
-	testArray := []byte{1,2,3}
+	testArray := []byte{1, 2, 3}
 	got := parseBody(testArray)
-	want := []byte{1,2,3}
+	want := []byte{1, 2, 3}
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got '%v' want '%v'", got, want)
@@ -43,8 +43,8 @@ func TestCreateNewURL(t *testing.T) {
 	const path = "hello"
 
 	t.Run("Test rewrite host", func(t *testing.T) {
-		body := []byte{'{','}'}
-		request, _ := http.NewRequest(http.MethodGet, "https://" + internalHost +"/" + path, bytes.NewReader(body) )
+		body := []byte{'{', '}'}
+		request, _ := http.NewRequest(http.MethodGet, "https://"+internalHost+"/"+path, bytes.NewReader(body))
 		request.Header = make(http.Header)
 		request.Header["accept"] = []string{"application/json"}
 
@@ -57,14 +57,14 @@ func TestCreateNewURL(t *testing.T) {
 	})
 }
 
-func TestRedirect(t *testing.T){
+func TestRedirect(t *testing.T) {
 
 	config.ForwardURL = "httpbin.org"
 
-	t.Run("Check return code of redicected get",func(t *testing.T) {
+	t.Run("Check return code of redicected get", func(t *testing.T) {
 
-		body := []byte{'{','}'}
-		request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/get", bytes.NewReader(body) )
+		body := []byte{'{', '}'}
+		request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/get", bytes.NewReader(body))
 		request.Header = make(http.Header)
 		request.Header["accept"] = []string{"application/json"}
 
@@ -78,9 +78,9 @@ func TestRedirect(t *testing.T){
 		}
 	})
 
-	t.Run("Check URL in response",func(t *testing.T) {
-		body := []byte{'{','}'}
-		request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/get", bytes.NewReader(body) )
+	t.Run("Check URL in response", func(t *testing.T) {
+		body := []byte{'{', '}'}
+		request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/get", bytes.NewReader(body))
 		request.Header = make(http.Header)
 		request.Header["accept"] = []string{"application/json"}
 		//request.
@@ -105,13 +105,13 @@ func TestRedirect(t *testing.T){
 		}
 	})
 
-	t.Run("Check that headers are forwarded",func(t *testing.T) {
+	t.Run("Check that headers are forwarded", func(t *testing.T) {
 
 		const testHeaderKey = "X-Broker-Api-Version"
 		const testHeaderValue = "2.13"
 
-		body := []byte{'{','}'}
-		request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/headers", bytes.NewReader(body) )
+		body := []byte{'{', '}'}
+		request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/headers", bytes.NewReader(body))
 		request.Header = make(http.Header)
 		request.Header.Set("accept", "application/json")
 		request.Header.Set(testHeaderKey, testHeaderValue)
@@ -139,6 +139,37 @@ func TestRedirect(t *testing.T){
 		if got != want {
 			t.Errorf("got '%s', want '%s'", got, want)
 		}
+	})
+
+	t.Run("Check that the request body is forwarded", func(t *testing.T) {
+
+		body := []byte(`{"service_id":"6db542eb-8187-4afc-8a85-e08b4a3cc24e","plan_id":"c3320e0f-5866-4f14-895e-48bc92a4245c"}`)
+		request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/put", bytes.NewReader(body))
+		request.Header = make(http.Header)
+		request.Header.Set("accept", "application/json")
+		request.Header.Set("'Content-Type", "application/json")
+
+		//request.
+		response := httptest.NewRecorder()
+		redirect(response, request)
+
+		var bodyData struct {
+			JSON map[string]string `json:"json"`
+		}
+
+		err := json.NewDecoder(response.Body).Decode(&bodyData)
+		if err != nil {
+			fmt.Printf("%v", response.Body)
+			panic(err)
+		}
+
+		want := "6db542eb-8187-4afc-8a85-e08b4a3cc24e"
+
+		got := bodyData.JSON["service_id"]
+		if got != want {
+			t.Errorf("got '%s', want '%s'", got, want)
+		}
+
 	})
 
 }

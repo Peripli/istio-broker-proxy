@@ -39,11 +39,9 @@ func info(w http.ResponseWriter, r *http.Request) {
 
 func parseBody(body []byte) []byte {
 
-	// TODO: Parse json and change fields
-	log = append(log, string(body))
+	// we can parse json and change fields here.
 	return body
 }
-
 
 func createNewUrl(newHost string, req *http.Request) (string) {
 	return fmt.Sprintf("https://%s%s", newHost, req.URL.Path)
