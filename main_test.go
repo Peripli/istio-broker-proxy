@@ -55,6 +55,20 @@ func TestCreateNewURL(t *testing.T) {
 			t.Errorf("got '%s', want '%s'", got, want)
 		}
 	})
+
+	t.Run("Test rewrite host with parameter", func(t *testing.T) {
+		body := []byte{'{', '}'}
+		request, _ := http.NewRequest(http.MethodGet, "https://"+internalHost+"/"+path+"?debug=true", bytes.NewReader(body))
+		request.Header = make(http.Header)
+		request.Header["accept"] = []string{"application/json"}
+
+		got := createNewUrl(externalURL, request)
+		want := "https://" + externalURL + "/" + path + "?debug=true"
+
+		if got != want {
+			t.Errorf("got '%s', want '%s'", got, want)
+		}
+	})
 }
 
 func TestRedirect(t *testing.T) {

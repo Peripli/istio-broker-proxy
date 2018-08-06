@@ -44,7 +44,14 @@ func parseBody(body []byte) []byte {
 }
 
 func createNewUrl(newHost string, req *http.Request) string {
-	return fmt.Sprintf("https://%s%s?%s", newHost, req.URL.Path,req.URL.RawQuery)
+
+	url := fmt.Sprintf("https://%s%s", newHost, req.URL.Path)
+
+	if req.URL.RawQuery != "" {
+		url = fmt.Sprintf("%s?%s", url, req.URL.RawQuery)
+	}
+
+	return url
 }
 
 func redirect(w http.ResponseWriter, req *http.Request) {
