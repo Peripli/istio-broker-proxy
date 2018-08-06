@@ -141,7 +141,7 @@ func TestRedirect(t *testing.T) {
 		}
 	})
 
-	t.Run("Check that the request body is forwarded", func(t *testing.T) {
+	t.Run("Check that the request body is forwarded for PUT", func(t *testing.T) {
 
 		body := []byte(`{"service_id":"6db542eb-8187-4afc-8a85-e08b4a3cc24e","plan_id":"c3320e0f-5866-4f14-895e-48bc92a4245c"}`)
 		request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/put", bytes.NewReader(body))
@@ -161,6 +161,36 @@ func TestRedirect(t *testing.T) {
 		if err != nil {
 			fmt.Printf("%v", response.Body)
 			panic(err)
+		}
+
+		want := "6db542eb-8187-4afc-8a85-e08b4a3cc24e"
+
+		got := bodyData.JSON["service_id"]
+		if got != want {
+			t.Errorf("got '%s', want '%s'", got, want)
+		}
+
+	})
+
+	t.Run("Check that the request body is forwarded for DELETE", func(t *testing.T) {
+
+		body := []byte(`{"service_id":"6db542eb-8187-4afc-8a85-e08b4a3cc24e","plan_id":"c3320e0f-5866-4f14-895e-48bc92a4245c"}`)
+		request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/delete", bytes.NewReader(body))
+		request.Header = make(http.Header)
+		request.Header.Set("accept", "application/json")
+		request.Header.Set("'Content-Type", "application/json")
+
+		//request.
+		response := httptest.NewRecorder()
+		redirect(response, request)
+
+		var bodyData struct {
+			JSON map[string]string `json:"json"`
+		}
+
+		err := json.NewDecoder(response.Body).Decode(&bodyData)
+		if err != nil {
+			t.Errorf("error while parsing body: %s", response.Body)
 		}
 
 		want := "6db542eb-8187-4afc-8a85-e08b4a3cc24e"

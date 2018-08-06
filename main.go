@@ -17,13 +17,13 @@ const (
 
 type ProxyConfig struct {
 	ForwardURL string
-	port string
+	port       string
 }
 
 var (
 	config = ProxyConfig{ServiceFabrikURL, DefaultPort}
-	count int
-	log   = make([]string, 0)
+	count  int
+	log    = make([]string, 0)
 )
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +43,7 @@ func parseBody(body []byte) []byte {
 	return body
 }
 
-func createNewUrl(newHost string, req *http.Request) (string) {
+func createNewUrl(newHost string, req *http.Request) string {
 	return fmt.Sprintf("https://%s%s", newHost, req.URL.Path)
 }
 
@@ -58,6 +58,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	log = append(log, "Received: "+string(body))
 
 	// create a new url from the raw RequestURI sent by the client
 	url := createNewUrl(config.ForwardURL, req)
