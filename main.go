@@ -22,16 +22,10 @@ type ProxyConfig struct {
 
 var (
 	config = ProxyConfig{ServiceFabrikURL, DefaultPort}
-	count  int
 	log    = make([]string, 0)
 )
 
-func helloWorld(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello World")
-}
-
 func info(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "info: %d\n", count)
 	for _, line := range log {
 		fmt.Fprintf(w, "%s\n\n", line)
 	}
@@ -55,11 +49,8 @@ func createNewUrl(newHost string, req *http.Request) string {
 }
 
 func redirect(w http.ResponseWriter, req *http.Request) {
-	count = count + 1
-
 	// we need to buffer the body if we want to read it here and send it
 	// in the request.
-
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -91,7 +82,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 	proxyReq.Body = ioutil.NopCloser(bytes.NewReader(body))
 	requestDump, err := httputil.DumpRequest(proxyReq, true)
 	if err != nil {
-		fmt.Println(err)
+		log = append(log, err.Error())
 	}
 	log = append(log, "Request: "+string(requestDump))
 
@@ -118,8 +109,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 	resp.Body = ioutil.NopCloser(bytes.NewReader(body))
 	responseDump, err := httputil.DumpResponse(resp, true)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		log = append(log, err.Error())
 	}
 
 	log = append(log, "Response: "+string(responseDump))
@@ -131,7 +121,6 @@ func main() {
 	if len(port) != 0 {
 		config.port = port
 	}
-	http.HandleFunc("/hello", helloWorld)
 	http.HandleFunc("/info", info)
 	http.HandleFunc("/", redirect)
 	http.ListenAndServe(":"+config.port, nil)

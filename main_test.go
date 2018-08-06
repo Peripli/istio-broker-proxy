@@ -21,19 +21,33 @@ func TestParseBody(t *testing.T) {
 	}
 }
 
-func TestHelloWorld(t *testing.T) {
-	t.Run("Test hello handler", func(t *testing.T) {
+func TestInitialInfo(t *testing.T) {
+	request, _ := http.NewRequest(http.MethodGet, "/notused", nil)
+	response := httptest.NewRecorder()
+	info(response, request)
+	got := response.Body.String()
+	want := ""
 
-		request, _ := http.NewRequest(http.MethodGet, "/hello", nil)
-		response := httptest.NewRecorder()
-		helloWorld(response, request)
-		got := response.Body.String()
-		want := "Hello World"
+	if got != want {
+		t.Errorf("got '%s', want '%s'", got, want)
+	}
+}
 
-		if got != want {
-			t.Errorf("got '%s', want '%s'", got, want)
-		}
-	})
+func TestInfoAfterRequest(t *testing.T) {
+	config.ForwardURL = "doesntexist.org"
+	body := []byte{'{', '}'}
+	request, _ := http.NewRequest(http.MethodGet, "/anything", bytes.NewReader(body))
+	response := httptest.NewRecorder()
+	redirect(response, request)
+
+	request2, _ := http.NewRequest(http.MethodGet, "/notused", nil)
+	response2 := httptest.NewRecorder()
+	info(response2, request2)
+	length := len(response2.Body.String())
+
+	if length == 0 {
+		t.Errorf("got no info")
+	}
 }
 
 func TestCreateNewURL(t *testing.T) {
@@ -92,6 +106,23 @@ func TestRedirect(t *testing.T) {
 		}
 	})
 
+	t.Run("Check return code of redirected get with error code", func(t *testing.T) {
+
+		body := []byte{'{', '}'}
+		request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/status/503", bytes.NewReader(body))
+		request.Header = make(http.Header)
+		request.Header["accept"] = []string{"application/json"}
+
+		response := httptest.NewRecorder()
+		redirect(response, request)
+		want := 503
+		got := response.Code
+
+		if got != want {
+			t.Errorf("got '%d', want '%d'", got, want)
+		}
+	})
+
 	t.Run("Check URL in response", func(t *testing.T) {
 		body := []byte{'{', '}'}
 		request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/get", bytes.NewReader(body))
@@ -130,7 +161,6 @@ func TestRedirect(t *testing.T) {
 		request.Header.Set("accept", "application/json")
 		request.Header.Set(testHeaderKey, testHeaderValue)
 
-		//request.
 		response := httptest.NewRecorder()
 		redirect(response, request)
 
@@ -143,10 +173,6 @@ func TestRedirect(t *testing.T) {
 			fmt.Printf("%v", response.Body)
 			panic(err)
 		}
-
-		// can't check the length as I get more header fields back as explicitly set.
-		// want := len(request.Header)
-		// got := len(bodyData.Headers)
 
 		want := request.Header.Get(testHeaderKey)
 		got := bodyData.Headers[testHeaderKey]
@@ -212,4 +238,23 @@ func TestRedirect(t *testing.T) {
 
 	})
 
+}
+
+func TestBadGateway(t *testing.T) {
+
+	config.ForwardURL = "doesntexist.org"
+
+	body := []byte{'{', '}'}
+	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/get", bytes.NewReader(body))
+	request.Header = make(http.Header)
+	request.Header["accept"] = []string{"application/json"}
+
+	response := httptest.NewRecorder()
+	redirect(response, request)
+	want := 502
+	got := response.Code
+
+	if got != want {
+		t.Errorf("got '%d', want '%d'", got, want)
+	}
 }
