@@ -1,13 +1,13 @@
 package main
 
 import (
-	"testing"
-	"reflect"
-	"net/http"
-	"net/http/httptest"
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"reflect"
+	"testing"
 )
 
 func TestParseBody(t *testing.T) {
@@ -61,7 +61,7 @@ func TestRedirect(t *testing.T) {
 
 	config.ForwardURL = "httpbin.org"
 
-	t.Run("Check return code of redicected get", func(t *testing.T) {
+	t.Run("Check return code of redirected get", func(t *testing.T) {
 
 		body := []byte{'{', '}'}
 		request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/get", bytes.NewReader(body))
@@ -149,7 +149,6 @@ func TestRedirect(t *testing.T) {
 		request.Header.Set("accept", "application/json")
 		request.Header.Set("'Content-Type", "application/json")
 
-		//request.
 		response := httptest.NewRecorder()
 		redirect(response, request)
 
@@ -172,32 +171,29 @@ func TestRedirect(t *testing.T) {
 
 	})
 
-	t.Run("Check that the request body is forwarded for DELETE", func(t *testing.T) {
+	t.Run("Check that the request param is forwarded for DELETE", func(t *testing.T) {
 
-		body := []byte(`{"service_id":"6db542eb-8187-4afc-8a85-e08b4a3cc24e","plan_id":"c3320e0f-5866-4f14-895e-48bc92a4245c"}`)
-		request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/delete", bytes.NewReader(body))
+		body := []byte(`{}`)
+		expectedPlan := "myplan"
+		request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/delete?plan_id="+expectedPlan, bytes.NewReader(body))
 		request.Header = make(http.Header)
 		request.Header.Set("accept", "application/json")
 		request.Header.Set("'Content-Type", "application/json")
 
-		//request.
 		response := httptest.NewRecorder()
 		redirect(response, request)
 
 		var bodyData struct {
-			JSON map[string]string `json:"json"`
+			ARGS map[string]string `json:"args"`
 		}
 
 		err := json.NewDecoder(response.Body).Decode(&bodyData)
 		if err != nil {
-			t.Errorf("error while parsing body: %s", response.Body)
+			t.Errorf("error while parsing json")
 		}
 
-		want := "6db542eb-8187-4afc-8a85-e08b4a3cc24e"
-
-		got := bodyData.JSON["service_id"]
-		if got != want {
-			t.Errorf("got '%s', want '%s'", got, want)
+		if bodyData.ARGS["plan_id"] != expectedPlan {
+			t.Errorf("expected %s, actual %s", expectedPlan, bodyData.ARGS["plan_id"])
 		}
 
 	})
