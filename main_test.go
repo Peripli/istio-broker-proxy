@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -156,7 +155,6 @@ func TestRedirect(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/get", bytes.NewReader(body))
 		request.Header = make(http.Header)
 		request.Header["accept"] = []string{"application/json"}
-		//request.
 		response := httptest.NewRecorder()
 		redirect(response, request)
 
@@ -168,7 +166,8 @@ func TestRedirect(t *testing.T) {
 
 		err := json.NewDecoder(response.Body).Decode(&bodyData)
 		if err != nil {
-			panic(err)
+			t.Errorf("error while decoding body: %s (%v)", err.Error(), response.Body)
+			return
 		}
 
 		got := bodyData.URL
@@ -198,8 +197,8 @@ func TestRedirect(t *testing.T) {
 
 		err := json.NewDecoder(response.Body).Decode(&bodyData)
 		if err != nil {
-			fmt.Printf("%v", response.Body)
-			panic(err)
+			t.Errorf("error while decoding body: %s (%v)", err.Error(), response.Body)
+			return
 		}
 
 		want := request.Header.Get(testHeaderKey)
@@ -226,8 +225,8 @@ func TestRedirect(t *testing.T) {
 
 		err := json.NewDecoder(response.Body).Decode(&bodyData)
 		if err != nil {
-			fmt.Printf("%v", response.Body)
-			panic(err)
+			t.Errorf("error while decoding body: %s (%v)", err.Error(), response.Body)
+			return
 		}
 
 		want := "6db542eb-8187-4afc-8a85-e08b4a3cc24e"
