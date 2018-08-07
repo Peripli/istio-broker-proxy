@@ -40,27 +40,30 @@ func TestRejectInvalidJson(t *testing.T) {
 func TestRejectRequestWithoutCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
 	g.Expect(IsValidUpdateRequestBody(`{
-   "endpoint_mappings": [{
-   	"source": {"host": "mysqlhost", "port": 3306},
-       "target": {"host": "appnethost", "port": 9876}
-	}]
+   "endpoint_mappings": [{ "source":{"host":"a", "port":1}, "target":{"host":"b", "port":2}}]
+}`)).To(BeFalse())
+}
+
+func TestRejectRequestWithEmptyCredentials(t *testing.T) {
+	g := NewGomegaWithT(t)
+	g.Expect(IsValidUpdateRequestBody(`{
+    "credentials": {},
+    "endpoint_mappings": [{ "source":{"host":"a", "port":1}, "target":{"host":"b", "port":2}}]
 }`)).To(BeFalse())
 }
 
 func TestRejectRequestWithoutEndpointMappings(t *testing.T) {
 	g := NewGomegaWithT(t)
 	g.Expect(IsValidUpdateRequestBody(`{
-    "credentials": {
- "dbname": "yLO2WoE0-mCcEppn",
- "hostname": "10.11.241.0",
- "password": "<redacted>",
- "port": "47637",
- "ports": {
-  "5432/tcp": "47637"
- },
- "uri": "postgres://mma4G8N0isoxe17v:<redacted>@10.11.241.0:47637/yLO2WoE0-mCcEppn",
- "username": "mma4G8N0isoxe17v"
+    "credentials": { "hostname": "c",  "port": "1", "uri": "postgres://a:b@c:1/d"}
+}`)).To(BeFalse())
 }
+
+func TestRejectRequestWithEmptyEndpointMappings(t *testing.T) {
+	g := NewGomegaWithT(t)
+	g.Expect(IsValidUpdateRequestBody(`{
+    "credentials": { "hostname": "c",  "port": "1", "uri": "postgres://a:b@c:1/d"},
+    "endpoint_mappings": [{}]
 }`)).To(BeFalse())
 }
 
