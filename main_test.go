@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"testing"
-	"os"
 )
 
 func TestParseBody(t *testing.T) {
@@ -53,9 +53,9 @@ func TestInfoAfterRequest(t *testing.T) {
 }
 
 func TestDefaultPortUsed(t *testing.T) {
-    expectedPort := DefaultPort
+	expectedPort := DefaultPort
 
-    readPort()
+	readPort()
 
 	if config.port != expectedPort {
 		t.Errorf("wrong port: %s", config.port)
