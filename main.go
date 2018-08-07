@@ -31,10 +31,10 @@ func info(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func parseBody(body []byte) []byte {
+func translateBody(originalRequest *http.Request, responseBody []byte) []byte {
 
 	// we can parse json and change fields here.
-	return body
+	return responseBody
 }
 
 func createNewUrl(newHost string, req *http.Request) string {
@@ -101,7 +101,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	body = parseBody(body)
+	body = translateBody(req, body)
 
 	w.Write(body)
 

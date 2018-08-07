@@ -13,9 +13,10 @@ import (
 
 func TestParseBody(t *testing.T) {
 
-	testArray := []byte{1, 2, 3}
-	got := parseBody(testArray)
-	want := []byte{1, 2, 3}
+	dummyBody := []byte{1, 2, 3}
+	request, _ := http.NewRequest(http.MethodGet, "/notused", nil)
+	got := translateBody(request, dummyBody)
+	want := dummyBody
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got '%v' want '%v'", got, want)
