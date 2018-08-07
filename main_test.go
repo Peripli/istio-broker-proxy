@@ -166,8 +166,7 @@ func TestRedirect(t *testing.T) {
 
 		err := json.NewDecoder(response.Body).Decode(&bodyData)
 		if err != nil {
-			t.Errorf("error while decoding body: %s (%v)", err.Error(), response.Body)
-			return
+			t.Fatalf("error while decoding body: %s (%v)", err.Error(), response.Body)
 		}
 
 		got := bodyData.URL
@@ -197,8 +196,7 @@ func TestRedirect(t *testing.T) {
 
 		err := json.NewDecoder(response.Body).Decode(&bodyData)
 		if err != nil {
-			t.Errorf("error while decoding body: %s (%v)", err.Error(), response.Body)
-			return
+			t.Fatalf("error while decoding body: %s (%v)", err.Error(), response.Body)
 		}
 
 		want := request.Header.Get(testHeaderKey)
@@ -225,8 +223,7 @@ func TestRedirect(t *testing.T) {
 
 		err := json.NewDecoder(response.Body).Decode(&bodyData)
 		if err != nil {
-			t.Errorf("error while decoding body: %s (%v)", err.Error(), response.Body)
-			return
+			t.Fatalf("error while decoding body: %s (%v)", err.Error(), response.Body)
 		}
 
 		want := "6db542eb-8187-4afc-8a85-e08b4a3cc24e"
@@ -256,7 +253,7 @@ func TestRedirect(t *testing.T) {
 
 		err := json.NewDecoder(response.Body).Decode(&bodyData)
 		if err != nil {
-			t.Errorf("error while parsing json")
+			t.Fatalf("error while decoding body: %s (%v)", err.Error(), response.Body)
 		}
 
 		if bodyData.ARGS["plan_id"] != expectedPlan {
