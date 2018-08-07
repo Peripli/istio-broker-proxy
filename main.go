@@ -101,7 +101,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	parseBody(body)
+	body = parseBody(body)
 
 	w.Write(body)
 
@@ -116,11 +116,17 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 
 }
 
-func main() {
+func readPort() {
 	port := os.Getenv("PORT")
 	if len(port) != 0 {
 		config.port = port
+	} else {
+		config.port = DefaultPort
 	}
+}
+
+func main() {
+	readPort()
 	http.HandleFunc("/info", info)
 	http.HandleFunc("/", redirect)
 	http.ListenAndServe(":"+config.port, nil)

@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+	"os"
 )
 
 func TestParseBody(t *testing.T) {
@@ -47,6 +48,32 @@ func TestInfoAfterRequest(t *testing.T) {
 
 	if length == 0 {
 		t.Errorf("got no info")
+	}
+}
+
+func TestDefaultPortUsed(t *testing.T) {
+    expectedPort := DefaultPort
+
+    readPort()
+
+	if config.port != expectedPort {
+		t.Errorf("wrong port: %s", config.port)
+	}
+}
+
+func TestCustomPortUsed(t *testing.T) {
+	oldPort := os.Getenv("PORT")
+	defer func() {
+		os.Setenv("PORT", oldPort)
+	}()
+
+	expectedPort := "1234"
+	os.Setenv("PORT", expectedPort)
+
+	readPort()
+
+	if config.port != expectedPort {
+		t.Errorf("wrong port: %s", config.port)
 	}
 }
 
