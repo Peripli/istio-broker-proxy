@@ -6,21 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"reflect"
 	"testing"
 )
-
-func TestParseBody(t *testing.T) {
-
-	dummyBody := []byte{1, 2, 3}
-	request, _ := http.NewRequest(http.MethodGet, "/notused", nil)
-	got := translateBody(request, dummyBody)
-	want := dummyBody
-
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got '%v' want '%v'", got, want)
-	}
-}
 
 func TestInitialInfo(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodGet, "/notused", nil)

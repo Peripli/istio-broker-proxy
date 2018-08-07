@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
 )
 
 const (
@@ -31,10 +32,9 @@ func info(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func translateBody(originalRequest *http.Request, responseBody []byte) []byte {
-
-	// we can parse json and change fields here.
-	return responseBody
+func translateBody(originalRequest *http.Request, responseBody []byte) ([]byte, error) {
+	newBody, err := endpoints.GenerateEndpoint(responseBody)
+	return newBody, err
 }
 
 func createNewUrl(newHost string, req *http.Request) string {
@@ -101,7 +101,11 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	body = translateBody(req, body)
+	body, err = translateBody(req, body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	w.Write(body)
 
