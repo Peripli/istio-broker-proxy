@@ -87,6 +87,21 @@ func TestRealWorldExample(t *testing.T) {
 	g.Expect(actualHost).To(Equal("10.11.241.0"))
 }
 
+func TestHaPostgresExample(t *testing.T) {
+	g := NewGomegaWithT(t)
+	body := [] byte(`{"credentials":{"dbname":"e2b91324e12361f3eaeb35fe570efe1d","end_points":[{"host":"10.11.19.245","network_id":"SF","port":5432},{"host":"10.11.19.240","network_id":"SF","port":5432},{"host":"10.11.19.241","network_id":"SF","port":5432}],"hostname":"10.11.19.245","password":"c00132ea8771e16c8aecc9a7b819f91c","port":"5432","read_url":"jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=preferSlave\u0026loadBalanceHosts=true","uri":"postgres://0d158137ea834372c7f7f53036b1faf6:c00132ea8771e16c8aecc9a7b819f91c@10.11.19.245:5432/e2b91324e12361f3eaeb35fe570efe1d","username":"0d158137ea834372c7f7f53036b1faf6","write_url":"jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master"}}`)
+	newBody, err := GenerateEndpoint(body)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	result := parseResponseData(newBody, t)
+	g.Expect(result.Endpoints).To(HaveLen(1))
+	actualPort := result.Endpoints[0]["port"]
+	g.Expect(actualPort).To(Equal("5432"))
+	actualHost := result.Endpoints[0]["hostname"]
+	g.Expect(actualHost).To(Equal("10.11.19.245"))
+
+}
+
 func TestIgnoreBlueprintService(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte(`{"credentials":{"hostname":"10.11.241.0","ports":{"8080/tcp":"47818"},"port":"47818","username":"Oqkg-yyjb5Hv_0jJ","password":"vPGsyx0RjNWQ06dF","uri":"http://Oqkg-yyjb5Hv_0jJ:vPGsyx0RjNWQ06dF@10.11.241.0:47818"}}`)
