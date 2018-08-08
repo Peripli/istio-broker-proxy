@@ -53,7 +53,7 @@ const (
  "write_url": "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master"
   },
     "endpoint_mappings": [{
-        "source": {"host": "mysqlhost", "port": 3306},
+        "source": {"host": "10.11.19.245", "port": 5432},
         "target": {"host": "appnethost", "port": 9876}
 	}]
 }`
@@ -104,6 +104,12 @@ func TestRejectRequestWithEmptyEndpointMappings(t *testing.T) {
 	g := NewGomegaWithT(t)
 	g.Expect(isValidUpdateRequestBody(`{ "credentials": ` + minimalValidCredentials +
 		`, "endpoint_mappings": [{}] }`)).To(BeFalse())
+}
+
+func TestRejectRequestWithNonMatchingEndpointMappings(t *testing.T) {
+	g := NewGomegaWithT(t)
+	g.Expect(isValidUpdateRequestBody(`{ "credentials": ` + minimalValidCredentials +
+		`, "endpoint_mappings": ` + minimalValidEndpointMappings + ` }`)).To(BeFalse())
 }
 
 func TestAcceptCredentialsFromBLI(t *testing.T) {
@@ -162,7 +168,7 @@ func TestRejectEndpointMappingNoArray(t *testing.T) {
 }`)).To(BeFalse())
 }
 
-func TestAcceptEmptyEndpointMapping(t *testing.T) {
+func TestRejectEmptyEndpointMapping(t *testing.T) {
 	g := NewGomegaWithT(t)
 	g.Expect(isValidUpdateRequestBody(`{
     "credentials": ` + minimalValidCredentials + `,
@@ -176,6 +182,14 @@ func TestAcceptMinimalNonEmptyEndpointMappings(t *testing.T) {
 	json.Unmarshal([]byte(minimalValidEndpointMappings), &validEndpointMappings)
 	g.Expect(isValidEndpointMappings(validEndpointMappings)).To(BeTrue())
 }
+
+func TestRejectTwoEndpointMappings(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var validEndpointMappings []interface{}
+	json.Unmarshal([]byte(`[` + minimalValidEndpointMapping + `,` + minimalValidEndpointMapping + `]`), &validEndpointMappings)
+	g.Expect(isValidEndpointMappings(validEndpointMappings)).To(BeFalse())
+}
+
 
 func TestRejectIncompleteEndpointMapping(t *testing.T) {
 	g := NewGomegaWithT(t)

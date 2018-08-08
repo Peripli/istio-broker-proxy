@@ -18,14 +18,6 @@ func expected() string {
 	return expectedBuilder.build()
 }
 
-func TestHostAndPortDoNotMatchCredentials(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	actualBuilder.setHostPort("a", "1").setEndpointMapping("nota", "2", "nota", "3")
-
-	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialsAs(actual()))
-}
-
 func TestHostIsChanged(t *testing.T) {
 	g := NewGomegaWithT(t)
 
@@ -40,16 +32,6 @@ func TestHostIsChangedToAnotherValue(t *testing.T) {
 
 	actualBuilder.setHostPort("a", "2").setEndpointMapping("a", "2", "myhost", "2")
 	expectedBuilder.setHostPort("myhost", "")
-
-	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "hostname"))
-}
-
-func TestHostIsChangedWithSecondMapping(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	actualBuilder.setHostPort("a", "1").setEndpointMapping("xxx", "3", "unused", "2").
-		addEndpointMapping("a", "1", "yourhost", "2")
-	expectedBuilder.setHostPort("yourhost", "")
 
 	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "hostname"))
 }
@@ -78,15 +60,6 @@ func TestPortIsChanged(t *testing.T) {
 
 	actualBuilder.setHostPort("a", "1").setEndpointMapping("a", "1", "b", "2")
 	expectedBuilder.setHostPort("b", "2")
-
-	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "port"))
-}
-
-func TestPortIsUnChanged(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	actualBuilder.setHostPort("a", "1").setEndpointMapping("a", "2", "a", "4")
-	expectedBuilder.setHostPort("a", "1")
 
 	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "port"))
 }

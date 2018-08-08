@@ -25,14 +25,21 @@ func isValidUpdateRequestBody(request string) bool {
 	if !isValidCredentials(credentials) {
 		return false
 	}
-	return isValidEndpointMappings(topLevelJson["endpoint_mappings"])
+	endpointMappings := topLevelJson["endpoint_mappings"]
+	if !isValidEndpointMappings(endpointMappings) {
+		return false
+	}
+	if !shouldApply(toStringMap(toStringMap(endpointMappings.([]interface{})[0])["source"]), credentials) {
+		return false
+	}
+	return true
 }
 
 func isValidEndpointMappings(endpointMappings interface{}) bool {
 	switch endpointMappings.(type) {
 	case []interface{}:
-		if len(endpointMappings.([]interface{})) < 1 {
-			fmt.Fprintf(os.Stderr, "Field \"%s\", must contain at least one mapping.\n", "endpoint_mappings")
+		if len(endpointMappings.([]interface{})) != 1 {
+			fmt.Fprintf(os.Stderr, "Field \"%s\", must contain exactly one mapping.\n", "endpoint_mappings")
 			return false
 		}
 		for _, value := range endpointMappings.([]interface{}) {
@@ -85,4 +92,10 @@ func hasField(jsonMap map[string]interface{}, fieldName string) bool {
 		return false
 	}
 	return true
+}
+
+func shouldApply(source map[string]interface{}, credentials map[string]interface{}) bool {
+	sourcePort := fmt.Sprintf("%v", source["port"])
+	credentialsPort := fmt.Sprintf("%v", credentials["port"])
+	return source["host"] == credentials["hostname"] && sourcePort == credentialsPort
 }

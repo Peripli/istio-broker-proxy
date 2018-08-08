@@ -21,26 +21,15 @@ func toStringMap(untyped interface{}) map[string]interface{} {
 }
 
 func applyMappings(endpointMappings []interface{}, credentials map[string]interface{}) {
-	for _, endpointMappingUntyped := range endpointMappings {
-		endpointMapping := toStringMap(endpointMappingUntyped)
-		if shouldApply(toStringMap(endpointMapping["source"]), credentials) {
-			target := toStringMap(endpointMapping["target"])
-			credentials["hostname"] = target["host"]
-			credentials["port"] = target["port"]
-			credentials["uri"] = applyOnUri(credentials["uri"].(string), target["host"], target["port"])
-			break
-		}
-	}
+	endpointMapping := toStringMap(endpointMappings[0])
+	target := toStringMap(endpointMapping["target"])
+	credentials["hostname"] = target["host"]
+	credentials["port"] = target["port"]
+	credentials["uri"] = applyOnUri(credentials["uri"].(string), target["host"], target["port"])
 }
 
 func applyOnUri(uri string, host interface{}, port interface{}) string {
 	parsedUrl, _ := url.Parse(uri)
 	parsedUrl.Host = fmt.Sprintf("%v:%v", host, port)
 	return fmt.Sprintf("%v", parsedUrl)
-}
-
-func shouldApply(source map[string]interface{}, credentials map[string]interface{}) bool {
-	sourcePort := fmt.Sprintf("%v", source["port"])
-	credentialsPort := fmt.Sprintf("%v", credentials["port"])
-	return source["host"] == credentials["hostname"] && sourcePort == credentialsPort
 }
