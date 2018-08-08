@@ -6,17 +6,21 @@ import (
 	"strings"
 )
 
+const KEY_URI string = "uri"
+const KEY_HOSTNAME string = "hostname"
+const KEY_PORT string = "port"
+
 type responseData struct {
 	Credentials map[string]interface{} `json:"credentials"`
 	Endpoints   []map[string]string    `json:"endpoints"`
 }
 
 func isPostgres(data responseData) bool {
-	if data.Credentials["uri"] == nil {
+	if data.Credentials[KEY_URI] == nil {
 		return false
 	}
 
-	uri := data.Credentials["uri"].(string)
+	uri := data.Credentials[KEY_URI].(string)
 	isPostgres := strings.HasPrefix(uri, "postgres://")
 	return isPostgres
 }
@@ -38,9 +42,10 @@ func GenerateEndpoint(data []byte) ([]byte, error) {
 
 func generateEndpointForPostgres(input responseData) ([]byte, error) {
 	endpoint := make(map[string]string)
-	endpoint["port"] = input.Credentials["port"].(string)
-	endpoint["hostname"] = input.Credentials["hostname"].(string)
+	endpoint[KEY_PORT] = input.Credentials[KEY_PORT].(string)
+	endpoint[KEY_HOSTNAME] = input.Credentials[KEY_HOSTNAME].(string)
 	input.Endpoints = append(input.Endpoints, endpoint)
+
 	jsonResult, err := json.Marshal(input)
 	return jsonResult, err
 }
