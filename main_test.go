@@ -140,7 +140,7 @@ func TestRedirect(t *testing.T) {
 		}
 
 		err := json.NewDecoder(response.Body).Decode(&bodyData)
-		g.Expect(err).NotTo(HaveOccurred(),"error while decoding body: %v ", response.Body)
+		g.Expect(err).NotTo(HaveOccurred(), "error while decoding body: %v ", response.Body)
 
 		got := bodyData.URL
 		want := "https://" + config.ForwardURL + "/get"
@@ -166,7 +166,7 @@ func TestRedirect(t *testing.T) {
 		}
 
 		err := json.NewDecoder(response.Body).Decode(&bodyData)
-		g.Expect(err).NotTo(HaveOccurred(),"error while decoding body: %v ", response.Body)
+		g.Expect(err).NotTo(HaveOccurred(), "error while decoding body: %v ", response.Body)
 
 		got := bodyData.Headers[testHeaderKey]
 
@@ -190,7 +190,7 @@ func TestRedirect(t *testing.T) {
 		}
 
 		err := json.NewDecoder(response.Body).Decode(&bodyData)
-		g.Expect(err).NotTo(HaveOccurred(),"error while decoding body: %v ", response.Body)
+		g.Expect(err).NotTo(HaveOccurred(), "error while decoding body: %v ", response.Body)
 
 		got := bodyData.Json["service_id"]
 
@@ -215,7 +215,7 @@ func TestRedirect(t *testing.T) {
 		}
 
 		err := json.NewDecoder(response.Body).Decode(&bodyData)
-		g.Expect(err).NotTo(HaveOccurred(),"error while decoding body: %v ", response.Body)
+		g.Expect(err).NotTo(HaveOccurred(), "error while decoding body: %v ", response.Body)
 
 		g.Expect(bodyData.Args["plan_id"]).To(Equal(expectedPlan))
 	})

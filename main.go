@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"os"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
 )
 
 const (
