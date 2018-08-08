@@ -1,198 +1,150 @@
 package credentials
 
 import (
-	"encoding/json"
 	. "github.com/onsi/gomega"
 	"testing"
 )
 
-const (
-	exampleRequest = `{
-    "credentials": {
- "dbname": "yLO2WoE0-mCcEppn",
- "hostname": "10.11.241.0",
- "password": "<redacted>",
- "port": "47637",
- "ports": {
-  "5432/tcp": "47637"
- },
- "uri": "postgres://mma4G8N0isoxe17v:<redacted>@10.11.241.0:47637/yLO2WoE0-mCcEppn",
- "username": "mma4G8N0isoxe17v"
-},
-    "endpoint_mappings": [{
-    	"source": {"host": "mysqlhost", "port": 3306},
-        "target": {"host": "appnethost", "port": 9876}
-	}]
-}`
-	exampleRequestHaPostgres = `{
-    "credentials": {
- "dbname": "e2b91324e12361f3eaeb35fe570efe1d",
- "end_points": [
-  {
-   "host": "10.11.19.245",
-   "network_id": "SF",
-   "port": 5432
-  },
-  {
-   "host": "10.11.19.240",
-   "network_id": "SF",
-   "port": 5432
-  },
-  {
-   "host": "10.11.19.241",
-   "network_id": "SF",
-   "port": 5432
-  }
- ],
- "hostname": "10.11.19.245",
- "password": "c00132ea8771e16c8aecc9a7b819f91c",
- "port": "5432",
- "read_url": "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=preferSlave\u0026loadBalanceHosts=true",
- "uri": "postgres://0d158137ea834372c7f7f53036b1faf6:c00132ea8771e16c8aecc9a7b819f91c@10.11.19.245:5432/e2b91324e12361f3eaeb35fe570efe1d",
- "username": "0d158137ea834372c7f7f53036b1faf6",
- "write_url": "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master"
-  },
-    "endpoint_mappings": [{
-        "source": {"host": "mysqlhost", "port": 3306},
-        "target": {"host": "appnethost", "port": 9876}
-	}]
-}`
-	minimalValidEndpointMapping  = `{ "source":{"host":"a", "port":1}, "target":{"host":"b", "port":2}}`
-	minimalValidEndpointMappings = `[` + minimalValidEndpointMapping + `]`
-	minimalValidCredentials      = `{ "hostname": "c",  "port": "1", "uri": "postgres://a:b@c:1/d"}`
+var (
+	actualBuilder   *credentialBuilder = newCredentialBuilder()
+	expectedBuilder *credentialBuilder = newCredentialBuilder()
 )
 
-func TestRejectEmptyJson(t *testing.T) {
-	g := NewGomegaWithT(t)
-	g.Expect(IsValidUpdateRequestBody("")).To(BeFalse())
+func actual() string {
+	return actualBuilder.build()
 }
 
-func TestAcceptExampleRequestFromBacklogItem(t *testing.T) {
-	g := NewGomegaWithT(t)
-	g.Expect(IsValidUpdateRequestBody(exampleRequest)).To(BeTrue())
+func expected() string {
+	return expectedBuilder.build()
 }
 
-func TestAcceptExampleHaPostgresRequestFromBacklogItem(t *testing.T) {
+func TestHostAndPortDoNotMatchCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(IsValidUpdateRequestBody(exampleRequestHaPostgres)).To(BeTrue())
+
+	actualBuilder.setHostPort("a", "1").setEndpointMapping("nota", "2", "nota", "3")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialsAs(actual()))
 }
 
-func TestRejectInvalidJson(t *testing.T) {
+func TestHostIsChanged(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(IsValidUpdateRequestBody("{")).To(BeFalse())
+
+	actualBuilder.setHostPort("a", "1").setEndpointMapping("a", "1", "b", "2")
+	expectedBuilder.setHostPort("b", "")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "hostname"))
 }
 
-func TestRejectRequestWithoutCredentials(t *testing.T) {
+func TestHostIsChangedToAnotherValue(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(IsValidUpdateRequestBody(`{ "endpoint_mappings": ` + minimalValidEndpointMappings + `}`)).To(BeFalse())
+
+	actualBuilder.setHostPort("a", "2").setEndpointMapping("a", "2", "myhost", "2")
+	expectedBuilder.setHostPort("myhost", "")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "hostname"))
 }
 
-func TestRejectRequestWithEmptyCredentials(t *testing.T) {
+func TestHostIsChangedWithSecondMapping(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(IsValidUpdateRequestBody(`{
-    "credentials": {},
-    "endpoint_mappings": ` + minimalValidEndpointMappings + `}`)).To(BeFalse())
+
+	actualBuilder.setHostPort("a", "1").setEndpointMapping("xxx", "3", "unused", "2").
+		addEndpointMapping("a", "1", "yourhost", "2")
+	expectedBuilder.setHostPort("yourhost", "")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "hostname"))
 }
 
-func TestRejectRequestWithoutEndpointMappings(t *testing.T) {
+func TestAnotherHostnameThanAIsChanged(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(IsValidUpdateRequestBody(`{
-    "credentials": ` + minimalValidCredentials + `}`)).To(BeFalse())
+
+	actualBuilder.setHostPort("hugo", "4").setEndpointMapping("hugo", "4", "emil", "2")
+	expectedBuilder.setHostPort("emil", "")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "hostname"))
 }
 
-func TestRejectRequestWithEmptyEndpointMappings(t *testing.T) {
+func TestSecondMappingWouldChangeResultOfFirstMapping(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(IsValidUpdateRequestBody(`{ "credentials": ` + minimalValidCredentials +
-		`, "endpoint_mappings": [{}] }`)).To(BeFalse())
+
+	actualBuilder.setHostPort("a", "5").setEndpointMapping("a", "5", "b", "2").
+		addEndpointMapping("b", "2", "c", "99")
+	expectedBuilder.setHostPort("b", "")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "hostname"))
 }
 
-func TestAcceptCredentialsFromBLI(t *testing.T) {
+func TestPortIsChanged(t *testing.T) {
 	g := NewGomegaWithT(t)
-	var rawJson map[string]interface{}
-	json.Unmarshal([]byte(`{
+
+	actualBuilder.setHostPort("a", "1").setEndpointMapping("a", "1", "b", "2")
+	expectedBuilder.setHostPort("b", "2")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "port"))
+}
+
+func TestPortIsUnChanged(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	actualBuilder.setHostPort("a", "1").setEndpointMapping("a", "2", "a", "4")
+	expectedBuilder.setHostPort("a", "1")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "port"))
+}
+
+func TestUriIsChanged(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	actualBuilder.setHostPort("a", "1").setUri("postgres://user:passwd@a:1/dbname").
+		setEndpointMapping("a", "1", "b", "2")
+	expectedBuilder.setHostPort("b", "2").setUri("postgres://user:passwd@b:2/dbname")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "uri"))
+}
+
+func TestUriIsChangedToTargetHostAndPort(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	actualBuilder.setHostPort("a", "1").setUri("postgres://user:passwd@a:1/dbname").
+		setEndpointMapping("a", "1", "myhost", 3)
+	expectedBuilder.setHostPort("b", "2").setUri("postgres://user:passwd@myhost:3/dbname")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "uri"))
+}
+
+func TestUriIsChangedToTargetHostAndPortWithInteger(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	actualBuilder.setHostPort("a", "1").setUri("postgres://user:passwd@a:1/dbname").
+		setEndpointMapping("a", 1, "myhost", 3)
+	expectedBuilder.setHostPort("b", "2").setUri("postgres://user:passwd@myhost:3/dbname")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "uri"))
+}
+
+func TestAnotherUriIsChanged(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	actualBuilder.setHostPort("a", "1").setUri("postgres://me:em@a:1/dbname").
+		setEndpointMapping("a", 1, "myhost", 3)
+	expectedBuilder.setHostPort("b", "2").setUri("postgres://me:em@myhost:3/dbname")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "uri"))
+}
+
+func TestExampleRequestFromBacklogItem(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	g.Expect(translateCredentials(exampleRequest)).To(haveTheSameCredentialsAs(`{
+    "credentials": {
  "dbname": "yLO2WoE0-mCcEppn",
- "hostname": "10.11.241.0",
- "password": "<redacted>",
- "port": "47637",
+ "hostname": "appnethost",
+ "password": "redacted",
+ "port": 9876,
  "ports": {
   "5432/tcp": "47637"
  },
- "uri": "postgres://mma4G8N0isoxe17v:<redacted>@10.11.241.0:47637/yLO2WoE0-mCcEppn",
+ "uri": "postgres://mma4G8N0isoxe17v:redacted@appnethost:9876/yLO2WoE0-mCcEppn",
  "username": "mma4G8N0isoxe17v"
-}`), &rawJson)
-
-	g.Expect(isValidCredentials(rawJson)).To(BeTrue())
-}
-
-func TestAcceptMinimalCredentialsAndRejectCredentialsWithMissingFields(t *testing.T) {
-	g := NewGomegaWithT(t)
-	var validCredentials map[string]interface{}
-	json.Unmarshal([]byte(minimalValidCredentials), &validCredentials)
-	g.Expect(isValidCredentials(validCredentials)).To(BeTrue())
-
-	var invalidCredentials map[string]interface{} = make(map[string]interface{})
-	for _, fieldName := range []string{"uri", "hostname", "port"} {
-		copyAllFieldsButOne(validCredentials, invalidCredentials, fieldName)
-		g.Expect(isValidCredentials(invalidCredentials)).To(BeFalse())
-	}
-}
-
-func copyAllFieldsButOne(from map[string]interface{}, to map[string]interface{}, keyToOmit string) {
-	for key, value := range from {
-		to[key] = value
-	}
-	delete(to, keyToOmit)
-}
-
-func TestRejectEndpointMappingNoArray(t *testing.T) {
-	g := NewGomegaWithT(t)
-	g.Expect(IsValidUpdateRequestBody(`{
-    "credentials": ` + minimalValidCredentials + `,
-    "endpoint_mappings": {
-    	"source": {"host": "a", "port": 1},
-        "target": {"host": "b", "port": 2}
-	}
-}`)).To(BeFalse())
-}
-
-func TestAcceptEmptyEndpointMapping(t *testing.T) {
-	g := NewGomegaWithT(t)
-	g.Expect(IsValidUpdateRequestBody(`{
-    "credentials": ` + minimalValidCredentials + `,
-    "endpoint_mappings": []
-}`)).To(BeFalse())
-}
-
-func TestAcceptMinimalNonEmptyEndpointMappings(t *testing.T) {
-	g := NewGomegaWithT(t)
-	var validEndpointMappings []interface{}
-	json.Unmarshal([]byte(minimalValidEndpointMappings), &validEndpointMappings)
-	g.Expect(isValidEndpointMappings(validEndpointMappings)).To(BeTrue())
-}
-
-func TestRejectIncompleteEndpointMapping(t *testing.T) {
-	g := NewGomegaWithT(t)
-	var validEndpointMapping map[string]interface{}
-	json.Unmarshal([]byte(minimalValidEndpointMapping), &validEndpointMapping)
-	g.Expect(isValidEndpointMapping(validEndpointMapping)).To(BeTrue())
-
-	var invalidEndpointMapping map[string]interface{} = make(map[string]interface{})
-
-	for _, missingField := range []string{"source", "target"} {
-		copyAllFieldsButOne(validEndpointMapping, invalidEndpointMapping, missingField)
-		g.Expect(isValidEndpointMapping(invalidEndpointMapping)).To(BeFalse())
-	}
-}
-
-func TestRejectIncompleteEndpoint(t *testing.T) {
-	g := NewGomegaWithT(t)
-	var invalidEndpointMapping map[string]interface{}
-	json.Unmarshal([]byte(`{ "source":{"host":"a"}, "target":{"host":"b", "port":2}}`), &invalidEndpointMapping)
-	g.Expect(isValidEndpointMapping(invalidEndpointMapping)).To(BeFalse())
-	json.Unmarshal([]byte(`{ "source":{"port":1}, "target":{"host":"b", "port":2}}`), &invalidEndpointMapping)
-	g.Expect(isValidEndpointMapping(invalidEndpointMapping)).To(BeFalse())
-	json.Unmarshal([]byte(`{ "target":{"host":"a"}, "source":{"host":"b", "port":2}}`), &invalidEndpointMapping)
-	g.Expect(isValidEndpointMapping(invalidEndpointMapping)).To(BeFalse())
-	json.Unmarshal([]byte(`{ "target":{"port":1}, "source":{"host":"b", "port":2}}`), &invalidEndpointMapping)
-	g.Expect(isValidEndpointMapping(invalidEndpointMapping)).To(BeFalse())
+  }
+}`))
 }
