@@ -1,3 +1,13 @@
+# Install pre-commit hook
+
+The hook will
+* Call `go fmt`
+
+```
+cd .git/hooks
+ln -s ../../hooks/pre-commit pre-commit
+```
+
 # istio-broker
 
 Forward all requests to the service fabrik.
