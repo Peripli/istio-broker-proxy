@@ -76,7 +76,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log = append(log, "Received redirect: " + req.URL.Path + ":" + string(body))
+	log = append(log, "Received redirect: "+req.URL.Path+":"+string(body))
 
 	// create a new url from the raw RequestURI sent by the client
 	url := createNewUrl(config.ForwardURL, req)

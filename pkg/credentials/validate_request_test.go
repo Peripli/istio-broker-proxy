@@ -64,7 +64,9 @@ const (
 
 func TestRejectEmptyJson(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(isValidUpdateRequestBody("")).To(BeFalse())
+	ok, e := isValidUpdateRequestBody("")
+	g.Expect(e).Should(HaveOccurred())
+	g.Expect(ok).To(BeFalse())
 }
 
 func TestAcceptExampleRequestFromBacklogItem(t *testing.T) {
@@ -79,31 +81,40 @@ func TestAcceptExampleHaPostgresRequestFromBacklogItem(t *testing.T) {
 
 func TestRejectInvalidJson(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(isValidUpdateRequestBody("{")).To(BeFalse())
+	ok, e := isValidUpdateRequestBody("{")
+	g.Expect(e).Should(HaveOccurred())
+	g.Expect(ok).To(BeFalse())
 }
 
 func TestRejectRequestWithoutCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(isValidUpdateRequestBody(`{ "endpoint_mappings": ` + minimalValidEndpointMappings + `}`)).To(BeFalse())
+	ok, e := isValidUpdateRequestBody(`{ "endpoint_mappings": ` + minimalValidEndpointMappings + `}`)
+	g.Expect(e).Should(HaveOccurred())
+	g.Expect(ok).To(BeFalse())
 }
 
 func TestRejectRequestWithEmptyCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(isValidUpdateRequestBody(`{
-    "credentials": {},
-    "endpoint_mappings": ` + minimalValidEndpointMappings + `}`)).To(BeFalse())
+	ok, e := isValidUpdateRequestBody(`{
+	    "credentials": {},
+	    "endpoint_mappings": ` + minimalValidEndpointMappings + `}`)
+	g.Expect(e).Should(HaveOccurred())
+	g.Expect(ok).To(BeFalse())
 }
 
 func TestRejectRequestWithoutEndpointMappings(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(isValidUpdateRequestBody(`{
-    "credentials": ` + minimalValidCredentials + `}`)).To(BeFalse())
+	_, e := isValidUpdateRequestBody(`{
+	    "credentials": ` + minimalValidCredentials + `}`)
+	g.Expect(e).Should(HaveOccurred())
 }
 
 func TestRejectRequestWithEmptyEndpointMappings(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(isValidUpdateRequestBody(`{ "credentials": ` + minimalValidCredentials +
-		`, "endpoint_mappings": [{}] }`)).To(BeFalse())
+	ok, e := isValidUpdateRequestBody(`{ "credentials": ` + minimalValidCredentials +
+		`, "endpoint_mappings": [{}] }`)
+	g.Expect(e).Should(HaveOccurred())
+	g.Expect(ok).To(BeFalse())
 }
 
 func TestRejectRequestWithNonMatchingEndpointMappings(t *testing.T) {
@@ -139,7 +150,9 @@ func TestAcceptMinimalCredentialsAndRejectCredentialsWithMissingFields(t *testin
 	var invalidCredentials map[string]interface{} = make(map[string]interface{})
 	for _, fieldName := range []string{"uri", "hostname", "port"} {
 		copyAllFieldsButOne(validCredentials, invalidCredentials, fieldName)
-		g.Expect(isValidCredentials(invalidCredentials)).To(BeFalse())
+		ok, e := isValidCredentials(invalidCredentials)
+		g.Expect(e).Should(HaveOccurred())
+		g.Expect(ok).To(BeFalse())
 	}
 }
 
@@ -154,26 +167,33 @@ func TestRejectInvalidUri(t *testing.T) {
 	g := NewGomegaWithT(t)
 	var credentials map[string]interface{}
 	json.Unmarshal([]byte(`{ "hostname": "c",  "port": "1", "uri": "postgres://a:<b>@c:1/d"}`), &credentials)
-	g.Expect(isValidCredentials(credentials)).To(BeFalse())
+
+	ok, e := isValidCredentials(credentials)
+	g.Expect(e).Should(HaveOccurred())
+	g.Expect(ok).To(BeFalse())
 }
 
 func TestRejectEndpointMappingNoArray(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(isValidUpdateRequestBody(`{
-    "credentials": ` + minimalValidCredentials + `,
-    "endpoint_mappings": {
-      "source": {"host": "a", "port": 1},
-      "target": {"host": "b", "port": 2}
-	}
-}`)).To(BeFalse())
+	ok, e := isValidUpdateRequestBody(`{
+	    "credentials": ` + minimalValidCredentials + `,
+	    "endpoint_mappings": {
+	      "source": {"host": "a", "port": 1},
+	      "target": {"host": "b", "port": 2}
+		}
+	}`)
+	g.Expect(e).Should(HaveOccurred())
+	g.Expect(ok).To(BeFalse())
 }
 
 func TestRejectEmptyEndpointMapping(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(isValidUpdateRequestBody(`{
-    "credentials": ` + minimalValidCredentials + `,
-    "endpoint_mappings": []
-}`)).To(BeFalse())
+	ok, e := isValidUpdateRequestBody(`{
+	    "credentials": ` + minimalValidCredentials + `,
+	    "endpoint_mappings": []
+	}`)
+	g.Expect(e).Should(HaveOccurred())
+	g.Expect(ok).To(BeFalse())
 }
 
 func TestAcceptMinimalNonEmptyEndpointMappings(t *testing.T) {
@@ -186,10 +206,12 @@ func TestAcceptMinimalNonEmptyEndpointMappings(t *testing.T) {
 func TestRejectTwoEndpointMappings(t *testing.T) {
 	g := NewGomegaWithT(t)
 	var validEndpointMappings []interface{}
-	json.Unmarshal([]byte(`[` + minimalValidEndpointMapping + `,` + minimalValidEndpointMapping + `]`), &validEndpointMappings)
-	g.Expect(isValidEndpointMappings(validEndpointMappings)).To(BeFalse())
-}
+	json.Unmarshal([]byte(`[`+minimalValidEndpointMapping+`,`+minimalValidEndpointMapping+`]`), &validEndpointMappings)
 
+	ok, e := isValidEndpointMappings(validEndpointMappings)
+	g.Expect(e).Should(HaveOccurred())
+	g.Expect(ok).To(BeFalse())
+}
 
 func TestRejectIncompleteEndpointMapping(t *testing.T) {
 	g := NewGomegaWithT(t)
@@ -201,19 +223,33 @@ func TestRejectIncompleteEndpointMapping(t *testing.T) {
 
 	for _, missingField := range []string{"source", "target"} {
 		copyAllFieldsButOne(validEndpointMapping, invalidEndpointMapping, missingField)
-		g.Expect(isValidEndpointMapping(invalidEndpointMapping)).To(BeFalse())
+		ok, e := isValidEndpointMapping(invalidEndpointMapping)
+		g.Expect(e).Should(HaveOccurred())
+		g.Expect(ok).To(BeFalse())
 	}
 }
 
 func TestRejectIncompleteEndpoint(t *testing.T) {
 	g := NewGomegaWithT(t)
 	var invalidEndpointMapping map[string]interface{}
+
 	json.Unmarshal([]byte(`{ "source":{"host":"a"}, "target":{"host":"b", "port":2}}`), &invalidEndpointMapping)
-	g.Expect(isValidEndpointMapping(invalidEndpointMapping)).To(BeFalse())
+	ok, e := isValidEndpointMapping(invalidEndpointMapping)
+	g.Expect(e).Should(HaveOccurred())
+	g.Expect(ok).To(BeFalse())
+
 	json.Unmarshal([]byte(`{ "source":{"port":1}, "target":{"host":"b", "port":2}}`), &invalidEndpointMapping)
-	g.Expect(isValidEndpointMapping(invalidEndpointMapping)).To(BeFalse())
+	ok, e = isValidEndpointMapping(invalidEndpointMapping)
+	g.Expect(e).Should(HaveOccurred())
+	g.Expect(ok).To(BeFalse())
+
 	json.Unmarshal([]byte(`{ "target":{"host":"a"}, "source":{"host":"b", "port":2}}`), &invalidEndpointMapping)
-	g.Expect(isValidEndpointMapping(invalidEndpointMapping)).To(BeFalse())
+	ok, e = isValidEndpointMapping(invalidEndpointMapping)
+	g.Expect(e).Should(HaveOccurred())
+	g.Expect(ok).To(BeFalse())
+
 	json.Unmarshal([]byte(`{ "target":{"port":1}, "source":{"host":"b", "port":2}}`), &invalidEndpointMapping)
-	g.Expect(isValidEndpointMapping(invalidEndpointMapping)).To(BeFalse())
+	ok, e = isValidEndpointMapping(invalidEndpointMapping)
+	g.Expect(e).Should(HaveOccurred())
+	g.Expect(ok).To(BeFalse())
 }

@@ -3,95 +3,130 @@ package credentials
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"net/url"
+	"errors"
 )
 
-func isValidUpdateRequestBody(request string) bool {
+func isValidUpdateRequestBody(request string) (bool, error) {
 	var rawJson interface{}
 	err := json.Unmarshal([]byte(request), &rawJson)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Invalid request \"%s\", unmarshalling results in error: %v\n", request, err)
-		return false
+		err = errors.New("Error in unmarshalling: " + err.Error())
+		return false, err
 	}
 	topLevelJson := rawJson.(map[string]interface{})
-	if !hasField(topLevelJson, "credentials") {
-		return false
+	_, err = hasField(topLevelJson, "credentials")
+	if err != nil {
+		err = errors.New("Error in unmarshalling: " + err.Error())
+		return false, err
 	}
-	if !hasField(topLevelJson, "endpoint_mappings") {
-		return false
+	_, err = hasField(topLevelJson, "endpoint_mappings")
+	if err != nil {
+		err = errors.New("Error in unmarshalling: " + err.Error())
+		return false, err
 	}
+
 	credentials := topLevelJson["credentials"].(map[string]interface{})
-	if !isValidCredentials(credentials) {
-		return false
+
+	ok, err := isValidCredentials(credentials)
+	if !ok {
+		return false, err
 	}
+
 	endpointMappings := topLevelJson["endpoint_mappings"]
-	if !isValidEndpointMappings(endpointMappings) {
-		return false
+	ok, err = isValidEndpointMappings(endpointMappings)
+	if !ok {
+		return false, err
 	}
-	if !shouldApply(toStringMap(toStringMap(endpointMappings.([]interface{})[0])["source"]), credentials) {
-		return false
-	}
-	return true
+	ok = shouldApply(toStringMap(toStringMap(endpointMappings.([]interface{})[0])["source"]), credentials)
+
+	return ok, nil
 }
 
-func isValidEndpointMappings(endpointMappings interface{}) bool {
+func isValidEndpointMappings(endpointMappings interface{}) (bool, error) {
 	switch endpointMappings.(type) {
 	case []interface{}:
 		if len(endpointMappings.([]interface{})) != 1 {
-			fmt.Fprintf(os.Stderr, "Field \"%s\", must contain exactly one mapping.\n", "endpoint_mappings")
-			return false
+			err := errors.New("'endpoint_mappings' must contain exactly on mapping")
+			return false, err
 		}
 		for _, value := range endpointMappings.([]interface{}) {
-			if !isValidEndpointMapping(value.(map[string]interface{})) {
-				return false
+			_, err := isValidEndpointMapping(value.(map[string]interface{}))
+
+			if err != nil {
+				return false, err
 			}
 		}
-		return true
+		return true, nil
 	default:
-		fmt.Fprintf(os.Stderr, "Invalid type of \"%v\" as field \"%s\", it must be an array.\n", endpointMappings, "endpoint_mappings")
-		return false
+		err := errors.New("'endpoint_mappings' must be an array")
+		return false, err
 	}
 }
 
-func isValidEndpointMapping(endpointMapping map[string]interface{}) bool {
-	if !hasField(endpointMapping, "source") {
-		return false
+func isValidEndpointMapping(endpointMapping map[string]interface{}) (bool, error) {
+	ok, err := hasField(endpointMapping, "source")
+	if !ok {
+		return false, err
 	}
-	if !hasField(endpointMapping, "target") {
-		return false
+
+	ok, err = hasField(endpointMapping, "target")
+	if !ok {
+		return false, err
 	}
-	if !isValidEndpoint(endpointMapping["source"].(map[string]interface{})) {
-		return false
+
+	ok, err = isValidEndpoint(endpointMapping["source"].(map[string]interface{}))
+	if !ok {
+		return false, err
 	}
-	if !isValidEndpoint(endpointMapping["target"].(map[string]interface{})) {
-		return false
-	}
-	return true
+
+	ok, err = isValidEndpoint(endpointMapping["target"].(map[string]interface{}))
+
+	return ok, err
 }
 
-func isValidEndpoint(jsonMap map[string]interface{}) bool {
-	return hasField(jsonMap, "host") && hasField(jsonMap, "port")
+func isValidEndpoint(jsonMap map[string]interface{}) (bool, error) {
+	ok, err := hasField(jsonMap, "host")
+	if !ok {
+		return false, err
+	}
+
+	ok, err = hasField(jsonMap, "port")
+	return ok, err
 }
 
-func isValidCredentials(jsonMap map[string]interface{}) bool {
-	return hasField(jsonMap, "uri") &&
-		hasField(jsonMap, "hostname") &&
-		hasField(jsonMap, "port") &&
-		canParseUri(jsonMap["uri"].(string))
+func isValidCredentials(jsonMap map[string]interface{}) (bool, error) {
+	ok, err := hasField(jsonMap, "uri")
+	if !ok {
+		return false, err
+	}
+
+	ok, err = hasField(jsonMap, "hostname")
+	if !ok {
+		return false, err
+	}
+
+	ok, err = hasField(jsonMap, "port")
+	if !ok {
+		return false, err
+	}
+
+	ok, err = canParseUri(jsonMap["uri"].(string))
+
+	return ok, err
 }
 
-func canParseUri(uriValue string) bool {
+func canParseUri(uriValue string) (bool, error) {
 	_, err := url.Parse(uriValue)
-	return err == nil
+	return err == nil, err
 }
 
-func hasField(jsonMap map[string]interface{}, fieldName string) bool {
+func hasField(jsonMap map[string]interface{}, fieldName string) (bool, error) {
 	if jsonMap[fieldName] == nil {
-		fmt.Fprintf(os.Stderr, "Invalid json map \"%s\", it contains no \"%s\"\n", jsonMap, fieldName)
-		return false
+		err := errors.New("Invalid json, field not found: " + fieldName)
+		return false, err
 	}
-	return true
+	return true, nil
 }
 
 func shouldApply(source map[string]interface{}, credentials map[string]interface{}) bool {
