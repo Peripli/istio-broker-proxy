@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-)
+	)
 
 func TestInitialInfo(t *testing.T) {
 	g := NewGomegaWithT(t)
@@ -20,6 +20,45 @@ func TestInitialInfo(t *testing.T) {
 
 	want := ""
 	g.Expect(got).To(Equal(want))
+}
+
+func TestInvalidUpdateCredentials(t *testing.T) {
+	g := NewGomegaWithT(t)
+	emptyBody := bytes.NewReader([]byte("{}"))
+	request, _ := http.NewRequest(http.MethodPost, "/notused", emptyBody)
+	response := httptest.NewRecorder()
+
+	update_credentials(response, request)
+	code := response.Code
+
+	g.Expect(code).To(Equal(500))
+}
+
+const validUpdateCredentialsRequest = `{
+    "credentials": {
+	    "dbname": "dbname",
+        "hostname": "mydb",
+        "password": "pass",
+        "port": "8080",
+        "uri": "postgres://user:pass@mydb:8080/dbname",
+        "username": "user"
+     },
+    "endpoint_mappings": [{
+        "source": {"host": "mydb", "port": 8080},
+        "target": {"host": "10.11.241.0", "port": 80}
+	}]
+}`
+
+func TestValidUpdateCredentials(t *testing.T) {
+	g := NewGomegaWithT(t)
+	emptyBody := bytes.NewReader([]byte(validUpdateCredentialsRequest))
+	request, _ := http.NewRequest(http.MethodPost, "/notused", emptyBody)
+	response := httptest.NewRecorder()
+
+	update_credentials(response, request)
+	code := response.Code
+
+	g.Expect(code).To(Equal(200))
 }
 
 func TestInfoAfterRequest(t *testing.T) {

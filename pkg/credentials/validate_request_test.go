@@ -24,7 +24,7 @@ const (
         "target": {"host": "appnethost", "port": 9876}
 	}]
 }`
-	exampleRequestHaPostgres = `{
+	ExampleRequestHaPostgres = `{
     "credentials": {
  "dbname": "e2b91324e12361f3eaeb35fe570efe1d",
  "end_points": [
@@ -76,7 +76,7 @@ func TestAcceptExampleRequestFromBacklogItem(t *testing.T) {
 
 func TestAcceptExampleHaPostgresRequestFromBacklogItem(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(isValidUpdateRequestBody(exampleRequestHaPostgres)).To(BeTrue())
+	g.Expect(isValidUpdateRequestBody(ExampleRequestHaPostgres)).To(BeTrue())
 }
 
 func TestRejectInvalidJson(t *testing.T) {

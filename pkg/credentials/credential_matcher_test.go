@@ -9,7 +9,7 @@ func TestCredentialMatcher(t *testing.T) {
 	g := NewGomegaWithT(t)
 	g.Expect(exampleRequest).To(haveTheSameCredentialsAs(exampleRequest))
 	g.Expect(exampleRequest).To(haveTheSameCredentialFieldAs(exampleRequest, "host"))
-	g.Expect(exampleRequest).NotTo(haveTheSameCredentialsAs(exampleRequestHaPostgres))
+	g.Expect(exampleRequest).NotTo(haveTheSameCredentialsAs(ExampleRequestHaPostgres))
 }
 
 func TestCredentialMatcherMessage(t *testing.T) {
