@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -76,7 +76,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log = append(log, "Received redirect: "+string(body))
+	log = append(log, "Received redirect: " + req.URL.Path + ":" + string(body))
 
 	// create a new url from the raw RequestURI sent by the client
 	url := createNewUrl(config.ForwardURL, req)
