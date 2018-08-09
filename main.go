@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -25,6 +26,25 @@ var (
 	config = ProxyConfig{ServiceFabrikURL, DefaultPort}
 	log    = make([]string, 0)
 )
+
+func update_credentials(writer http.ResponseWriter, request *http.Request) {
+	body, err := ioutil.ReadAll(request.Body)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log = append(log, "Received update: "+string(body))
+	response, err := credentials.Update(body)
+
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writer.WriteHeader(http.StatusOK)
+	writer.Write(response)
+}
 
 func info(w http.ResponseWriter, r *http.Request) {
 	for _, line := range log {
@@ -56,7 +76,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log = append(log, "Received: "+string(body))
+	log = append(log, "Received redirect: "+string(body))
 
 	// create a new url from the raw RequestURI sent by the client
 	url := createNewUrl(config.ForwardURL, req)
@@ -132,6 +152,7 @@ func readPort() {
 func main() {
 	readPort()
 	http.HandleFunc("/info", info)
+	http.HandleFunc("/update_credentials", update_credentials)
 	http.HandleFunc("/", redirect)
 	http.ListenAndServe(":"+config.port, nil)
 }

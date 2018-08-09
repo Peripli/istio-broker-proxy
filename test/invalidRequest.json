@@ -1,0 +1,13 @@
+{
+"credentials": {
+ "dbname": "yLO2WoE0-mCcEppn",
+ "hostname": "10.11.241.0",
+ "password": "redacted",
+ "port": "47637",
+ "ports": {
+  "5432/tcp": "47637"
+ },
+ "uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn",
+ "username": "mma4G8N0isoxe17v"
+}
+}
