@@ -121,3 +121,21 @@ func TestExampleRequestFromBacklogItem(t *testing.T) {
   }
 }`))
 }
+
+func TestEndpointMappingGetsRemovedAfterApplying(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	translatedRequest := translateCredentials(exampleRequest)
+
+	g.Expect(hasEndpointMappings(exampleRequest)).To(BeTrue())
+	g.Expect(hasEndpointMappings(translatedRequest)).To(BeFalse())
+}
+
+func TestEndpointIsAddedAfterApplying(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	translatedRequest := translateCredentials(exampleRequest)
+
+	g.Expect(exampleRequest).NotTo(haveTheEndpointMapping("appnethost", "9876"))
+	g.Expect(translatedRequest).To(haveTheEndpointMapping("appnethost", "9876"))
+}

@@ -10,10 +10,26 @@ func translateCredentials(request string) string {
 	var topLevelJson map[string]interface{}
 	json.Unmarshal([]byte(request), &topLevelJson)
 	credentials := toStringMap(topLevelJson["credentials"])
+
 	endpointMappings := topLevelJson["endpoint_mappings"].([]interface{})
+
 	applyMappings(endpointMappings, credentials)
+	delete(topLevelJson, "endpoint_mappings")
+	addEndpoint(topLevelJson, endpointMappings[0])
+
+
 	bytes, _ := json.Marshal(topLevelJson)
 	return string(bytes[:])
+}
+
+func addEndpoint(result map[string]interface{}, endpointMappingToAdd interface{}) {
+	var endpoints []interface{}
+
+	mapping := toStringMap(endpointMappingToAdd)
+	target := toStringMap(mapping["target"])
+	endpoints = append(endpoints, target)
+
+	result["endpoints"] = endpoints
 }
 
 func toStringMap(untyped interface{}) map[string]interface{} {
