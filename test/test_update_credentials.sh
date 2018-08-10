@@ -1,9 +1,11 @@
 #!/bin/bash
-set -xueo pipefail
+set -ueo pipefail
 go build github.infra.hana.ondemand.com/istio/istio-broker
-./istio-broker &
 
-RC=0
+./istio-broker &
+ISTIOPID=$!
+trap "kill $ISTIOPID" 0
+sleep 1
 
 CMD="curl -s -i -d @invalidRequest.json -X POST http://localhost:8080/update_credentials" 
 echo $CMD
@@ -12,7 +14,7 @@ then
         echo "*** OK ***"
 else
         echo "*** FAIL ***"
-        RC=1
+        exit 1
 fi  
 
 CMD="curl -s -i -d @exampleRequest.json -X POST http://localhost:8080/update_credentials"
@@ -22,14 +24,5 @@ then
         echo "*** OK ***"
 else
         echo "*** FAIL ***"
-        RC=1
+        exit 1
 fi  
-
-if killall istio-broker
-then
-        echo "istio-broker killed"
-else
-        echo "kill failed"
-fi
-
-exit $RC
