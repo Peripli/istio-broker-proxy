@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ueo pipefail
+set -xueo pipefail
 go build github.infra.hana.ondemand.com/istio/istio-broker
 ./istio-broker &
 
@@ -25,6 +25,11 @@ else
         RC=1
 fi  
 
-#killall istio-broker 2> /dev/null
+if killall istio-broker
+then
+        echo "istio-broker killed"
+else
+        echo "kill failed"
+fi
 
 exit $RC
