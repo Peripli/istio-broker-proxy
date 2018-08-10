@@ -1,5 +1,6 @@
 #!/bin/bash
 set -ueo pipefail
+
 go build github.infra.hana.ondemand.com/istio/istio-broker
 
 ./istio-broker &
