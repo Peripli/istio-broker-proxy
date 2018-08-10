@@ -27,7 +27,6 @@ type EndpointMatcher struct {
 }
 
 func (e EndpointMatcher) Match(actual interface{}) (returnValue bool, err error) {
-
 	defer func() {
 		if r := recover(); r != nil {
 			returnValue = false

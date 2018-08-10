@@ -27,7 +27,7 @@ var (
 	log    = make([]string, 0)
 )
 
-func update_credentials(writer http.ResponseWriter, request *http.Request) {
+func updateCredentials(writer http.ResponseWriter, request *http.Request) {
 	body, err := ioutil.ReadAll(request.Body)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
@@ -38,7 +38,7 @@ func update_credentials(writer http.ResponseWriter, request *http.Request) {
 	response, err := credentials.Update(body)
 
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -152,7 +152,7 @@ func readPort() {
 func main() {
 	readPort()
 	http.HandleFunc("/info", info)
-	http.HandleFunc("/update_credentials", update_credentials)
+	http.HandleFunc("/update_credentials", updateCredentials)
 	http.HandleFunc("/", redirect)
 	http.ListenAndServe(":"+config.port, nil)
 }

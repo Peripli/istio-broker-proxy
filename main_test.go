@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-	)
+)
 
 func TestInitialInfo(t *testing.T) {
 	g := NewGomegaWithT(t)
@@ -28,10 +28,10 @@ func TestInvalidUpdateCredentials(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodPost, "/notused", emptyBody)
 	response := httptest.NewRecorder()
 
-	update_credentials(response, request)
+	updateCredentials(response, request)
 	code := response.Code
 
-	g.Expect(code).To(Equal(500))
+	g.Expect(code).To(Equal(http.StatusBadRequest))
 }
 
 const validUpdateCredentialsRequest = `{
@@ -55,7 +55,7 @@ func TestValidUpdateCredentials(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodPost, "/notused", emptyBody)
 	response := httptest.NewRecorder()
 
-	update_credentials(response, request)
+	updateCredentials(response, request)
 	code := response.Code
 
 	g.Expect(code).To(Equal(200))
