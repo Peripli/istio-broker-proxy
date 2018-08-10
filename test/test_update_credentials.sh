@@ -25,6 +25,6 @@ else
         RC=1
 fi  
 
-killall istio-broker 2> /dev/null
+#killall istio-broker 2> /dev/null
 
 exit $RC
