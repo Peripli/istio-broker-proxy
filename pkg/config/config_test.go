@@ -72,7 +72,7 @@ spec:
 func TestCompleteEntryNotEmpty(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", 20)
+	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape")
 
 	var configObjects []interface{}
 	yaml.Unmarshal([]byte(configAsString), &configObjects)
@@ -83,7 +83,7 @@ func TestCompleteEntryNotEmpty(t *testing.T) {
 func TestCompleteEntryGateway(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", 20)
+	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape")
 
 	var configObjects []interface{}
 	yaml.Unmarshal([]byte(configAsString), &configObjects)
@@ -106,7 +106,7 @@ func TestCompleteEntryGateway(t *testing.T) {
 func TestCompleteServiceEntry(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", 20)
+	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape")
 
 	var configObjects []interface{}
 	yaml.Unmarshal([]byte(configAsString), &configObjects)
@@ -126,7 +126,7 @@ func TestCompleteServiceEntry(t *testing.T) {
 func TestCompleteVirtualService(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", 8765)
+	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape")
 
 	var configObjects []interface{}
 	yaml.Unmarshal([]byte(configAsString), &configObjects)
@@ -137,7 +137,7 @@ func TestCompleteVirtualService(t *testing.T) {
 	virtualServiceSpec, _ := yaml.Marshal(virtualServiceConfig["spec"])
 
 	g.Expect(string(virtualServiceSpec)).To(ContainSubstring("myservice.landscape"))
-	g.Expect(string(virtualServiceSpec)).To(ContainSubstring("8765"))
+	g.Expect(string(virtualServiceSpec)).To(ContainSubstring("156"))
 	g.Expect(string(virtualServiceSpec)).To(ContainSubstring("host: myservice.service-fabrik"))
 }
 

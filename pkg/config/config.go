@@ -14,13 +14,13 @@ type generatedServiceEntry struct {
 	serviceEntry   model.Config
 }
 
-func CreateEntriesForExternalService(serviceName string, ipServiceEntry string, portServiceEntry uint32, hostVirtualService string, portVirtualService uint32) (string, error) {
+func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string) (string, error) {
 
 	var entry generatedServiceEntry
 
 	entry.gateway = createIngressGatewayForExternalService(hostVirtualService, 9000, serviceName, "client.istio.sapcloud.io")
-	entry.virtualService = createVirtualServiceForExternalService(hostVirtualService, portVirtualService, serviceName)
-	entry.serviceEntry = createServiceEntryForExternalService(ipServiceEntry, portServiceEntry, serviceName)
+	entry.virtualService = createVirtualServiceForExternalService(hostVirtualService, portServiceEntry, serviceName)
+	entry.serviceEntry = createServiceEntryForExternalService(endpointServiceEntry, portServiceEntry, serviceName)
 
 	return toYamlArray(entry)
 }
