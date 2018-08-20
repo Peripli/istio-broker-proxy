@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-type generatedServiceEntry struct {
+type generatedServiceConfig struct {
 	gateway        model.Config
 	virtualService model.Config
 	serviceEntry   model.Config
@@ -16,7 +16,7 @@ type generatedServiceEntry struct {
 
 func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string) (string, error) {
 
-	var entry generatedServiceEntry
+	var entry generatedServiceConfig
 
 	entry.gateway = createIngressGatewayForExternalService(hostVirtualService, 9000, serviceName, "client.istio.sapcloud.io")
 	entry.virtualService = createVirtualServiceForExternalService(hostVirtualService, portServiceEntry, serviceName)
@@ -26,7 +26,7 @@ func CreateEntriesForExternalService(serviceName string, endpointServiceEntry st
 }
 
 func createServiceEntryForExternalService(endpointAddress string, port uint32, serviceName string) model.Config {
-	hosts := []string{serviceName + ".service-fabrik"}
+	hosts := []string{createServiceHost(serviceName)}
 	//FIXME: Should all service names end with -server???
 	shortName := strings.TrimSuffix(serviceName, "-server")
 
@@ -41,8 +41,13 @@ func createServiceEntryForExternalService(endpointAddress string, port uint32, s
 	return config
 }
 
+func createServiceHost(serviceName string) string {
+	serviceHost := serviceName + ".service-fabrik"
+	return serviceHost
+}
+
 func createVirtualServiceForExternalService(hostName string, port uint32, serviceName string) model.Config {
-	destination := v1alpha3.Destination{Host: serviceName + ".service-fabrik",
+	destination := v1alpha3.Destination{Host: createServiceHost(serviceName),
 		Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: port}}}
 	route := v1alpha3.TCPRoute{Route: []*v1alpha3.DestinationWeight{&v1alpha3.DestinationWeight{Destination: &destination}}}
 	tcpRoutes := []*v1alpha3.TCPRoute{&route}
@@ -58,10 +63,11 @@ func createVirtualServiceForExternalService(hostName string, port uint32, servic
 func createIngressGatewayForExternalService(hostName string, portNumber uint32, serviceName string, clientName string) model.Config {
 	port := v1alpha3.Port{Number: portNumber, Name: "tls", Protocol: "TLS"}
 	hosts := []string{hostName}
+	certPath := "/var/vcap/jobs/envoy/config/certs/"
 	tls := v1alpha3.Server_TLSOptions{Mode: v1alpha3.Server_TLSOptions_MUTUAL,
-		ServerCertificate: "/var/vcap/jobs/envoy/config/certs/" + serviceName + ".crt",
-		PrivateKey:        "/var/vcap/jobs/envoy/config/certs/" + serviceName + ".key",
-		CaCertificates:    "/var/vcap/jobs/envoy/config/certs/ca.crt",
+		ServerCertificate: certPath + serviceName + ".crt",
+		PrivateKey:        certPath + serviceName + ".key",
+		CaCertificates:    certPath + "ca.crt",
 		SubjectAltNames:   []string{clientName}}
 	gateway := v1alpha3.Gateway{Servers: []*v1alpha3.Server{&v1alpha3.Server{Port: &port, Hosts: hosts, Tls: &tls}}}
 	config := model.Config{Spec: &gateway}
@@ -70,7 +76,7 @@ func createIngressGatewayForExternalService(hostName string, portNumber uint32, 
 	return config
 }
 
-func toYamlArray(entry generatedServiceEntry) (string, error) {
+func toYamlArray(entry generatedServiceConfig) (string, error) {
 	var array []interface{}
 
 	array = addConfig(array, model.Gateway, entry.gateway)
