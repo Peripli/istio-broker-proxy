@@ -5,6 +5,7 @@ import (
 	"istio.io/api/networking/v1alpha3"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
 	"istio.io/istio/pilot/pkg/model"
+	"strings"
 )
 
 type generatedServiceEntry struct {
@@ -26,7 +27,10 @@ func CreateEntriesForExternalService(serviceName string, ipServiceEntry string, 
 
 func createServiceEntryForExternalService(endpointAddress string, port uint32, serviceName string) model.Config {
 	hosts := []string{serviceName + ".service-fabrik"}
-	ports := v1alpha3.Port{Number: port, Name: "postgres", Protocol: "TCP"}
+	//FIXME: Should all service names end with -server???
+	shortName := strings.TrimSuffix(serviceName, "-server")
+
+	ports := v1alpha3.Port{Number: port, Name: shortName, Protocol: "TCP"}
 	resolution := v1alpha3.ServiceEntry_STATIC
 	endpoint := v1alpha3.ServiceEntry_Endpoint{Address: endpointAddress}
 	serviceEntry := v1alpha3.ServiceEntry{Hosts: hosts, Ports: []*v1alpha3.Port{&ports}, Resolution: resolution,
@@ -66,29 +70,22 @@ func createIngressGatewayForExternalService(hostName string, portNumber uint32, 
 	return config
 }
 
-func toText(schema model.ProtoSchema, config model.Config) (string, error) {
-	kubernetesConf, err := crd.ConvertConfig(schema, config)
-	if err != nil {
-		return "", err
-	}
-	bytes, err := yaml.Marshal(kubernetesConf)
-	return string(bytes), err
-}
-
 func toYamlArray(entry generatedServiceEntry) (string, error) {
-	kubernetesConf, err := crd.ConvertConfig(model.Gateway, entry.gateway)
-	if err != nil {
-		return "", err
-	}
 	var array []interface{}
-	array = append(array, kubernetesConf)
 
-	kubernetesConf, err = crd.ConvertConfig(model.ServiceEntry, entry.serviceEntry)
-	array = append(array, kubernetesConf)
-
-	kubernetesConf, err = crd.ConvertConfig(model.VirtualService, entry.virtualService)
-	array = append(array, kubernetesConf)
+	array = addConfig(array, model.Gateway, entry.gateway)
+	array = addConfig(array, model.ServiceEntry, entry.serviceEntry)
+	array = addConfig(array, model.VirtualService, entry.virtualService)
 
 	bytes, err := yaml.Marshal(array)
 	return string(bytes), err
+}
+
+func addConfig(array []interface{}, schema model.ProtoSchema, config model.Config) []interface{} {
+	kubernetesConf, err := crd.ConvertConfig(schema, config)
+	if err == nil {
+		array = append(array, kubernetesConf)
+	}
+
+	return array
 }

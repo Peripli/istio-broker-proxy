@@ -1,11 +1,12 @@
 package config
 
 import (
-		. "github.com/onsi/gomega"
-			"istio.io/istio/pilot/pkg/model"
-	"testing"
-	"gopkg.in/yaml.v2"
 	"errors"
+	"github.com/ghodss/yaml"
+	. "github.com/onsi/gomega"
+	"istio.io/istio/pilot/pkg/config/kube/crd"
+	"istio.io/istio/pilot/pkg/model"
+	"testing"
 )
 
 const (
@@ -68,14 +69,12 @@ spec:
 `
 )
 
-
-
 func TestCompleteEntryNotEmpty(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalService( "myservice", "10.10.10.10", 10,  "myservice.landscape", 20 )
+	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", 20)
 
-    var configObjects []interface{}
+	var configObjects []interface{}
 	yaml.Unmarshal([]byte(configAsString), &configObjects)
 
 	g.Expect(configObjects).To(HaveLen(3))
@@ -84,7 +83,7 @@ func TestCompleteEntryNotEmpty(t *testing.T) {
 func TestCompleteEntryGateway(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalService( "myservice", "10.10.10.10", 10,  "myservice.landscape", 20 )
+	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", 20)
 
 	var configObjects []interface{}
 	yaml.Unmarshal([]byte(configAsString), &configObjects)
@@ -98,13 +97,16 @@ func TestCompleteEntryGateway(t *testing.T) {
 	g.Expect(string(gatewaySpec)).To(ContainSubstring("myservice.landscape"))
 	g.Expect(string(gatewaySpec)).To(ContainSubstring("9000"))
 	g.Expect(string(gatewaySpec)).To(ContainSubstring("client.istio.sapcloud.io"))
+	g.Expect(string(gatewaySpec)).To(ContainSubstring("config/certs/myservice.key"))
+	g.Expect(string(gatewaySpec)).To(ContainSubstring("config/certs/myservice.crt"))
+
 	g.Expect(string(gatewayMetadata)).To(ContainSubstring("name: myservice-gateway"))
 }
 
 func TestCompleteServiceEntry(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalService( "myservice", "10.10.10.10", 156,  "myservice.landscape", 20 )
+	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", 20)
 
 	var configObjects []interface{}
 	yaml.Unmarshal([]byte(configAsString), &configObjects)
@@ -117,15 +119,14 @@ func TestCompleteServiceEntry(t *testing.T) {
 
 	g.Expect(string(serviceEntrySpec)).To(ContainSubstring("10.10.10.10"))
 	g.Expect(string(serviceEntrySpec)).To(ContainSubstring("156"))
-	//FIXME: check REAL SERVICE
-	//g.Expect(string(serviceEntrySpec)).To(ContainSubstring("name: myservice"))
+	g.Expect(string(serviceEntrySpec)).To(ContainSubstring("name: myservice"))
 	g.Expect(string(serviceEntryMetadata)).To(ContainSubstring("name: myservice-service-entry"))
 }
 
 func TestCompleteVirtualService(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalService( "myservice", "10.10.10.10", 156,  "myservice.landscape", 8765 )
+	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", 8765)
 
 	var configObjects []interface{}
 	yaml.Unmarshal([]byte(configAsString), &configObjects)
@@ -140,10 +141,10 @@ func TestCompleteVirtualService(t *testing.T) {
 	g.Expect(string(virtualServiceSpec)).To(ContainSubstring("host: myservice.service-fabrik"))
 }
 
-func lookupObjectFromConfig(configObjects []interface{}, kind string) (map[interface{}]interface{}, error) {
+func lookupObjectFromConfig(configObjects []interface{}, kind string) (map[string]interface{}, error) {
 
 	for _, entryUntyped := range configObjects {
-		entry := entryUntyped.(map[interface{}]interface{})
+		entry := entryUntyped.(map[string]interface{})
 		if entry["kind"] == kind {
 			return entry, nil
 		}
@@ -185,4 +186,13 @@ func TestServiceEntryFromGo(t *testing.T) {
 	text, err := toText(model.ServiceEntry, virtualService)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(text).To(Equal(service_entry_yml))
+}
+
+func toText(schema model.ProtoSchema, config model.Config) (string, error) {
+	kubernetesConf, err := crd.ConvertConfig(schema, config)
+	if err != nil {
+		return "", err
+	}
+	bytes, err := yaml.Marshal(kubernetesConf)
+	return string(bytes), err
 }
