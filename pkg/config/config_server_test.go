@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	gateway_yml = `apiVersion: networking.istio.io/v1alpha3
+	gateway_ingress_yml = `apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   creationTimestamp: null
@@ -31,7 +31,7 @@ spec:
       subjectAltNames:
       - client.istio.sapcloud.io
 `
-	virtual_service_yml = `apiVersion: networking.istio.io/v1alpha3
+	virtual_service_ingress_yml = `apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
   creationTimestamp: null
@@ -68,7 +68,7 @@ spec:
 `
 )
 
-func TestGatewayFromGo(t *testing.T) {
+func TestServerGatewayFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	gateway := createIngressGatewayForExternalService("postgres.services.cf.dev01.aws.istio.sapcloud.io",
@@ -78,19 +78,19 @@ func TestGatewayFromGo(t *testing.T) {
 
 	text, err := toText(model.Gateway, gateway)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(text).To(Equal(gateway_yml))
+	g.Expect(text).To(Equal(gateway_ingress_yml))
 }
 
-func TestVirtualServiceFromGo(t *testing.T) {
+func TestServerVirtualServiceFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	virtualService := createVirtualServiceForExternalService("postgres.services.cf.dev01.aws.istio.sapcloud.io",
+	virtualService := createIngressVirtualServiceForExternalService("postgres.services.cf.dev01.aws.istio.sapcloud.io",
 		47637,
 		"postgres-server")
 
 	text, err := toText(model.VirtualService, virtualService)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(text).To(Equal(virtual_service_yml))
+	g.Expect(text).To(Equal(virtual_service_ingress_yml))
 }
 
 func TestServiceEntryFromGo(t *testing.T) {

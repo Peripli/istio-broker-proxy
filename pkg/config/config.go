@@ -17,7 +17,7 @@ func CreateEntriesForExternalService(serviceName string, endpointServiceEntry st
 	var entry generatedServiceConfig
 
 	entry.gateway = createIngressGatewayForExternalService(hostVirtualService, 9000, serviceName, "client.istio.sapcloud.io")
-	entry.virtualService = createVirtualServiceForExternalService(hostVirtualService, portServiceEntry, serviceName)
+	entry.virtualService = createIngressVirtualServiceForExternalService(hostVirtualService, portServiceEntry, serviceName)
 	entry.serviceEntry = createServiceEntryForExternalService(endpointServiceEntry, portServiceEntry, serviceName)
 
 	return toYamlArray(entry)

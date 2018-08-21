@@ -26,7 +26,7 @@ func createServiceHost(serviceName string) string {
 	return serviceHost
 }
 
-func createVirtualServiceForExternalService(hostName string, port uint32, serviceName string) model.Config {
+func createIngressVirtualServiceForExternalService(hostName string, port uint32, serviceName string) model.Config {
 	destination := v1alpha3.Destination{Host: createServiceHost(serviceName),
 		Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: port}}}
 	route := v1alpha3.TCPRoute{Route: []*v1alpha3.DestinationWeight{&v1alpha3.DestinationWeight{Destination: &destination}}}
