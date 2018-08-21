@@ -61,7 +61,7 @@ spec:
   hosts:
   - postgres-server.service-fabrik
   ports:
-  - name: postgres
+  - name: postgres-server-47637
     number: 47637
     protocol: TCP
   resolution: STATIC

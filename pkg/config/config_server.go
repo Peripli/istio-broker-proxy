@@ -1,17 +1,16 @@
 package config
 
 import (
+	"fmt"
 	"istio.io/api/networking/v1alpha3"
 	"istio.io/istio/pilot/pkg/model"
-	"strings"
 )
 
 func createServiceEntryForExternalService(endpointAddress string, port uint32, serviceName string) model.Config {
 	hosts := []string{createServiceHost(serviceName)}
-	//FIXME: Should all service names end with -server???
-	shortName := strings.TrimSuffix(serviceName, "-server")
+	portName := fmt.Sprintf("%s-%d", serviceName, port)
 
-	ports := v1alpha3.Port{Number: port, Name: shortName, Protocol: "TCP"}
+	ports := v1alpha3.Port{Number: port, Name: portName, Protocol: "TCP"}
 	resolution := v1alpha3.ServiceEntry_STATIC
 	endpoint := v1alpha3.ServiceEntry_Endpoint{Address: endpointAddress}
 	serviceEntry := v1alpha3.ServiceEntry{Hosts: hosts, Ports: []*v1alpha3.Port{&ports}, Resolution: resolution,
