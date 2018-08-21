@@ -1,20 +1,22 @@
 package main
 
 import (
-	"bufio"
+	"flag"
 	"fmt"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/config"
 	"os"
-	"strconv"
-	"strings"
 )
 
 func main() {
-	serviceName := readStringParam("name of service")
-	endpointServiceEntry := readStringParam("endpoint(ip) of service entry")
-	portServiceEntryAsString := readStringParam("port of service entry")
-	portServiceEntry, _ := strconv.ParseUint(portServiceEntryAsString, 10, 32)
-	hostVirtualService := readStringParam("hostname of virtual service")
+	var serviceName, endpointServiceEntry, hostVirtualService string
+	var portServiceEntry int
+
+	flag.StringVar(&serviceName, "service", "<service>", "name of the service")
+	flag.StringVar(&hostVirtualService, "virtual-service", "<host>", "host of virtual service")
+	flag.StringVar(&endpointServiceEntry, "endpoint", "<0.0.0.0>", "endpoint(ip) of the service entry")
+	flag.IntVar(&portServiceEntry, "port", 99999, "port of the service entry")
+
+	flag.Parse()
 
 	out, err := config.CreateEntriesForExternalService(serviceName, endpointServiceEntry, uint32(portServiceEntry), hostVirtualService)
 
@@ -24,11 +26,4 @@ func main() {
 		fmt.Printf("error occured: %s", err.Error())
 		os.Exit(1)
 	}
-}
-
-func readStringParam(name string) string {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print(name + ": ")
-	readParam, _ := reader.ReadString('\n')
-	return strings.TrimSuffix(readParam, "\n")
 }
