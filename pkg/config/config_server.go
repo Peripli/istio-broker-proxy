@@ -6,11 +6,11 @@ import (
 	"istio.io/istio/pilot/pkg/model"
 )
 
-func createServiceEntryForExternalService(endpointAddress string, port uint32, serviceName string) model.Config {
+func createServiceEntryForExternalService(endpointAddress string, portNumber uint32, serviceName string) model.Config {
 	hosts := []string{createServiceHost(serviceName)}
-	portName := fmt.Sprintf("%s-%d", serviceName, port)
+	portName := fmt.Sprintf("%s-%d", serviceName, portNumber)
 
-	ports := v1alpha3.Port{Number: port, Name: portName, Protocol: "TCP"}
+	ports := v1alpha3.Port{Number: portNumber, Name: portName, Protocol: "TCP"}
 	resolution := v1alpha3.ServiceEntry_STATIC
 	endpoint := v1alpha3.ServiceEntry_Endpoint{Address: endpointAddress}
 	serviceEntry := v1alpha3.ServiceEntry{Hosts: hosts, Ports: []*v1alpha3.Port{&ports}, Resolution: resolution,

@@ -60,15 +60,7 @@ func createEgressDestinationRuleForExternalService(hostName string, portNumber u
 	bytes := make([]byte, 100)
 	portSelector.MarshalTo(bytes)
 	port.Unmarshal(bytes)
-	certPath := "/etc/istio/egressgateway-certs/"
-	caCertificate := certPath + "ca.crt"
-	clientCertificate := certPath + "client.crt"
-	privateKey := certPath + "client.key"
-	sni := hostName
-	subjectAltNames := []string{"postgres.services.cf.dev01.aws.istio.sapcloud.io"}
-	mode := v1alpha3.TLSSettings_MUTUAL
-	tls := v1alpha3.TLSSettings{CaCertificates: caCertificate, ClientCertificate: clientCertificate, PrivateKey: privateKey,
-		Sni: sni, SubjectAltNames: subjectAltNames, Mode: mode}
+	tls := createTlsSettings(hostName)
 	loadBalancerSimple := v1alpha3.LoadBalancerSettings_Simple{}
 	bytes = make([]byte, 100)
 	loadBalancerSimple.MarshalTo(bytes)
@@ -80,6 +72,49 @@ func createEgressDestinationRuleForExternalService(hostName string, portNumber u
 	destinationRule := v1alpha3.DestinationRule{Host: hostName, Subsets: subsets}
 	config := model.Config{Spec: &destinationRule}
 	config.Name = fmt.Sprintf("egressgateway-%s", serviceName)
+
+	return config
+}
+
+func createTlsSettings(hostName string) v1alpha3.TLSSettings {
+	certPath := "/etc/istio/egressgateway-certs/"
+	caCertificate := certPath + "ca.crt"
+	clientCertificate := certPath + "client.crt"
+	privateKey := certPath + "client.key"
+	sni := hostName
+	subjectAltNames := []string{"postgres.services.cf.dev01.aws.istio.sapcloud.io"}
+	mode := v1alpha3.TLSSettings_MUTUAL
+	tls := v1alpha3.TLSSettings{CaCertificates: caCertificate, ClientCertificate: clientCertificate, PrivateKey: privateKey,
+		Sni: sni, SubjectAltNames: subjectAltNames, Mode: mode}
+
+	return tls
+}
+
+func createEgressInternServiceEntryForExternalService(hostName string, portNumber uint32, serviceName string) model.Config {
+	portName := fmt.Sprintf("tcp-port-%d", portNumber)
+	name := fmt.Sprintf("internal-services-%s", serviceName)
+
+	config := createGeneralServiceEntryForExternalService(name, hostName, portNumber, portName, "TCP")
+
+	return config
+}
+
+func createEgressExternServiceEntryForExternalService(hostName string, portNumber uint32, serviceName string) model.Config {
+	portName := fmt.Sprintf("%s-port", serviceName)
+	name := fmt.Sprintf("%s-service", serviceName)
+
+	config := createGeneralServiceEntryForExternalService(name, hostName, portNumber, portName, "TLS")
+
+	return config
+}
+
+func createGeneralServiceEntryForExternalService(serviceEntryName string, hostName string, portNumber uint32, portName string, protocol string) model.Config {
+	resolution := v1alpha3.ServiceEntry_DNS
+	hosts := []string{hostName}
+	ports := v1alpha3.Port{Number: portNumber, Name: portName, Protocol: protocol}
+	serviceEntry := v1alpha3.ServiceEntry{Hosts: hosts, Ports: []*v1alpha3.Port{&ports}, Resolution: resolution}
+	config := model.Config{Spec: &serviceEntry}
+	config.Name = serviceEntryName
 
 	return config
 }

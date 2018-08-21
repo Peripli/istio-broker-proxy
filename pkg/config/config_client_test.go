@@ -7,6 +7,36 @@ import (
 )
 
 const (
+	service_entry_extern_yml = `apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  creationTimestamp: null
+  name: postgres-service
+  namespace: default
+spec:
+  hosts:
+  - postgres.services.cf.dev01.aws.istio.sapcloud.io
+  ports:
+  - name: postgres-port
+    number: 9000
+    protocol: TLS
+  resolution: DNS
+`
+	service_entry_intern_yml = `apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  creationTimestamp: null
+  name: internal-services-postgres
+  namespace: default
+spec:
+  hosts:
+  - postgres.services.cf.dev01.aws.istio.sapcloud.io
+  ports:
+  - name: tcp-port-5556
+    number: 5556
+    protocol: TCP
+  resolution: DNS
+`
 	destination_rule_egress_yml = `apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
@@ -150,4 +180,28 @@ func TestClientEgressDestinationRuleFromGo(t *testing.T) {
 	text, err := toText(model.DestinationRule, destinationRule)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(text).To(Equal(destination_rule_egress_yml))
+}
+
+func TestClientInternServiceEntryFromGo(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	serviceEntry := createEgressInternServiceEntryForExternalService("postgres.services.cf.dev01.aws.istio.sapcloud.io",
+		5556,
+		"postgres")
+
+	text, err := toText(model.ServiceEntry, serviceEntry)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(text).To(Equal(service_entry_intern_yml))
+}
+
+func TestClientExternServiceEntryFromGo(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	serviceEntry := createEgressExternServiceEntryForExternalService("postgres.services.cf.dev01.aws.istio.sapcloud.io",
+		9000,
+		"postgres")
+
+	text, err := toText(model.ServiceEntry, serviceEntry)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(text).To(Equal(service_entry_extern_yml))
 }
