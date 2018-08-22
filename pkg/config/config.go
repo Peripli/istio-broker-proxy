@@ -6,64 +6,71 @@ import (
 	"istio.io/istio/pilot/pkg/model"
 )
 
-type generatedServiceConfig struct {
-	gateway        model.Config
-	virtualService model.Config
-	serviceEntry   model.Config
+const (
+	gateway         = "Gateway"
+	serviceEntry    = "ServiceEntry"
+	virtualService  = "VirtualService"
+	destinationRule = "DestinationRule"
+)
+
+var schemas = map[string]model.ProtoSchema{
+	gateway:         model.Gateway,
+	serviceEntry:    model.ServiceEntry,
+	virtualService:  model.VirtualService,
+	destinationRule: model.DestinationRule,
 }
 
-func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string) (string, error) {
+func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string) []model.Config {
+	var configs []model.Config
 
-	var entry generatedServiceConfig
+	configs = append(configs, createIngressGatewayForExternalService(hostVirtualService, 9000, serviceName, "client.istio.sapcloud.io"))
+	configs = append(configs, createIngressVirtualServiceForExternalService(hostVirtualService, portServiceEntry, serviceName))
+	configs = append(configs, createServiceEntryForExternalService(endpointServiceEntry, portServiceEntry, serviceName))
 
-	entry.gateway = createIngressGatewayForExternalService(hostVirtualService, 9000, serviceName, "client.istio.sapcloud.io")
-	entry.virtualService = createIngressVirtualServiceForExternalService(hostVirtualService, portServiceEntry, serviceName)
-	entry.serviceEntry = createServiceEntryForExternalService(endpointServiceEntry, portServiceEntry, serviceName)
-
-	return toYamlArray(entry)
+	return configs
 }
 
-func CreateEntriesForExternalServiceClient(serviceName string, hostName string, portNumber uint32) (string, error) {
-	var array []interface{}
-
-	gateway := createEgressGatewayForExternalService(hostName, 443, serviceName)
-	kubernetesConf, _ := crd.ConvertConfig(model.Gateway, gateway)
-	array = append(array, kubernetesConf)
-
-	destinationRule := createEgressDestinationRuleForExternalService(hostName, 9000, serviceName)
-	kubernetesConf, _ = crd.ConvertConfig(model.DestinationRule, destinationRule)
-	array = append(array, kubernetesConf)
-	array = append(array, kubernetesConf)
-	array = append(array, kubernetesConf)
+func CreateEntriesForExternalServiceClient(serviceName string, hostName string, portNumber uint32) []model.Config {
+	var configs []model.Config
 
 	serviceEntry := createEgressInternServiceEntryForExternalService(hostName, portNumber, serviceName)
-	kubernetesConf, _ = crd.ConvertConfig(model.ServiceEntry, serviceEntry)
-	array = append(array, kubernetesConf)
+	configs = append(configs, serviceEntry)
 
 	serviceEntry = createEgressExternServiceEntryForExternalService(hostName, 9000, serviceName)
-	kubernetesConf, _ = crd.ConvertConfig(model.ServiceEntry, serviceEntry)
-	array = append(array, kubernetesConf)
+	configs = append(configs, serviceEntry)
 
-	bytes, err := yaml.Marshal(array)
-	return string(bytes), err
+	virtualService := createMeshVirtualServiceForExternalService(hostName, 443, serviceName, portNumber)
+	configs = append(configs, virtualService)
+	virtualService = createEgressVirtualServiceForExternalService(hostName, 9000, serviceName, 443)
+	configs = append(configs, virtualService)
+
+	gateway := createEgressGatewayForExternalService(hostName, 443, serviceName)
+	configs = append(configs, gateway)
+
+	destinationRule := createEgressDestinationRuleForExternalService(hostName, 9000, serviceName)
+	configs = append(configs, destinationRule)
+
+	return configs
 }
 
-func toYamlArray(entry generatedServiceConfig) (string, error) {
-	var array []interface{}
+func ToYamlDocuments(entry []model.Config) (string, error) {
+	var result, text string
+	var err error
 
-	array = addConfig(array, model.Gateway, entry.gateway)
-	array = addConfig(array, model.ServiceEntry, entry.serviceEntry)
-	array = addConfig(array, model.VirtualService, entry.virtualService)
-
-	bytes, err := yaml.Marshal(array)
-	return string(bytes), err
-}
-
-func addConfig(array []interface{}, schema model.ProtoSchema, config model.Config) []interface{} {
-	kubernetesConf, err := crd.ConvertConfig(schema, config)
-	if err == nil {
-		array = append(array, kubernetesConf)
+	for _, element := range entry {
+		text, err = toText(element)
+		result += "---\n" + text
 	}
 
-	return array
+	return result, err
+}
+
+func toText(config model.Config) (string, error) {
+	schema := schemas[config.Type]
+	kubernetesConf, err := crd.ConvertConfig(schema, config)
+	if err != nil {
+		return "", err
+	}
+	bytes, err := yaml.Marshal(kubernetesConf)
+	return string(bytes), err
 }

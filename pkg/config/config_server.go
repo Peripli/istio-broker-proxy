@@ -13,9 +13,10 @@ func createServiceEntryForExternalService(endpointAddress string, portNumber uin
 	ports := v1alpha3.Port{Number: portNumber, Name: portName, Protocol: "TCP"}
 	resolution := v1alpha3.ServiceEntry_STATIC
 	endpoint := v1alpha3.ServiceEntry_Endpoint{Address: endpointAddress}
-	serviceEntry := v1alpha3.ServiceEntry{Hosts: hosts, Ports: []*v1alpha3.Port{&ports}, Resolution: resolution,
+	serviceEntrySpec := v1alpha3.ServiceEntry{Hosts: hosts, Ports: []*v1alpha3.Port{&ports}, Resolution: resolution,
 		Endpoints: []*v1alpha3.ServiceEntry_Endpoint{&endpoint}}
-	config := model.Config{Spec: &serviceEntry}
+	config := model.Config{Spec: &serviceEntrySpec}
+	config.Type = serviceEntry
 	config.Name = serviceName + "-service-entry"
 
 	return config
@@ -33,8 +34,9 @@ func createIngressVirtualServiceForExternalService(hostName string, port uint32,
 	tcpRoutes := []*v1alpha3.TCPRoute{&route}
 	hosts := []string{hostName}
 	gateways := []string{serviceName + "-gateway"}
-	virtualService := v1alpha3.VirtualService{Tcp: tcpRoutes, Hosts: hosts, Gateways: gateways}
-	config := model.Config{Spec: &virtualService}
+	virtualServiceSpec := v1alpha3.VirtualService{Tcp: tcpRoutes, Hosts: hosts, Gateways: gateways}
+	config := model.Config{Spec: &virtualServiceSpec}
+	config.Type = virtualService
 	config.Name = serviceName + "-virtual-service"
 
 	return config
@@ -49,8 +51,9 @@ func createIngressGatewayForExternalService(hostName string, portNumber uint32, 
 		PrivateKey:        certPath + serviceName + ".key",
 		CaCertificates:    certPath + "ca.crt",
 		SubjectAltNames:   []string{clientName}}
-	gateway := v1alpha3.Gateway{Servers: []*v1alpha3.Server{&v1alpha3.Server{Port: &port, Hosts: hosts, Tls: &tls}}}
-	config := model.Config{Spec: &gateway}
+	gatewaySpec := v1alpha3.Gateway{Servers: []*v1alpha3.Server{&v1alpha3.Server{Port: &port, Hosts: hosts, Tls: &tls}}}
+	config := model.Config{Spec: &gatewaySpec}
+	config.Type = gateway
 	config.Name = serviceName + "-gateway"
 
 	return config

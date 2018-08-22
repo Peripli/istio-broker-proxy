@@ -4,13 +4,16 @@ import (
 	"flag"
 	"fmt"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/config"
+	"istio.io/istio/pilot/pkg/model"
 	"os"
 )
 
 func main() {
 	var serviceName, endpointServiceEntry, hostVirtualService string
 	var portServiceEntry int
+	var clientConfig bool
 
+	flag.BoolVar(&clientConfig, "client", false, "Create client configuration")
 	flag.StringVar(&serviceName, "service", "<service>", "name of the service")
 	flag.StringVar(&hostVirtualService, "virtual-service", "<host>", "host of virtual service")
 	flag.StringVar(&endpointServiceEntry, "endpoint", "<0.0.0.0>", "endpoint(ip) of the service entry")
@@ -18,7 +21,13 @@ func main() {
 
 	flag.Parse()
 
-	out, err := config.CreateEntriesForExternalService(serviceName, endpointServiceEntry, uint32(portServiceEntry), hostVirtualService)
+	var configs []model.Config
+	if clientConfig {
+		configs = config.CreateEntriesForExternalServiceClient(serviceName, hostVirtualService, uint32(portServiceEntry))
+	} else {
+		configs = config.CreateEntriesForExternalService(serviceName, endpointServiceEntry, uint32(portServiceEntry), hostVirtualService)
+	}
+	out, err := config.ToYamlDocuments(configs)
 
 	if err == nil {
 		fmt.Printf("%s", out)

@@ -1,9 +1,11 @@
 package config
 
 import (
-	"errors"
 	"github.com/ghodss/yaml"
 	. "github.com/onsi/gomega"
+	"istio.io/api/networking/v1alpha3"
+	"istio.io/istio/pilot/pkg/config/kube/crd"
+	"istio.io/istio/pilot/pkg/model"
 	"regexp"
 	"testing"
 )
@@ -11,10 +13,7 @@ import (
 func TestCompleteEntryNotEmpty(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape")
-
-	var configObjects []interface{}
-	yaml.Unmarshal([]byte(configAsString), &configObjects)
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape")
 
 	g.Expect(configObjects).To(HaveLen(3))
 }
@@ -22,10 +21,7 @@ func TestCompleteEntryNotEmpty(t *testing.T) {
 func TestCompleteClientEntryNotEmpty(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 1111)
-
-	var configObjects []interface{}
-	yaml.Unmarshal([]byte(configAsString), &configObjects)
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 1111)
 
 	g.Expect(configObjects).To(HaveLen(6))
 }
@@ -33,122 +29,84 @@ func TestCompleteClientEntryNotEmpty(t *testing.T) {
 func TestCompleteEntryGateway(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape")
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape")
 
-	var configObjects []interface{}
-	yaml.Unmarshal([]byte(configAsString), &configObjects)
+	gatewaySpec, gatewayMetadata := getSpecAndMetadataFromConfig(g, configObjects, gateway)
 
-	gatewayConfig, err := lookupObjectFromConfig(configObjects, "Gateway")
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(gatewaySpec).To(ContainSubstring("myservice.landscape"))
+	g.Expect(gatewaySpec).To(ContainSubstring("9000"))
+	g.Expect(gatewaySpec).To(ContainSubstring("client.istio.sapcloud.io"))
+	g.Expect(gatewaySpec).To(ContainSubstring("config/certs/myservice.key"))
+	g.Expect(gatewaySpec).To(ContainSubstring("config/certs/myservice.crt"))
 
-	gatewaySpec, _ := yaml.Marshal(gatewayConfig["spec"])
-	gatewayMetadata, _ := yaml.Marshal(gatewayConfig["metadata"])
-
-	g.Expect(string(gatewaySpec)).To(ContainSubstring("myservice.landscape"))
-	g.Expect(string(gatewaySpec)).To(ContainSubstring("9000"))
-	g.Expect(string(gatewaySpec)).To(ContainSubstring("client.istio.sapcloud.io"))
-	g.Expect(string(gatewaySpec)).To(ContainSubstring("config/certs/myservice.key"))
-	g.Expect(string(gatewaySpec)).To(ContainSubstring("config/certs/myservice.crt"))
-
-	g.Expect(string(gatewayMetadata)).To(ContainSubstring("name: myservice-gateway"))
+	g.Expect(gatewayMetadata).To(ContainSubstring("name: myservice-gateway"))
 }
 
 func TestCompleteServiceEntry(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape")
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape")
 
-	var configObjects []interface{}
-	yaml.Unmarshal([]byte(configAsString), &configObjects)
+	serviceEntrySpec, serviceEntryMetadata := getSpecAndMetadataFromConfig(g, configObjects, serviceEntry)
 
-	serviceEntryConfig, err := lookupObjectFromConfig(configObjects, "ServiceEntry")
-	g.Expect(err).ShouldNot(HaveOccurred())
-
-	serviceEntrySpec, _ := yaml.Marshal(serviceEntryConfig["spec"])
-	serviceEntryMetadata, _ := yaml.Marshal(serviceEntryConfig["metadata"])
-
-	g.Expect(string(serviceEntrySpec)).To(ContainSubstring("10.10.10.10"))
-	g.Expect(string(serviceEntrySpec)).To(ContainSubstring("156"))
-	g.Expect(string(serviceEntrySpec)).To(ContainSubstring("name: myservice"))
-	g.Expect(string(serviceEntryMetadata)).To(ContainSubstring("name: myservice-service-entry"))
+	g.Expect(serviceEntrySpec).To(ContainSubstring("10.10.10.10"))
+	g.Expect(serviceEntrySpec).To(ContainSubstring("156"))
+	g.Expect(serviceEntrySpec).To(ContainSubstring("name: myservice"))
+	g.Expect(serviceEntryMetadata).To(ContainSubstring("name: myservice-service-entry"))
 }
 
 func TestCompleteVirtualService(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape")
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape")
+	virtualServiceSpec, _ := getSpecAndMetadataFromConfig(g, configObjects, virtualService)
 
-	var configObjects []interface{}
-	yaml.Unmarshal([]byte(configAsString), &configObjects)
-
-	virtualServiceConfig, err := lookupObjectFromConfig(configObjects, "VirtualService")
-	g.Expect(err).ShouldNot(HaveOccurred())
-
-	virtualServiceSpec, _ := yaml.Marshal(virtualServiceConfig["spec"])
-
-	g.Expect(string(virtualServiceSpec)).To(ContainSubstring("myservice.landscape"))
-	g.Expect(string(virtualServiceSpec)).To(ContainSubstring("156"))
-	g.Expect(string(virtualServiceSpec)).To(ContainSubstring("host: myservice.service-fabrik"))
+	g.Expect(virtualServiceSpec).To(ContainSubstring("myservice.landscape"))
+	g.Expect(virtualServiceSpec).To(ContainSubstring("156"))
+	g.Expect(virtualServiceSpec).To(ContainSubstring("host: myservice.service-fabrik"))
 }
 
 func TestCompleteEntryClientGateway(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 12345)
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 12345)
 
-	var configObjects []interface{}
-	yaml.Unmarshal([]byte(configAsString), &configObjects)
+	gatewaySpec, gatewayMetadata := getSpecAndMetadataFromConfig(g, configObjects, gateway)
 
-	gatewayConfig, err := lookupObjectFromConfig(configObjects, "Gateway")
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(gatewaySpec).To(ContainSubstring("myservice.landscape"))
+	g.Expect(gatewaySpec).To(ContainSubstring("443"))
+	g.Expect(gatewaySpec).To(ContainSubstring("spiffe://cluster.local/ns/default/sa/default"))
+	g.Expect(gatewaySpec).To(ContainSubstring("/etc/certs/cert-chain.pem"))
 
-	gatewaySpec, _ := yaml.Marshal(gatewayConfig["spec"])
-	gatewayMetadata, _ := yaml.Marshal(gatewayConfig["metadata"])
-
-	g.Expect(string(gatewaySpec)).To(ContainSubstring("myservice.landscape"))
-	g.Expect(string(gatewaySpec)).To(ContainSubstring("443"))
-	g.Expect(string(gatewaySpec)).To(ContainSubstring("spiffe://cluster.local/ns/default/sa/default"))
-	g.Expect(string(gatewaySpec)).To(ContainSubstring("/etc/certs/cert-chain.pem"))
-
-	g.Expect(string(gatewayMetadata)).To(ContainSubstring("name: istio-egressgateway-myservice"))
+	g.Expect(gatewayMetadata).To(ContainSubstring("name: istio-egressgateway-myservice"))
 }
 
 func TestCompleteEntryClientDestinationRule(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 12345)
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 12345)
 
-	var configObjects []interface{}
-	yaml.Unmarshal([]byte(configAsString), &configObjects)
+	ruleSpec, ruleMetadata := getSpecAndMetadataFromConfig(g, configObjects, destinationRule)
 
-	ruleConfig, err := lookupObjectFromConfig(configObjects, "DestinationRule")
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(ruleSpec).To(ContainSubstring("myservice.landscape"))
+	g.Expect(ruleSpec).To(ContainSubstring("9000"))
+	g.Expect(ruleSpec).To(ContainSubstring("sni: myservice.landscape"))
 
-	ruleSpec, _ := yaml.Marshal(ruleConfig["spec"])
-	ruleMetadata, _ := yaml.Marshal(ruleConfig["metadata"])
-
-	g.Expect(string(ruleSpec)).To(ContainSubstring("myservice.landscape"))
-	g.Expect(string(ruleSpec)).To(ContainSubstring("9000"))
-	g.Expect(string(ruleSpec)).To(ContainSubstring("sni: myservice.landscape"))
-
-	g.Expect(string(ruleMetadata)).To(ContainSubstring("egressgateway-myservice"))
+	g.Expect(ruleMetadata).To(ContainSubstring("egressgateway-myservice"))
 }
 
 func TestCompleteEntryClientServiceEntry(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configAsString, _ := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 12345)
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 12345)
 
-	var configObjects []interface{}
-	yaml.Unmarshal([]byte(configAsString), &configObjects)
-
-	serviceEntriesConfigs := lookupObjectsFromConfigs(configObjects, "ServiceEntry")
+	serviceEntriesConfigs := lookupObjectsFromConfigs(configObjects, serviceEntry)
 	g.Expect(serviceEntriesConfigs).To(HaveLen(2))
 
 	var ports []string
 	for _, serviceEntryConfig := range serviceEntriesConfigs {
 		entrySpec, _ := yaml.Marshal(serviceEntryConfig)
-		g.Expect(string(entrySpec)).To(ContainSubstring("myservice.landscape"))
+		g.Expect(entrySpec).To(ContainSubstring("myservice.landscape"))
 
 		r := regexp.MustCompile(`number: (\d+)`)
 		port := r.FindStringSubmatch(string(entrySpec))[1]
@@ -158,24 +116,50 @@ func TestCompleteEntryClientServiceEntry(t *testing.T) {
 	g.Expect(ports).To(ContainElement("9000"))
 }
 
-func lookupObjectFromConfig(configObjects []interface{}, kind string) (map[string]interface{}, error) {
+func TestCompleteEntryClientVirtualServices(t *testing.T) {
+	g := NewGomegaWithT(t)
 
-	array := lookupObjectsFromConfigs(configObjects, kind)
-
-	if array == nil {
-
-		return nil, errors.New("not found:" + kind)
-	} else {
-		return array[0], nil
-	}
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 12345)
+	serviceSpecs, serviceMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, virtualService)
+	g.Expect(serviceSpecs).To(HaveLen(2))
+	g.Expect(serviceMetadatas).To(HaveLen(2))
+	g.Expect(serviceSpecs[0]).To(ContainSubstring("mesh"))
+	g.Expect(serviceSpecs[1]).To(ContainSubstring("istio-egressgateway-myservice"))
 }
 
-func lookupObjectsFromConfigs(configObjects []interface{}, kind string) []map[string]interface{} {
-	var array []map[string]interface{}
+func TestCreatesYamlDocuments(t *testing.T) {
+	g := NewGomegaWithT(t)
+	dummyConfigs := []model.Config{model.Config{Spec: &v1alpha3.ServiceEntry{}}}
+	dummyConfigs[0].Type = serviceEntry
+	text, err := ToYamlDocuments(dummyConfigs)
+	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(text).To(ContainSubstring("---"))
+}
 
-	for _, entryUntyped := range configObjects {
-		entry := entryUntyped.(map[string]interface{})
-		if entry["kind"] == kind {
+func getSpecAndMetadataFromConfig(g *GomegaWithT, configObjects []model.Config, configType string) (string, string) {
+	specs, metadatas := getSpecsAndMetadatasFromConfig(g, configObjects, configType)
+	return specs[0], metadatas[0]
+}
+
+func getSpecsAndMetadatasFromConfig(g *GomegaWithT, configObjects []model.Config, configType string) ([]string, []string) {
+	configs := lookupObjectsFromConfigs(configObjects, configType)
+	var specs, metadatas []string
+	for _, config := range configs {
+		kubernetesConf, err := crd.ConvertConfig(schemas[config.Type], config)
+		g.Expect(err).ShouldNot(HaveOccurred())
+		spec, err := yaml.Marshal(kubernetesConf.GetSpec())
+		g.Expect(err).ShouldNot(HaveOccurred())
+		specs = append(specs, string(spec))
+		metadata, err := yaml.Marshal(kubernetesConf.GetObjectMeta())
+		g.Expect(err).ShouldNot(HaveOccurred())
+		metadatas = append(metadatas, string(metadata))
+	}
+	return specs, metadatas
+}
+
+func lookupObjectsFromConfigs(configObjects []model.Config, kind string) (array []model.Config) {
+	for _, entry := range configObjects {
+		if entry.Type == kind {
 			array = append(array, entry)
 		}
 	}

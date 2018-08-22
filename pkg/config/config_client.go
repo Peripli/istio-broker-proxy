@@ -27,8 +27,9 @@ func createGeneralVirtualServiceForExternalService(hostName string, port uint32,
 	tcpRoutes := []*v1alpha3.TCPRoute{&route}
 	hosts := []string{hostName}
 	gateways := []string{fmt.Sprintf(gatewayHost)}
-	virtualService := v1alpha3.VirtualService{Tcp: tcpRoutes, Hosts: hosts, Gateways: gateways}
-	config := model.Config{Spec: &virtualService}
+	virtualServiceSpec := v1alpha3.VirtualService{Tcp: tcpRoutes, Hosts: hosts, Gateways: gateways}
+	config := model.Config{Spec: &virtualServiceSpec}
+	config.Type = virtualService
 	config.Name = gatewayName
 
 	return config
@@ -46,31 +47,24 @@ func createEgressGatewayForExternalService(hostName string, portNumber uint32, s
 		SubjectAltNames:   []string{"spiffe://cluster.local/ns/default/sa/default"}}
 	selector := make(map[string]string)
 	selector["istio"] = "egressgateway"
-	gateway := v1alpha3.Gateway{Selector: selector, Servers: []*v1alpha3.Server{&v1alpha3.Server{Port: &port, Hosts: hosts, Tls: &tls}}}
-	config := model.Config{Spec: &gateway}
+	gatewaySpec := v1alpha3.Gateway{Selector: selector, Servers: []*v1alpha3.Server{&v1alpha3.Server{Port: &port, Hosts: hosts, Tls: &tls}}}
+	config := model.Config{Spec: &gatewaySpec}
+	config.Type = gateway
 	config.Name = fmt.Sprintf("istio-egressgateway-%s", serviceName)
 
 	return config
 }
 
 func createEgressDestinationRuleForExternalService(hostName string, portNumber uint32, serviceName string) model.Config {
-	portSelector := v1alpha3.PortSelector_Number{portNumber}
-	port := v1alpha3.PortSelector{}
-	//TODO: How to do it easier
-	bytes := make([]byte, 100)
-	portSelector.MarshalTo(bytes)
-	port.Unmarshal(bytes)
+	port := v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: portNumber}}
 	tls := createTlsSettings(hostName)
-	loadBalancerSimple := v1alpha3.LoadBalancerSettings_Simple{}
-	bytes = make([]byte, 100)
-	loadBalancerSimple.MarshalTo(bytes)
-	loadBalancer := v1alpha3.LoadBalancerSettings{}
-	loadBalancer.Unmarshal(bytes)
+	loadBalancer := v1alpha3.LoadBalancerSettings{&v1alpha3.LoadBalancerSettings_Simple{}}
 	portLevelSettings := []*v1alpha3.TrafficPolicy_PortTrafficPolicy{{Tls: &tls, Port: &port}}
 	trafficPolicy := v1alpha3.TrafficPolicy{PortLevelSettings: portLevelSettings, LoadBalancer: &loadBalancer}
 	subsets := []*v1alpha3.Subset{{Name: serviceName, TrafficPolicy: &trafficPolicy}}
-	destinationRule := v1alpha3.DestinationRule{Host: hostName, Subsets: subsets}
-	config := model.Config{Spec: &destinationRule}
+	destinationRuleSpec := v1alpha3.DestinationRule{Host: hostName, Subsets: subsets}
+	config := model.Config{Spec: &destinationRuleSpec}
+	config.Type = destinationRule
 	config.Name = fmt.Sprintf("egressgateway-%s", serviceName)
 
 	return config
@@ -112,8 +106,9 @@ func createGeneralServiceEntryForExternalService(serviceEntryName string, hostNa
 	resolution := v1alpha3.ServiceEntry_DNS
 	hosts := []string{hostName}
 	ports := v1alpha3.Port{Number: portNumber, Name: portName, Protocol: protocol}
-	serviceEntry := v1alpha3.ServiceEntry{Hosts: hosts, Ports: []*v1alpha3.Port{&ports}, Resolution: resolution}
-	config := model.Config{Spec: &serviceEntry}
+	serviceEntrySpec := v1alpha3.ServiceEntry{Hosts: hosts, Ports: []*v1alpha3.Port{&ports}, Resolution: resolution}
+	config := model.Config{Spec: &serviceEntrySpec}
+	config.Type = serviceEntry
 	config.Name = serviceEntryName
 
 	return config
