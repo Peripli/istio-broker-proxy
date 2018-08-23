@@ -10,13 +10,13 @@ const (
 kind: ServiceEntry
 metadata:
   creationTimestamp: null
-  name: postgres-service
+  name: mypostgres-service
   namespace: default
 spec:
   hosts:
-  - postgres.services.cf.dev01.aws.istio.sapcloud.io
+  - mypostgres.services.cf.dev01.aws.istio.sapcloud.io
   ports:
-  - name: postgres-port
+  - name: mypostgres-port
     number: 9000
     protocol: TLS
   resolution: DNS
@@ -25,11 +25,11 @@ spec:
 kind: ServiceEntry
 metadata:
   creationTimestamp: null
-  name: internal-services-postgres
+  name: internal-services-mypostgres
   namespace: default
 spec:
   hosts:
-  - postgres.services.cf.dev01.aws.istio.sapcloud.io
+  - mypostgres.services.cf.dev01.aws.istio.sapcloud.io
   ports:
   - name: tcp-port-5556
     number: 5556
@@ -40,12 +40,12 @@ spec:
 kind: DestinationRule
 metadata:
   creationTimestamp: null
-  name: egressgateway-postgres
+  name: egressgateway-mypostgres
   namespace: default
 spec:
-  host: postgres.services.cf.dev01.aws.istio.sapcloud.io
+  host: mypostgres.services.cf.dev01.aws.istio.sapcloud.io
   subsets:
-  - name: postgres
+  - name: mypostgres
     trafficPolicy:
       loadBalancer:
         simple: ROUND_ROBIN
@@ -57,22 +57,22 @@ spec:
           clientCertificate: /etc/istio/egressgateway-certs/client.crt
           mode: MUTUAL
           privateKey: /etc/istio/egressgateway-certs/client.key
-          sni: postgres.services.cf.dev01.aws.istio.sapcloud.io
+          sni: mypostgres.services.cf.dev01.aws.istio.sapcloud.io
           subjectAltNames:
-          - postgres.services.cf.dev01.aws.istio.sapcloud.io
+          - mypostgres.services.cf.dev01.aws.istio.sapcloud.io
 `
 
 	virtual_service_mesh_yml = `apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
   creationTimestamp: null
-  name: direct-through-egress-mesh-postgres
+  name: direct-through-egress-mesh-mypostgres
   namespace: default
 spec:
   gateways:
   - mesh
   hosts:
-  - postgres.services.cf.dev01.aws.istio.sapcloud.io
+  - mypostgres.services.cf.dev01.aws.istio.sapcloud.io
   tcp:
   - match:
     - gateways:
@@ -83,43 +83,43 @@ spec:
         host: istio-egressgateway.istio-system.svc.cluster.local
         port:
           number: 443
-        subset: postgres
+        subset: mypostgres
 `
 	virtual_service_egress_yml = `apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
   creationTimestamp: null
-  name: egress-gateway-postgres
+  name: egress-gateway-mypostgres
   namespace: default
 spec:
   gateways:
-  - istio-egressgateway-postgres
+  - istio-egressgateway-mypostgres
   hosts:
-  - postgres.services.cf.dev01.aws.istio.sapcloud.io
+  - mypostgres.services.cf.dev01.aws.istio.sapcloud.io
   tcp:
   - match:
     - gateways:
-      - istio-egressgateway-postgres
+      - istio-egressgateway-mypostgres
       port: 443
     route:
     - destination:
-        host: postgres.services.cf.dev01.aws.istio.sapcloud.io
+        host: mypostgres.services.cf.dev01.aws.istio.sapcloud.io
         port:
           number: 9000
-        subset: postgres
+        subset: mypostgres
 `
 	gateway_egress_yml = `apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   creationTimestamp: null
-  name: istio-egressgateway-postgres
+  name: istio-egressgateway-mypostgres
   namespace: default
 spec:
   selector:
     istio: egressgateway
   servers:
   - hosts:
-    - postgres.services.cf.dev01.aws.istio.sapcloud.io
+    - mypostgres.services.cf.dev01.aws.istio.sapcloud.io
     port:
       name: tcp-port-443
       number: 443
@@ -137,7 +137,7 @@ spec:
 func TestClientGatewayFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	gatewaySpec := createEgressGatewayForExternalService("postgres.services.cf.dev01.aws.istio.sapcloud.io", 443, "postgres")
+	gatewaySpec := createEgressGatewayForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io", 443, "mypostgres")
 
 	text, err := toText(gatewaySpec)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -147,9 +147,9 @@ func TestClientGatewayFromGo(t *testing.T) {
 func TestClientVirtualServiceFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	virtualServiceSpec := createEgressVirtualServiceForExternalService("postgres.services.cf.dev01.aws.istio.sapcloud.io",
+	virtualServiceSpec := createEgressVirtualServiceForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
 		9000,
-		"postgres", 443)
+		"mypostgres", 443)
 
 	text, err := toText(virtualServiceSpec)
 
@@ -160,9 +160,9 @@ func TestClientVirtualServiceFromGo(t *testing.T) {
 func TestClientMeshVirtualServiceFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	virtualServiceSpec := createMeshVirtualServiceForExternalService("postgres.services.cf.dev01.aws.istio.sapcloud.io",
+	virtualServiceSpec := createMeshVirtualServiceForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
 		443,
-		"postgres", 5556)
+		"mypostgres", 5556)
 
 	text, err := toText(virtualServiceSpec)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -172,9 +172,9 @@ func TestClientMeshVirtualServiceFromGo(t *testing.T) {
 func TestClientEgressDestinationRuleFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	destinationRuleSpec := createEgressDestinationRuleForExternalService("postgres.services.cf.dev01.aws.istio.sapcloud.io",
+	destinationRuleSpec := createEgressDestinationRuleForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
 		9000,
-		"postgres")
+		"mypostgres")
 
 	text, err := toText(destinationRuleSpec)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -184,9 +184,9 @@ func TestClientEgressDestinationRuleFromGo(t *testing.T) {
 func TestClientInternServiceEntryFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	serviceEntrySpec := createEgressInternServiceEntryForExternalService("postgres.services.cf.dev01.aws.istio.sapcloud.io",
+	serviceEntrySpec := createEgressInternServiceEntryForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
 		5556,
-		"postgres")
+		"mypostgres")
 
 	text, err := toText(serviceEntrySpec)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -196,9 +196,9 @@ func TestClientInternServiceEntryFromGo(t *testing.T) {
 func TestClientExternServiceEntryFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	serviceEntrySpec := createEgressExternServiceEntryForExternalService("postgres.services.cf.dev01.aws.istio.sapcloud.io",
+	serviceEntrySpec := createEgressExternServiceEntryForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
 		9000,
-		"postgres")
+		"mypostgres")
 
 	text, err := toText(serviceEntrySpec)
 	g.Expect(err).NotTo(HaveOccurred())
