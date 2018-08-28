@@ -58,9 +58,8 @@ func createEgressGatewayForExternalService(hostName string, portNumber uint32, s
 func createEgressDestinationRuleForExternalService(hostName string, portNumber uint32, serviceName string) model.Config {
 	port := v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: portNumber}}
 	tls := createTlsSettings(hostName)
-	loadBalancer := v1alpha3.LoadBalancerSettings{&v1alpha3.LoadBalancerSettings_Simple{}}
 	portLevelSettings := []*v1alpha3.TrafficPolicy_PortTrafficPolicy{{Tls: &tls, Port: &port}}
-	trafficPolicy := v1alpha3.TrafficPolicy{PortLevelSettings: portLevelSettings, LoadBalancer: &loadBalancer}
+	trafficPolicy := v1alpha3.TrafficPolicy{PortLevelSettings: portLevelSettings}
 	subsets := []*v1alpha3.Subset{{Name: serviceName, TrafficPolicy: &trafficPolicy}}
 	destinationRuleSpec := v1alpha3.DestinationRule{Host: hostName, Subsets: subsets}
 	config := model.Config{Spec: &destinationRuleSpec}
@@ -110,6 +109,21 @@ func createGeneralServiceEntryForExternalService(serviceEntryName string, hostNa
 	config := model.Config{Spec: &serviceEntrySpec}
 	config.Type = serviceEntry
 	config.Name = serviceEntryName
+
+	return config
+}
+
+func createSidecarDestinationRuleForExternalService(hostName string, serviceName string) model.Config {
+	sni := hostName
+	mode := v1alpha3.TLSSettings_ISTIO_MUTUAL
+	tls := v1alpha3.TLSSettings{Sni: sni, Mode: mode}
+
+	trafficPolicy := v1alpha3.TrafficPolicy{Tls: &tls}
+	subsets := []*v1alpha3.Subset{{Name: serviceName, TrafficPolicy: &trafficPolicy}}
+	destinationRuleSpec := v1alpha3.DestinationRule{Host: "istio-egressgateway.istio-system.svc.cluster.local", Subsets: subsets}
+	config := model.Config{Spec: &destinationRuleSpec}
+	config.Type = destinationRule
+	config.Name = fmt.Sprintf("sidecar-to-egress-%s", serviceName)
 
 	return config
 }

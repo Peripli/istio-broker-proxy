@@ -36,6 +36,22 @@ spec:
     protocol: TCP
   resolution: DNS
 `
+	destination_rule_sidecar_yml = `apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  creationTimestamp: null
+  name: sidecar-to-egress-mypostgres
+  namespace: default
+spec:
+  host: istio-egressgateway.istio-system.svc.cluster.local
+  subsets:
+  - name: mypostgres
+    trafficPolicy:
+      tls:
+        mode: ISTIO_MUTUAL
+        sni: mypostgres.services.cf.dev01.aws.istio.sapcloud.io
+`
+
 	destination_rule_egress_yml = `apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
@@ -47,8 +63,6 @@ spec:
   subsets:
   - name: mypostgres
     trafficPolicy:
-      loadBalancer:
-        simple: ROUND_ROBIN
       portLevelSettings:
       - port:
           number: 9000
@@ -203,4 +217,15 @@ func TestClientExternServiceEntryFromGo(t *testing.T) {
 	text, err := toText(serviceEntrySpec)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(text).To(Equal(service_entry_extern_yml))
+}
+
+func TestClientSidecarDestinationRuleFromGo(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	destinationRuleSpec := createSidecarDestinationRuleForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
+		"mypostgres")
+
+	text, err := toText(destinationRuleSpec)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(text).To(Equal(destination_rule_sidecar_yml))
 }

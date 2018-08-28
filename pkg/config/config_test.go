@@ -23,7 +23,7 @@ func TestCompleteClientEntryNotEmpty(t *testing.T) {
 
 	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 1111)
 
-	g.Expect(configObjects).To(HaveLen(6))
+	g.Expect(configObjects).To(HaveLen(7))
 }
 
 func TestCompleteEntryGateway(t *testing.T) {
@@ -81,18 +81,37 @@ func TestCompleteEntryClientGateway(t *testing.T) {
 	g.Expect(gatewayMetadata).To(ContainSubstring("name: istio-egressgateway-myservice"))
 }
 
-func TestCompleteEntryClientDestinationRule(t *testing.T) {
+func TestCompleteEntryClientEgressDestinationRule(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 12345)
 
-	ruleSpec, ruleMetadata := getSpecAndMetadataFromConfig(g, configObjects, destinationRule)
+	ruleSpecs, ruleMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, destinationRule)
+	ruleSpec := ruleSpecs[0]
+	ruleMetadata := ruleMetadatas[0]
 
 	g.Expect(ruleSpec).To(ContainSubstring("myservice.landscape"))
 	g.Expect(ruleSpec).To(ContainSubstring("9000"))
 	g.Expect(ruleSpec).To(ContainSubstring("sni: myservice.landscape"))
 
 	g.Expect(ruleMetadata).To(ContainSubstring("egressgateway-myservice"))
+}
+
+func TestCompleteEntryClientSidecarDestinationRule(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 12345)
+
+	ruleSpecs, ruleMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, destinationRule)
+	g.Expect(ruleSpecs).To(HaveLen(2))
+
+	ruleSpec := ruleSpecs[1]
+	ruleMetadata := ruleMetadatas[1]
+
+	g.Expect(ruleSpec).To(ContainSubstring("istio-egressgateway.istio-system.svc.cluster.local"))
+	g.Expect(ruleSpec).To(ContainSubstring("sni: myservice.landscape"))
+
+	g.Expect(ruleMetadata).To(ContainSubstring("sidecar-to-egress-myservice"))
 }
 
 func TestCompleteEntryClientServiceEntry(t *testing.T) {

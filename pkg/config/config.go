@@ -50,6 +50,9 @@ func CreateEntriesForExternalServiceClient(serviceName string, hostName string, 
 	destinationRule := createEgressDestinationRuleForExternalService(hostName, 9000, serviceName)
 	configs = append(configs, destinationRule)
 
+	destinationRule = createSidecarDestinationRuleForExternalService(hostName, serviceName)
+	configs = append(configs, destinationRule)
+
 	return configs
 }
 
