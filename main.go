@@ -152,7 +152,7 @@ func readPort() {
 func main() {
 	readPort()
 	http.HandleFunc("/info", info)
-	http.HandleFunc("/update_credentials", updateCredentials)
+	http.HandleFunc("/adapt_credentials", updateCredentials)
 	http.HandleFunc("/", redirect)
 	http.ListenAndServe(":"+config.port, nil)
 }
