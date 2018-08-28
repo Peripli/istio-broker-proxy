@@ -8,7 +8,7 @@ ISTIOPID=$!
 trap "kill $ISTIOPID" 0
 sleep 1
 
-CMD="curl -s -i -d @invalidRequest.json -X POST http://localhost:8080/update_credentials" 
+CMD="curl -s -i -d @invalidRequest.json -X POST http://localhost:8080/adapt_credentials"
 echo $CMD
 if $CMD | grep "HTTP/1.1 400"
 then
@@ -18,7 +18,7 @@ else
         exit 1
 fi  
 
-CMD="curl -s -i -d @exampleRequest.json -X POST http://localhost:8080/update_credentials"
+CMD="curl -s -i -d @exampleRequest.json -X POST http://localhost:8080/adapt_credentials"
 echo $CMD
 if $CMD  | grep "HTTP/1.1 200"
 then
