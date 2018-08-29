@@ -2,8 +2,8 @@ package credentials
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/onsi/gomega/types"
-		"fmt"
 )
 
 func hasEndpointMappings(jsonString string) bool {
@@ -17,13 +17,13 @@ func hasEndpointMappings(jsonString string) bool {
 	return mappingFound
 }
 
-func haveTheEndpointMapping(host string, port string) types.GomegaMatcher {
-return EndpointMatcher{host, port}
+func haveTheEndpoint(host string, port string) types.GomegaMatcher {
+	return EndpointMatcher{host, port}
 }
 
 type EndpointMatcher struct {
-	expectedHost   string
-	expectedPort   string
+	expectedHost string
+	expectedPort string
 }
 
 func (e EndpointMatcher) Match(actual interface{}) (returnValue bool, err error) {
@@ -47,7 +47,7 @@ func (e EndpointMatcher) Match(actual interface{}) (returnValue bool, err error)
 	}
 	endpoints := endpointsUntyped.([]interface{})
 
-	for _, endpointUntyped := range(endpoints) {
+	for _, endpointUntyped := range endpoints {
 		if e.isCorrectEndpoint(endpointUntyped) {
 			return true, nil
 		}
@@ -74,5 +74,3 @@ func (e EndpointMatcher) FailureMessage(actual interface{}) (message string) {
 func (e EndpointMatcher) NegatedFailureMessage(actual interface{}) (message string) {
 	return fmt.Sprintf("Endpoint found, but not expected (host: %s, port: %s)\nActual: %v", e.expectedHost, e.expectedPort, actual)
 }
-
-

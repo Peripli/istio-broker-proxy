@@ -2,9 +2,8 @@ package credentials
 
 import (
 	"encoding/json"
-	"fmt"
-	"net/url"
 	"errors"
+	"net/url"
 )
 
 func isValidUpdateRequestBody(request string) (bool, error) {
@@ -38,7 +37,10 @@ func isValidUpdateRequestBody(request string) (bool, error) {
 	if !ok {
 		return false, err
 	}
-	ok = shouldApply(toStringMap(toStringMap(endpointMappings.([]interface{})[0])["source"]), credentials)
+
+	for _, endpointMapping := range endpointMappings.([]interface{}) {
+		ok = ok && shouldApply(toStringMap(toStringMap(endpointMapping)), credentials)
+	}
 
 	return ok, nil
 }
@@ -46,8 +48,8 @@ func isValidUpdateRequestBody(request string) (bool, error) {
 func isValidEndpointMappings(endpointMappings interface{}) (bool, error) {
 	switch endpointMappings.(type) {
 	case []interface{}:
-		if len(endpointMappings.([]interface{})) != 1 {
-			err := errors.New("'endpoint_mappings' must contain exactly on mapping")
+		if len(endpointMappings.([]interface{})) < 1 {
+			err := errors.New("'endpoint_mappings' must contain at least one mapping")
 			return false, err
 		}
 		for _, value := range endpointMappings.([]interface{}) {
@@ -129,8 +131,8 @@ func hasField(jsonMap map[string]interface{}, fieldName string) (bool, error) {
 	return true, nil
 }
 
-func shouldApply(source map[string]interface{}, credentials map[string]interface{}) bool {
-	sourcePort := fmt.Sprintf("%v", source["port"])
-	credentialsPort := fmt.Sprintf("%v", credentials["port"])
-	return source["host"] == credentials["hostname"] && sourcePort == credentialsPort
+func shouldApply(endpoint map[string]interface{}, credentials map[string]interface{}) bool {
+	url := parseUri(credentials["uri"].(string))
+
+	return sourceMatchesCredentials(credentials, endpoint) || sourceMatchesUri(url, endpoint)
 }

@@ -1,8 +1,8 @@
 package credentials
 
 import (
-. "github.com/onsi/gomega"
-"testing"
+	. "github.com/onsi/gomega"
+	"testing"
 )
 
 func TestUpdateEmptyContent(t *testing.T) {
@@ -19,5 +19,5 @@ func TestUpdateSimpleExample(t *testing.T) {
 	response, err := Update([]byte(exampleRequest))
 
 	g.Expect(err).ShouldNot(HaveOccurred())
-	g.Expect(string(response)).To(haveTheEndpointMapping("appnethost", "9876"))
+	g.Expect(string(response)).To(haveTheEndpoint("appnethost", "9876"))
 }

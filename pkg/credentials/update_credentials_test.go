@@ -45,12 +45,14 @@ func TestAnotherHostnameThanAIsChanged(t *testing.T) {
 	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "hostname"))
 }
 
-func TestSecondMappingWouldChangeResultOfFirstMapping(t *testing.T) {
+// Documenting weird behaviour of our implementation: We apply endpoint-mappings in place. And that means that two mappings with
+// the source of the second mapping matching the target of the first mapping will be applied both in sequence.
+func TestSecondMappingChangesResultOfFirstMapping(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	actualBuilder.setHostPort("a", "5").setEndpointMapping("a", "5", "b", "2").
 		addEndpointMapping("b", "2", "c", "99")
-	expectedBuilder.setHostPort("b", "")
+	expectedBuilder.setHostPort("c", "")
 
 	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "hostname"))
 }
@@ -72,6 +74,54 @@ func TestUriIsChanged(t *testing.T) {
 	expectedBuilder.setHostPort("b", "2").setUri("postgres://user:passwd@b:2/dbname")
 
 	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "uri"))
+}
+
+func TestOnlyUriIsChanged(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	actualBuilder.setHostPort("xy", "99").setUri("postgres://user:passwd@a:1/dbname").
+		setEndpointMapping("a", "1", "b", "2")
+	expectedBuilder.setHostPort("xy", "99").setUri("postgres://user:passwd@b:2/dbname")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "hostname"))
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "port"))
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "uri"))
+}
+
+func TestPortDoesntMatch(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	actualBuilder.setHostPort("a", "99").setUri("postgres://user:passwd@a:1/dbname").
+		setEndpointMapping("a", "1", "b", "2")
+	expectedBuilder.setHostPort("a", "99").setUri("postgres://user:passwd@b:2/dbname")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "hostname"))
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "port"))
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "uri"))
+}
+
+func TestUriIsNotChangedIfItContainsDifferentHost(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	actualBuilder.setHostPort("a", "1").setUri("postgres://user:passwd@b:2/dbname").
+		setEndpointMapping("a", "1", "c", "3")
+	expectedBuilder.setHostPort("c", "3").setUri("postgres://user:passwd@b:2/dbname")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "uri"))
+}
+
+func TestTwoEndpointsAreApplied(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	actualBuilder.setHostPort("a", "1").setUri("postgres://user:passwd@b:2/dbname").
+		setEndpointMapping("a", "1", "c", "3").
+		addEndpointMapping("b", 2, "d", 4)
+	expectedBuilder.setHostPort("c", "3").setUri("postgres://user:passwd@d:4/dbname")
+
+	translatedCredentials := translateCredentials(actual())
+	g.Expect(translatedCredentials).To(haveTheSameCredentialFieldAs(expected(), "uri"))
+	g.Expect(translatedCredentials).To(haveTheEndpoint("c", "3"))
+	g.Expect(translatedCredentials).To(haveTheEndpoint("d", "4"))
 }
 
 func TestUriIsChangedToTargetHostAndPort(t *testing.T) {
@@ -136,6 +186,6 @@ func TestEndpointIsAddedAfterApplying(t *testing.T) {
 
 	translatedRequest := translateCredentials(exampleRequest)
 
-	g.Expect(exampleRequest).NotTo(haveTheEndpointMapping("appnethost", "9876"))
-	g.Expect(translatedRequest).To(haveTheEndpointMapping("appnethost", "9876"))
+	g.Expect(exampleRequest).NotTo(haveTheEndpoint("appnethost", "9876"))
+	g.Expect(translatedRequest).To(haveTheEndpoint("appnethost", "9876"))
 }

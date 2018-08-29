@@ -15,21 +15,23 @@ func translateCredentials(request string) string {
 
 	applyMappings(endpointMappings, credentials)
 	delete(topLevelJson, "endpoint_mappings")
-	addEndpoint(topLevelJson, endpointMappings[0])
 
+	var endpoints []interface{}
+
+	for _, endpointMapping := range endpointMappings {
+		endpoints = appendMapping(endpoints, endpointMapping)
+	}
+
+	topLevelJson["endpoints"] = endpoints
 
 	bytes, _ := json.Marshal(topLevelJson)
 	return string(bytes[:])
 }
 
-func addEndpoint(result map[string]interface{}, endpointMappingToAdd interface{}) {
-	var endpoints []interface{}
-
-	mapping := toStringMap(endpointMappingToAdd)
+func appendMapping(endpoints []interface{}, endpointMapping interface{}) []interface{} {
+	mapping := toStringMap(endpointMapping)
 	target := toStringMap(mapping["target"])
-	endpoints = append(endpoints, target)
-
-	result["endpoints"] = endpoints
+	return append(endpoints, target)
 }
 
 func toStringMap(untyped interface{}) map[string]interface{} {
@@ -37,15 +39,40 @@ func toStringMap(untyped interface{}) map[string]interface{} {
 }
 
 func applyMappings(endpointMappings []interface{}, credentials map[string]interface{}) {
-	endpointMapping := toStringMap(endpointMappings[0])
-	target := toStringMap(endpointMapping["target"])
-	credentials["hostname"] = target["host"]
-	credentials["port"] = target["port"]
-	credentials["uri"] = applyOnUri(credentials["uri"].(string), target["host"], target["port"])
+
+	for _, endpointMappingUntyped := range endpointMappings {
+		endpointMapping := toStringMap(endpointMappingUntyped)
+		if sourceMatchesCredentials(credentials, endpointMapping) {
+			target := toStringMap(endpointMapping["target"])
+			credentials["hostname"] = target["host"]
+			credentials["port"] = target["port"]
+		}
+		credentials["uri"] = applyOnUri(credentials["uri"].(string), endpointMapping)
+	}
 }
 
-func applyOnUri(uri string, host interface{}, port interface{}) string {
-	parsedUrl, _ := url.Parse(uri)
-	parsedUrl.Host = fmt.Sprintf("%v:%v", host, port)
+func sourceMatchesCredentials(credentials map[string]interface{}, endpointMapping map[string]interface{}) bool {
+	return fmt.Sprintf("%v:%v", credentials["hostname"], credentials["port"]) == toHostString(endpointMapping, "source")
+}
+
+func applyOnUri(uri string, endpointMapping map[string]interface{}) string {
+	parsedUrl := parseUri(uri)
+	if sourceMatchesUri(parsedUrl, endpointMapping) {
+		parsedUrl.Host = toHostString(endpointMapping, "target")
+	}
 	return fmt.Sprintf("%v", parsedUrl)
+}
+
+func parseUri(uri string) *url.URL {
+	url, _ := url.Parse(uri)
+	return url
+}
+
+func sourceMatchesUri(url *url.URL, endpointMapping map[string]interface{}) bool {
+	return url.Host == toHostString(endpointMapping, "source")
+}
+
+func toHostString(endpointMapping map[string]interface{}, sourceOrTarget string) string {
+	endpoint := toStringMap(endpointMapping[sourceOrTarget])
+	return fmt.Sprintf("%v:%v", endpoint["host"], endpoint["port"])
 }
