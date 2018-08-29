@@ -189,3 +189,53 @@ func TestEndpointIsAddedAfterApplying(t *testing.T) {
 	g.Expect(exampleRequest).NotTo(haveTheEndpoint("appnethost", "9876"))
 	g.Expect(translatedRequest).To(haveTheEndpoint("appnethost", "9876"))
 }
+
+func TestWriteUrlIsAdapted(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	actualBuilder.setHostPort("a", "1").setWriteUrl("jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master").
+		setEndpointMapping("10.11.19.240", 5432, "hosta", 123).addEndpointMapping("10.11.19.241", 5432, "hostb", 456)
+	expectedBuilder.setHostPort("b", "2").setWriteUrl("jdbc:postgresql://hosta:123,hostb:456/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "write_url"))
+}
+
+func TestWriteUrlIsAdaptedWithGivenPort(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	actualBuilder.setHostPort("a", "1").setWriteUrl("jdbc:postgresql://10.11.19.240:5433,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master").
+		setEndpointMapping("10.11.19.240", 5433, "hosta", 123).addEndpointMapping("10.11.19.241", 5432, "hostb", 456)
+	expectedBuilder.setHostPort("b", "2").setWriteUrl("jdbc:postgresql://hosta:123,hostb:456/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "write_url"))
+}
+
+func TestWriteUrlIsAdaptedWithGivenDefaultPort(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	actualBuilder.setHostPort("a", "1").setWriteUrl("jdbc:postgresql://10.11.19.240:5432,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master").
+		setEndpointMapping("10.11.19.240", 5432, "hosta", 123).addEndpointMapping("10.11.19.241", 5432, "hostb", 456)
+	expectedBuilder.setHostPort("b", "2").setWriteUrl("jdbc:postgresql://hosta:123,hostb:456/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "write_url"))
+}
+
+func TestWriteUrlIsAdaptedWithGivenPortAsString(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	actualBuilder.setHostPort("a", "1").setWriteUrl("jdbc:postgresql://10.11.19.240:5433,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master").
+		setEndpointMapping("10.11.19.240", "5433", "hosta", 123).addEndpointMapping("10.11.19.241", 5432, "hostb", 456)
+	expectedBuilder.setHostPort("b", "2").setWriteUrl("jdbc:postgresql://hosta:123,hostb:456/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "write_url"))
+}
+
+func TestReadUrlIsAdapted(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	actualBuilder.setHostPort("a", "1").setReadUrl("jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=preferSlave\u0026loadBalanceHosts=true").
+		setEndpointMapping("10.11.19.240", 5432, "hosta", 123).addEndpointMapping("10.11.19.241", 5432, "hostb", 456)
+	expectedBuilder.setHostPort("b", "2").setReadUrl("jdbc:postgresql://hosta:123,hostb:456/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=preferSlave\u0026loadBalanceHosts=true")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "read_url"))
+}

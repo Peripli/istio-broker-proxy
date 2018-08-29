@@ -56,3 +56,13 @@ func (b *credentialBuilder) addEndpointMapping(sourceHost string, sourcePort int
 	b.endpointMapping = append(b.endpointMapping, entry)
 	return b
 }
+
+func (b *credentialBuilder) setWriteUrl(url string) *credentialBuilder {
+	b.credentials["write_url"] = url
+	return b
+}
+
+func (b *credentialBuilder) setReadUrl(url string) *credentialBuilder {
+	b.credentials["read_url"] = url
+	return b
+}
