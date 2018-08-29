@@ -151,6 +151,9 @@ func readPort() {
 
 func main() {
 	readPort()
+	fmt.Printf("Running on port %s\n", config.port)
+	log = append(log, "Starting...")
+
 	http.HandleFunc("/info", info)
 	http.HandleFunc("/adapt_credentials", updateCredentials)
 	http.HandleFunc("/", redirect)
