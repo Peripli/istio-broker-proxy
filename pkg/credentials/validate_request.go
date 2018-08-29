@@ -14,25 +14,25 @@ func isValidUpdateRequestBody(request string) (bool, error) {
 		return false, err
 	}
 	topLevelJson := rawJson.(map[string]interface{})
-	_, err = hasField(topLevelJson, "credentials")
+	_, err = hasField(topLevelJson, key_credentials)
 	if err != nil {
 		err = errors.New("Error in unmarshalling: " + err.Error())
 		return false, err
 	}
-	_, err = hasField(topLevelJson, "endpoint_mappings")
+	_, err = hasField(topLevelJson, key_endpoint_mappings)
 	if err != nil {
 		err = errors.New("Error in unmarshalling: " + err.Error())
 		return false, err
 	}
 
-	credentials := topLevelJson["credentials"].(map[string]interface{})
+	credentials := topLevelJson[key_credentials].(map[string]interface{})
 
 	ok, err := isValidCredentials(credentials)
 	if !ok {
 		return false, err
 	}
 
-	endpointMappings := topLevelJson["endpoint_mappings"]
+	endpointMappings := topLevelJson[key_endpoint_mappings]
 	ok, err = isValidEndpointMappings(endpointMappings)
 	if !ok {
 		return false, err
@@ -67,53 +67,53 @@ func isValidEndpointMappings(endpointMappings interface{}) (bool, error) {
 }
 
 func isValidEndpointMapping(endpointMapping map[string]interface{}) (bool, error) {
-	ok, err := hasField(endpointMapping, "source")
+	ok, err := hasField(endpointMapping, key_source)
 	if !ok {
 		return false, err
 	}
 
-	ok, err = hasField(endpointMapping, "target")
+	ok, err = hasField(endpointMapping, key_target)
 	if !ok {
 		return false, err
 	}
 
-	ok, err = isValidEndpoint(endpointMapping["source"].(map[string]interface{}))
+	ok, err = isValidEndpoint(endpointMapping[key_source].(map[string]interface{}))
 	if !ok {
 		return false, err
 	}
 
-	ok, err = isValidEndpoint(endpointMapping["target"].(map[string]interface{}))
+	ok, err = isValidEndpoint(endpointMapping[key_target].(map[string]interface{}))
 
 	return ok, err
 }
 
 func isValidEndpoint(jsonMap map[string]interface{}) (bool, error) {
-	ok, err := hasField(jsonMap, "host")
+	ok, err := hasField(jsonMap, key_host)
 	if !ok {
 		return false, err
 	}
 
-	ok, err = hasField(jsonMap, "port")
+	ok, err = hasField(jsonMap, key_port)
 	return ok, err
 }
 
 func isValidCredentials(jsonMap map[string]interface{}) (bool, error) {
-	ok, err := hasField(jsonMap, "uri")
+	ok, err := hasField(jsonMap, key_uri)
 	if !ok {
 		return false, err
 	}
 
-	ok, err = hasField(jsonMap, "hostname")
+	ok, err = hasField(jsonMap, key_hostname)
 	if !ok {
 		return false, err
 	}
 
-	ok, err = hasField(jsonMap, "port")
+	ok, err = hasField(jsonMap, key_port)
 	if !ok {
 		return false, err
 	}
 
-	ok, err = canParseUri(jsonMap["uri"].(string))
+	ok, err = canParseUri(jsonMap[key_uri].(string))
 
 	return ok, err
 }
@@ -132,7 +132,7 @@ func hasField(jsonMap map[string]interface{}, fieldName string) (bool, error) {
 }
 
 func shouldApply(endpoint map[string]interface{}, credentials map[string]interface{}) bool {
-	url := parseUri(credentials["uri"].(string))
+	url := parseUri(credentials[key_uri].(string))
 
 	return sourceMatchesCredentials(credentials, endpoint) || sourceMatchesUri(url, endpoint)
 }

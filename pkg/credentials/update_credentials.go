@@ -7,19 +7,6 @@ import (
 	"strings"
 )
 
-const default_postgres_port = "5432"
-const key_endpoint_mapping = "endpoint_mappings"
-const key_credentials = "credentials"
-const key_target = "target"
-const key_hostname = "hostname"
-const key_host = "host"
-const key_port = "port"
-const key_source = "source"
-const key_write_url = "write_url"
-const key_read_url = "read_url"
-const key_uri = "uri"
-const key_endpoints = "endpoints"
-
 func translateCredentials(request string) string {
 	var topLevelJson map[string]interface{}
 	json.Unmarshal([]byte(request), &topLevelJson)
