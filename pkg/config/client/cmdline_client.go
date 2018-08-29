@@ -21,6 +21,10 @@ func main() {
 
 	flag.Parse()
 
+	createOutput(clientConfig, serviceName, hostVirtualService, portServiceEntry, endpointServiceEntry)
+}
+
+func createOutput(clientConfig bool, serviceName string, hostVirtualService string, portServiceEntry int, endpointServiceEntry string) {
 	var configs []model.Config
 	if clientConfig {
 		configs = config.CreateEntriesForExternalServiceClient(serviceName, hostVirtualService, uint32(portServiceEntry))
@@ -28,7 +32,6 @@ func main() {
 		configs = config.CreateEntriesForExternalService(serviceName, endpointServiceEntry, uint32(portServiceEntry), hostVirtualService)
 	}
 	out, err := config.ToYamlDocuments(configs)
-
 	if err == nil {
 		fmt.Printf("%s", out)
 	} else {

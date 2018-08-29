@@ -1,13 +1,14 @@
 package config
 
 import (
+	"regexp"
+	"testing"
+
 	"github.com/ghodss/yaml"
 	. "github.com/onsi/gomega"
 	"istio.io/api/networking/v1alpha3"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
 	"istio.io/istio/pilot/pkg/model"
-	"regexp"
-	"testing"
 )
 
 func TestCompleteEntryNotEmpty(t *testing.T) {
@@ -153,6 +154,14 @@ func TestCreatesYamlDocuments(t *testing.T) {
 	text, err := ToYamlDocuments(dummyConfigs)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(text).To(ContainSubstring("---"))
+}
+
+func TestErrorInToText(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	_, err := toText(model.Config{})
+
+	g.Expect(err).Should(HaveOccurred())
 }
 
 func getSpecAndMetadataFromConfig(g *GomegaWithT, configObjects []model.Config, configType string) (string, string) {
