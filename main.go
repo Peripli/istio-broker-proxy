@@ -7,6 +7,7 @@ import (
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -24,7 +25,6 @@ type ProxyConfig struct {
 
 var (
 	config = ProxyConfig{ServiceFabrikURL, DefaultPort}
-	log    = make([]string, 0)
 )
 
 func updateCredentials(writer http.ResponseWriter, request *http.Request) {
@@ -34,7 +34,8 @@ func updateCredentials(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	log = append(log, "Received update: "+string(body))
+	log.Println("Received update credentials")
+	log.Printf("%v\n", string(body))
 	response, err := credentials.Update(body)
 
 	if err != nil {
@@ -44,12 +45,6 @@ func updateCredentials(writer http.ResponseWriter, request *http.Request) {
 
 	writer.WriteHeader(http.StatusOK)
 	writer.Write(response)
-}
-
-func info(w http.ResponseWriter, r *http.Request) {
-	for _, line := range log {
-		fmt.Fprintf(w, "%s\n\n", line)
-	}
 }
 
 func translateBody(originalRequest *http.Request, responseBody []byte) ([]byte, error) {
@@ -76,7 +71,8 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log = append(log, "Received redirect: "+req.URL.Path+":"+string(body))
+	log.Println("Received redirect")
+	log.Printf("%v\n%v\n", req.URL.Path, string(body))
 
 	// create a new url from the raw RequestURI sent by the client
 	url := createNewUrl(config.ForwardURL, req)
@@ -102,9 +98,9 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 	proxyReq.Body = ioutil.NopCloser(bytes.NewReader(body))
 	requestDump, err := httputil.DumpRequest(proxyReq, true)
 	if err != nil {
-		log = append(log, err.Error())
+		log.Printf("ERROR: %s\n", err.Error())
 	}
-	log = append(log, "Request: "+string(requestDump))
+	log.Printf("Request:\n%v\n", string(requestDump))
 
 	defer func() {
 		resp.Body.Close()
@@ -133,10 +129,10 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 	resp.Body = ioutil.NopCloser(bytes.NewReader(body))
 	responseDump, err := httputil.DumpResponse(resp, true)
 	if err != nil {
-		log = append(log, err.Error())
+		log.Printf("ERROR: %s\n", err.Error())
 	}
 
-	log = append(log, "Response: "+string(responseDump))
+	log.Printf("Response:\n%v\n", string(responseDump))
 
 }
 
@@ -151,10 +147,9 @@ func readPort() {
 
 func main() {
 	readPort()
-	fmt.Printf("Running on port %s\n", config.port)
-	log = append(log, "Starting...")
+	log.Printf("Running on port %s\n", config.port)
+	log.Println("Starting...")
 
-	http.HandleFunc("/info", info)
 	http.HandleFunc("/adapt_credentials", updateCredentials)
 	http.HandleFunc("/", redirect)
 	http.ListenAndServe(":"+config.port, nil)
