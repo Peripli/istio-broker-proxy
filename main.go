@@ -144,7 +144,7 @@ func readPort() {
 		var err error
 		config.port, err = strconv.Atoi(portAsString)
 		if nil != err {
-			panic("not a valid port: " + portAsString)
+			config.port = DefaultPort
 		}
 	}
 }
@@ -159,5 +159,5 @@ func main() {
 
 	http.HandleFunc("/adapt_credentials", updateCredentials)
 	http.HandleFunc("/", redirect)
-	http.ListenAndServe(":"+string(config.port), nil)
+	http.ListenAndServe(fmt.Sprintf(":%d", config.port), nil)
 }
