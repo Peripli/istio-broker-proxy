@@ -3,6 +3,7 @@ package credentials
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
 )
 
@@ -39,10 +40,12 @@ func isValidUpdateRequestBody(request string) (bool, error) {
 	}
 
 	for _, endpointMapping := range endpointMappings.([]interface{}) {
-		ok = ok && shouldApply(toStringMap(toStringMap(endpointMapping)), credentials)
+		if !shouldApply(toStringMap(toStringMap(endpointMapping)), credentials) {
+			return false, fmt.Errorf("Invalid request, endpoint mapping %v cannot be applied", endpointMapping)
+		}
 	}
 
-	return ok, nil
+	return true, nil
 }
 
 func isValidEndpointMappings(endpointMappings interface{}) (bool, error) {

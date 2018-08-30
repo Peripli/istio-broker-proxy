@@ -118,15 +118,19 @@ func TestRejectRequestWithEmptyEndpointMappings(t *testing.T) {
 
 func TestRejectRequestWithNonMatchingEndpointMappings(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(isValidUpdateRequestBody(`{ "credentials": ` + (`{ "hostname": "c",  "port": "1", "uri": "postgres://a:b@c:1/d"}`) +
-		`, "endpoint_mappings": ` + minimalValidEndpointMappings + ` }`)).To(BeFalse())
+	ok, err := isValidUpdateRequestBody(`{ "credentials": ` + (`{ "hostname": "c",  "port": "1", "uri": "postgres://a:b@c:1/d"}`) +
+		`, "endpoint_mappings": ` + minimalValidEndpointMappings + ` }`)
+	g.Expect(ok).To(BeFalse())
+	g.Expect(err).To(HaveOccurred())
 }
 
 func TestRejectRequestWithSecondEndpointMappingIsNotMatching(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(isValidUpdateRequestBody(`{ "credentials": ` + (`{ "hostname": "c",  "port": "1", "uri": "postgres://a:b@c:1/d"}`) +
+	ok, err := isValidUpdateRequestBody(`{ "credentials": ` + (`{ "hostname": "c",  "port": "1", "uri": "postgres://a:b@c:1/d"}`) +
 		`, "endpoint_mappings": [ { "source": { "host": "c", "port": 1}, "target": { "host": "d", "port": 2} },` +
-		minimalValidEndpointMapping + `]}`)).To(BeFalse())
+		minimalValidEndpointMapping + `]}`)
+	g.Expect(ok).To(BeFalse())
+	g.Expect(err).To(HaveOccurred())
 }
 
 func TestAcceptCredentialsFromBLI(t *testing.T) {
