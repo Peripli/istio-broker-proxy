@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"flag"
 	"fmt"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
@@ -11,16 +12,17 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"strconv"
 )
 
 const (
-	DefaultPort      = "8080"
+	DefaultPort      = 8080
 	ServiceFabrikURL = "10.11.252.10:9293/cf"
 )
 
 type ProxyConfig struct {
 	ForwardURL string
-	port       string
+	port       int
 }
 
 var (
@@ -137,20 +139,25 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 }
 
 func readPort() {
-	port := os.Getenv("PORT")
-	if len(port) != 0 {
-		config.port = port
-	} else {
-		config.port = DefaultPort
+	portAsString := os.Getenv("PORT")
+	if len(portAsString) != 0 {
+		var err error
+		config.port, err = strconv.Atoi(portAsString)
+		if nil != err {
+			panic("not a valid port: " + portAsString)
+		}
 	}
 }
 
 func main() {
+	flag.IntVar(&config.port, "port", DefaultPort, "port to be used")
+	flag.Parse()
 	readPort()
-	log.Printf("Running on port %s\n", config.port)
+
+	log.Printf("Running on port %d\n", config.port)
 	log.Println("Starting...")
 
 	http.HandleFunc("/adapt_credentials", updateCredentials)
 	http.HandleFunc("/", redirect)
-	http.ListenAndServe(":"+config.port, nil)
+	http.ListenAndServe(":"+string(config.port), nil)
 }

@@ -10,18 +10,6 @@ import (
 	"testing"
 )
 
-func TestInitialInfo(t *testing.T) {
-	g := NewGomegaWithT(t)
-	request, _ := http.NewRequest(http.MethodGet, "/notused", nil)
-	response := httptest.NewRecorder()
-
-	info(response, request)
-	got := response.Body.String()
-
-	want := ""
-	g.Expect(got).To(Equal(want))
-}
-
 func TestInvalidUpdateCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
 	emptyBody := bytes.NewReader([]byte("{}"))
@@ -61,22 +49,6 @@ func TestValidUpdateCredentials(t *testing.T) {
 	g.Expect(code).To(Equal(200))
 }
 
-func TestInfoAfterRequest(t *testing.T) {
-	g := NewGomegaWithT(t)
-	config.ForwardURL = "doesntexist.org"
-	body := []byte{'{', '}'}
-	request, _ := http.NewRequest(http.MethodGet, "/anything", bytes.NewReader(body))
-	response := httptest.NewRecorder()
-	redirect(response, request)
-
-	infoRequest, _ := http.NewRequest(http.MethodGet, "/notused", nil)
-	infoResponse := httptest.NewRecorder()
-	info(infoResponse, infoRequest)
-
-	infoResult := infoResponse.Body.String()
-	g.Expect(infoResult).NotTo(BeEmpty())
-}
-
 func TestDefaultPortUsed(t *testing.T) {
 	g := NewGomegaWithT(t)
 
@@ -96,7 +68,7 @@ func TestCustomPortUsed(t *testing.T) {
 
 	readPort()
 
-	g.Expect(config.port).To(Equal(expectedPort))
+	g.Expect(config.port).To(Equal(1234))
 }
 
 func TestCreateNewURL(t *testing.T) {
