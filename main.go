@@ -93,6 +93,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 	resp, err := client.Do(proxyReq)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
+		log.Printf("ERROR: %s\n", err.Error())
 		return
 	}
 
