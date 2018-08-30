@@ -96,6 +96,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		log.Printf("ERROR: %s\n", err.Error())
 		return
 	}
+	log.Println("Redirect OK")
 
 	// reassign the body for the dump
 	proxyReq.Body = ioutil.NopCloser(bytes.NewReader(body))
@@ -117,12 +118,14 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 	body, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("ERROR: %s\n", err.Error())
 		return
 	}
 
 	body, err = translateBody(req, body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("ERROR: %s\n", err.Error())
 		return
 	}
 
@@ -152,10 +155,11 @@ func readPort() {
 
 func main() {
 	flag.IntVar(&config.port, "port", DefaultPort, "port to be used")
+	flag.StringVar(&config.ForwardURL, "redirectUrl", ServiceFabrikURL, "url for forwarding incoming requests")
 	flag.Parse()
 	readPort()
 
-	log.Printf("Running on port %d\n", config.port)
+	log.Printf("Running on port %d, redirecting to %s\n", config.port, config.ForwardURL)
 	log.Println("Starting...")
 
 	http.HandleFunc("/adapt_credentials", updateCredentials)
