@@ -239,3 +239,13 @@ func TestReadUrlIsAdapted(t *testing.T) {
 
 	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "read_url"))
 }
+
+func TestReadUrlIsUnchangedWhenSourceIsStringContainedWithinHost(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	actualBuilder.setHostPort("a", "1").setReadUrl("x:y://11.0.0.11,11.1.1.11/z").
+		setEndpointMapping("1.0.0.1", 5432, "host", 5432)
+	expectedBuilder.setHostPort("a", "1").setReadUrl("x:y://11.0.0.11,11.1.1.11/z")
+
+	g.Expect(translateCredentials(actual())).To(haveTheSameCredentialFieldAs(expected(), "read_url"))
+}

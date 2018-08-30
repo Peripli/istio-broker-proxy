@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -48,8 +49,7 @@ func applyMappings(endpointMappings []interface{}, credentials map[string]interf
 			credentials[key_port] = target[key_port]
 		}
 		credentials[key_uri] = applyOnUri(credentials[key_uri].(string), endpointMapping)
-		applyWriteReadUrlIfExists(credentials, endpointMapping, key_write_url)
-		applyWriteReadUrlIfExists(credentials, endpointMapping, key_read_url)
+		applyWriteReadUrlIfExists(credentials, endpointMapping)
 	}
 }
 
@@ -65,24 +65,49 @@ func applyOnUri(uri string, endpointMapping map[string]interface{}) string {
 	return fmt.Sprintf("%v", parsedUrl)
 }
 
-func applyWriteReadUrlIfExists(credentials map[string]interface{}, endpointMapping map[string]interface{}, urlKey string) {
-	if credentials[urlKey] != nil {
-		credentials[urlKey] = applyOnReadWriteUrl(credentials[urlKey].(string), endpointMapping)
+func sourceMatchesReadWriteUrl(credentials map[string]interface{}, endpointMapping map[string]interface{}) bool {
+	for _, key := range []string{key_read_url, key_write_url} {
+		if credentials[key] != nil {
+			if credentials[key] != replaceInUrl(credentials[key].(string), endpointMapping) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func applyWriteReadUrlIfExists(credentials map[string]interface{}, endpointMapping map[string]interface{}) {
+	for _, key := range []string{key_read_url, key_write_url} {
+		if credentials[key] != nil {
+			credentials[key] = replaceInUrl(credentials[key].(string), endpointMapping)
+		}
 	}
 }
 
-func applyOnReadWriteUrl(url string, endpointMapping map[string]interface{}) string {
-	sourcePort := fmt.Sprintf("%v", toStringMap(endpointMapping[key_source])[key_port])
+func replaceInUrl(url string, endpointMapping map[string]interface{}) string {
 	sourceHost := toStringMap(endpointMapping[key_source])[key_host].(string)
-	sourceHostAndPort := toHostString(endpointMapping, key_source)
-	targetString := toHostString(endpointMapping, key_target)
-
-	newUrl := strings.Replace(url, sourceHostAndPort, targetString, 1)
-	unchanged := (newUrl == url)
-	if (sourcePort == default_postgres_port) && unchanged {
-		newUrl = strings.Replace(url, sourceHost, targetString, 1)
+	sourcePort := fmt.Sprintf("%v", toStringMap(endpointMapping[key_source])[key_port])
+	pattern := toHostPortPattern(sourceHost, sourcePort)
+	newUrl := pattern.ReplaceAllString(url, "${1}"+toHostString(endpointMapping, key_target)+"${2}")
+	if newUrl == url && sourcePort == default_postgres_port {
+		pattern = toHostPattern(sourceHost)
+		newUrl = pattern.ReplaceAllString(url, "${1}"+toHostString(endpointMapping, key_target)+"${2}")
 	}
 	return newUrl
+}
+
+func toHostPortPattern(host string, port string) *regexp.Regexp {
+	// the groups are only there to capture the rest of the string around the endpoint in question
+	pattern := fmt.Sprintf("^(.*\\W)%s:%s(\\W.*)$", strings.Replace(host, ".", "\\.", -1), port)
+
+	return regexp.MustCompile(pattern)
+}
+
+func toHostPattern(host string) *regexp.Regexp {
+	// the groups are only there to capture the rest of the string around the endpoint in question
+	pattern := fmt.Sprintf("^(.*\\W)%s(\\W.*)$", strings.Replace(host, ".", "\\.", -1))
+
+	return regexp.MustCompile(pattern)
 }
 
 func parseUri(uri string) *url.URL {
