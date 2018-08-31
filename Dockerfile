@@ -1,7 +1,6 @@
-FROM ubuntu:16.04 as build-env
+FROM gcr.io/sap-se-gcp-istio-dev/client
 
-RUN apt-get update
-RUN apt-get -y install golang curl wget dnsutils
+RUN apt-get -y install golang
 
 WORKDIR /go/src/github.infra.hana.ondemand.com/istio/istio-broker
 ADD . .
