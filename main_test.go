@@ -12,11 +12,13 @@ import (
 
 func TestInvalidUpdateCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
+	router := setupRouter()
+
 	emptyBody := bytes.NewReader([]byte("{}"))
-	request, _ := http.NewRequest(http.MethodPost, "/notused", emptyBody)
+	request, _ := http.NewRequest(http.MethodPut, "https://blablub.org/v2/service_instances/134567/service_bindings/76543210/adapt_credentials", emptyBody)
 	response := httptest.NewRecorder()
 
-	updateCredentials(response, request)
+	router.ServeHTTP(response, request)
 	code := response.Code
 
 	g.Expect(code).To(Equal(http.StatusBadRequest))
@@ -39,11 +41,13 @@ const validUpdateCredentialsRequest = `{
 
 func TestValidUpdateCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
+	router := setupRouter()
+
 	emptyBody := bytes.NewReader([]byte(validUpdateCredentialsRequest))
-	request, _ := http.NewRequest(http.MethodPost, "/notused", emptyBody)
+	request, _ := http.NewRequest(http.MethodPut, "/v2/service_instances/1234-4567/service_bindings/7654-3210/adapt_credentials", emptyBody)
 	response := httptest.NewRecorder()
 
-	updateCredentials(response, request)
+	router.ServeHTTP(response, request)
 	code := response.Code
 
 	g.Expect(code).To(Equal(200))
@@ -73,7 +77,7 @@ func TestCustomPortUsed(t *testing.T) {
 
 func TestCreateNewURL(t *testing.T) {
 	const internalHost = "internal-name.test"
-	const externalURL = "external-name.test/cf"
+	const externalURL = "https://external-name.test/cf"
 	const path = "hello"
 
 	t.Run("Test rewrite host", func(t *testing.T) {
@@ -85,7 +89,7 @@ func TestCreateNewURL(t *testing.T) {
 
 		got := createNewUrl(externalURL, request)
 
-		want := "https://" + externalURL + "/" + path
+		want := externalURL + "/" + path
 		g.Expect(got).To(Equal(want))
 	})
 
@@ -98,13 +102,13 @@ func TestCreateNewURL(t *testing.T) {
 
 		got := createNewUrl(externalURL, request)
 
-		want := "https://" + externalURL + "/" + path + "?debug=true"
+		want := externalURL + "/" + path + "?debug=true"
 		g.Expect(got).To(Equal(want))
 	})
 }
 
 func TestRedirect(t *testing.T) {
-	config.ForwardURL = "httpbin.org"
+	config.forwardURL = "https://httpbin.org"
 
 	t.Run("Check return code of redirected get", func(t *testing.T) {
 		g := NewGomegaWithT(t)
@@ -114,7 +118,8 @@ func TestRedirect(t *testing.T) {
 		request.Header["accept"] = []string{"application/json"}
 
 		response := httptest.NewRecorder()
-		redirect(response, request)
+		router := setupRouter()
+		router.ServeHTTP(response, request)
 		got := response.Code
 
 		want := 200
@@ -129,7 +134,8 @@ func TestRedirect(t *testing.T) {
 		request.Header["accept"] = []string{"application/json"}
 
 		response := httptest.NewRecorder()
-		redirect(response, request)
+		router := setupRouter()
+		router.ServeHTTP(response, request)
 		got := response.Code
 
 		want := 503
@@ -144,7 +150,8 @@ func TestRedirect(t *testing.T) {
 		request.Header = make(http.Header)
 		request.Header["accept"] = []string{"application/json"}
 		response := httptest.NewRecorder()
-		redirect(response, request)
+		router := setupRouter()
+		router.ServeHTTP(response, request)
 
 		var bodyData struct {
 			URL string `json:"url"`
@@ -154,7 +161,7 @@ func TestRedirect(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred(), "error while decoding body: %v ", response.Body)
 
 		got := bodyData.URL
-		want := "https://" + config.ForwardURL + "/get"
+		want := config.forwardURL + "/get"
 		g.Expect(got).To(Equal(want))
 	})
 
@@ -170,7 +177,8 @@ func TestRedirect(t *testing.T) {
 		request.Header.Set(testHeaderKey, testHeaderValue)
 
 		response := httptest.NewRecorder()
-		redirect(response, request)
+		router := setupRouter()
+		router.ServeHTTP(response, request)
 
 		var bodyData struct {
 			Headers map[string]string `json:"headers"`
@@ -194,7 +202,8 @@ func TestRedirect(t *testing.T) {
 		request.Header.Set("'Content-Type", "application/json")
 
 		response := httptest.NewRecorder()
-		redirect(response, request)
+		router := setupRouter()
+		router.ServeHTTP(response, request)
 
 		var bodyData struct {
 			Json map[string]string `json:"json"`
@@ -219,7 +228,8 @@ func TestRedirect(t *testing.T) {
 		request.Header.Set("'Content-Type", "application/json")
 
 		response := httptest.NewRecorder()
-		redirect(response, request)
+		router := setupRouter()
+		router.ServeHTTP(response, request)
 
 		var bodyData struct {
 			Args map[string]string `json:"args"`
@@ -234,7 +244,8 @@ func TestRedirect(t *testing.T) {
 
 func TestBadGateway(t *testing.T) {
 	g := NewGomegaWithT(t)
-	config.ForwardURL = "doesntexist.org"
+	router := setupRouter()
+	config.forwardURL = "doesntexist.org"
 
 	body := []byte{'{', '}'}
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/get", bytes.NewReader(body))
@@ -242,9 +253,50 @@ func TestBadGateway(t *testing.T) {
 	request.Header["accept"] = []string{"application/json"}
 
 	response := httptest.NewRecorder()
-	redirect(response, request)
-	got := response.Code
+	router.ServeHTTP(response, request)
 
-	want := 502
-	g.Expect(got).To(Equal(want))
+	g.Expect(response.Code).To(Equal(502))
+}
+
+func TestAdaptCredentials(t *testing.T) {
+	g := NewGomegaWithT(t)
+	router := setupRouter()
+	config.forwardURL = ""
+
+	body := []byte(`{
+"credentials": {
+ "dbname": "yLO2WoE0-mCcEppn",
+ "hostname": "10.11.241.0",
+ "password": "redacted",
+ "port": "47637",
+ "ports": {
+  "5432/tcp": "47637"
+ },
+ "uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn",
+ "username": "mma4G8N0isoxe17v"
+},
+"endpoint_mappings": [{
+  "source": {"host": "10.11.241.0", "port": 47637},
+  "target": {"host": "appnethost", "port": 9876}
+	}]
+}
+`)
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/1234-4567/service_bindings/7654-3210/adapt_credentials", bytes.NewReader(body))
+	request.Header = make(http.Header)
+	request.Header["accept"] = []string{"application/json"}
+
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	g.Expect(response.Code).To(Equal(200))
+	g.Expect(response.Body).To(ContainSubstring(`"endpoints":[{"host":"appnethost","port":9876}]`))
+}
+
+func TestEmptyBodyInTranslate(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	body, err := translateResponseBody(nil, make([]byte, 0))
+
+	g.Expect(err).Should(HaveOccurred())
+	g.Expect(body).To(BeEmpty())
 }

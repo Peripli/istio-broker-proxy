@@ -1,6 +1,8 @@
 ---
 applications:
-- buildpack: go_buildpack
+- name: istio-broker
+  buildpack: go_buildpack
+  command: istio-broker --forwardUrl https://10.11.252.10:9293/cf
   env:
     GOVERSION: 1.x
     GOPACKAGENAME: github.infra.hana.ondemand.com/istio/istio-broker

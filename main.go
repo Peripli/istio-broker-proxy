@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
 	"io/ioutil"
@@ -16,27 +17,29 @@ import (
 )
 
 const (
-	DefaultPort      = 8080
-	ServiceFabrikURL = "10.11.252.10:9293/cf"
+	DefaultPort = 8080
 )
 
 type ProxyConfig struct {
-	ForwardURL string
+	forwardURL string
 	port       int
 }
 
 var (
-	config = ProxyConfig{ServiceFabrikURL, DefaultPort}
+	config = ProxyConfig{port: DefaultPort}
 )
 
-func updateCredentials(writer http.ResponseWriter, request *http.Request) {
+func updateCredentials(ctx *gin.Context) {
+	log.Println("Received update credentials")
+	writer := ctx.Writer
+	request := ctx.Request
+
 	body, err := ioutil.ReadAll(request.Body)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	log.Println("Received update credentials")
 	log.Printf("%v\n", string(body))
 	response, err := credentials.Update(body)
 
@@ -49,87 +52,65 @@ func updateCredentials(writer http.ResponseWriter, request *http.Request) {
 	writer.Write(response)
 }
 
-func translateBody(originalRequest *http.Request, responseBody []byte) ([]byte, error) {
+func translateResponseBody(originalRequest *http.Request, responseBody []byte) ([]byte, error) {
 	newBody, err := endpoints.GenerateEndpoint(responseBody)
 	return newBody, err
 }
 
-func createNewUrl(newHost string, req *http.Request) string {
+func forward(ctx *gin.Context) {
+	writer := ctx.Writer
+	request := ctx.Request
+	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
 
-	url := fmt.Sprintf("https://%s%s", newHost, req.URL.Path)
-
-	if req.URL.RawQuery != "" {
-		url = fmt.Sprintf("%s?%s", url, req.URL.RawQuery)
-	}
-
-	return url
-}
-
-func redirect(w http.ResponseWriter, req *http.Request) {
 	// we need to buffer the body if we want to read it here and send it
 	// in the request.
-	body, err := ioutil.ReadAll(req.Body)
+	body, err := ioutil.ReadAll(request.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Println("Received redirect")
-	log.Printf("%v\n%v\n", req.URL.Path, string(body))
 
-	// create a new url from the raw RequestURI sent by the client
-	url := createNewUrl(config.ForwardURL, req)
-	proxyReq, err := http.NewRequest(req.Method, url, bytes.NewReader(body))
+	proxyReq := createForwardingRequest(request, err, body)
 
-	// We may want to filter some headers, otherwise we could just use a shallow copy
-	// proxyReq.Header = req.Header
-	proxyReq.Header = make(http.Header)
-	for h, val := range req.Header {
-		proxyReq.Header[h] = val
-	}
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
 	resp, err := client.Do(proxyReq)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
+		http.Error(writer, err.Error(), http.StatusBadGateway)
 		log.Printf("ERROR: %s\n", err.Error())
 		return
 	}
-	log.Println("Redirect OK")
-
-	// reassign the body for the dump
-	proxyReq.Body = ioutil.NopCloser(bytes.NewReader(body))
-	requestDump, err := httputil.DumpRequest(proxyReq, true)
-	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
-	}
-	log.Printf("Request:\n%v\n", string(requestDump))
+	log.Printf("Request forwarded: %d %s\n", resp.StatusCode, resp.Status)
 
 	defer func() {
 		resp.Body.Close()
 	}()
 
 	for name, values := range resp.Header {
-		w.Header()[name] = values
+		writer.Header()[name] = values
 	}
 
-	w.WriteHeader(resp.StatusCode)
+	writer.WriteHeader(resp.StatusCode)
 	body, err = ioutil.ReadAll(resp.Body)
+	log.Printf("respBody:\n %v", string(body))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		log.Printf("ERROR: %s\n", err.Error())
 		return
 	}
 
-	body, err = translateBody(req, body)
+	log.Printf("translatedBody:\n %v", string(body))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		log.Printf("ERROR: %s\n", err.Error())
 		return
 	}
 
-	w.Write(body)
+	log.Printf("before write body")
+
+	writer.Write(body)
 
 	// reassign body for dump
 	resp.Body = ioutil.NopCloser(bytes.NewReader(body))
@@ -140,6 +121,35 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 
 	log.Printf("Response:\n%v\n", string(responseDump))
 
+}
+
+func createForwardingRequest(request *http.Request, err error, body []byte) *http.Request {
+	url := createNewUrl(config.forwardURL, request)
+	proxyRequest, err := http.NewRequest(request.Method, url, bytes.NewReader(body))
+	// We may want to filter some headers, otherwise we could just use a shallow copy
+	// proxyRequest.Header = request.Header
+	proxyRequest.Header = make(http.Header)
+	for key, value := range request.Header {
+		proxyRequest.Header[key] = value
+	}
+
+	requestDump, err := httputil.DumpRequest(proxyRequest, true)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err.Error())
+	}
+	log.Printf("Proxy request:\n%v\n", string(requestDump))
+
+	return proxyRequest
+}
+
+func createNewUrl(newBaseUrl string, req *http.Request) string {
+	url := fmt.Sprintf("%s%s", newBaseUrl, req.URL.Path)
+
+	if req.URL.RawQuery != "" {
+		url = fmt.Sprintf("%s?%s", url, req.URL.RawQuery)
+	}
+
+	return url
 }
 
 func readPort() {
@@ -155,14 +165,21 @@ func readPort() {
 
 func main() {
 	flag.IntVar(&config.port, "port", DefaultPort, "port to be used")
-	flag.StringVar(&config.ForwardURL, "redirectUrl", ServiceFabrikURL, "url for forwarding incoming requests")
+	flag.StringVar(&config.forwardURL, "forwardUrl", "", "url for forwarding incoming requests")
 	flag.Parse()
 	readPort()
 
-	log.Printf("Running on port %d, redirecting to %s\n", config.port, config.ForwardURL)
-	log.Println("Starting...")
+	log.Printf("Running on port %d, forwarding to %s\n", config.port, config.forwardURL)
 
-	http.HandleFunc("/adapt_credentials", updateCredentials)
-	http.HandleFunc("/", redirect)
-	http.ListenAndServe(fmt.Sprintf(":%d", config.port), nil)
+	router := setupRouter()
+	router.Run(fmt.Sprintf(":%d", config.port))
+}
+
+func setupRouter() *gin.Engine {
+
+	mux := gin.Default()
+	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", updateCredentials)
+	mux.NoRoute(forward)
+
+	return mux
 }
