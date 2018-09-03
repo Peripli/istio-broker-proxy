@@ -111,28 +111,6 @@ func TestCreateNewURL(t *testing.T) {
 func TestRedirect(t *testing.T) {
 	config.forwardURL = "https://httpbin.org"
 
-	t.Run("Check URL in response", func(t *testing.T) {
-		g := NewGomegaWithT(t)
-		body := []byte{'{', '}'}
-		request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/get", bytes.NewReader(body))
-		request.Header = make(http.Header)
-		request.Header["accept"] = []string{"application/json"}
-		response := httptest.NewRecorder()
-		router := setupRouter()
-		router.ServeHTTP(response, request)
-
-		var bodyData struct {
-			URL string `json:"url"`
-		}
-
-		err := json.NewDecoder(response.Body).Decode(&bodyData)
-		g.Expect(err).NotTo(HaveOccurred(), "error while decoding body: %v ", response.Body)
-
-		got := bodyData.URL
-		want := config.forwardURL + "/get"
-		g.Expect(got).To(Equal(want))
-	})
-
 	t.Run("Check that headers are forwarded", func(t *testing.T) {
 		const testHeaderKey = "X-Broker-Api-Version"
 		const testHeaderValue = "2.13"
@@ -184,29 +162,6 @@ func TestRedirect(t *testing.T) {
 
 		want := "6db542eb-8187-4afc-8a85-e08b4a3cc24e"
 		g.Expect(got).To(Equal(want))
-	})
-
-	t.Run("Check that the request param is forwarded for DELETE", func(t *testing.T) {
-		g := NewGomegaWithT(t)
-		body := []byte(`{}`)
-		expectedPlan := "myplan"
-		request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/delete?plan_id="+expectedPlan, bytes.NewReader(body))
-		request.Header = make(http.Header)
-		request.Header.Set("accept", "application/json")
-		request.Header.Set("'Content-Type", "application/json")
-
-		response := httptest.NewRecorder()
-		router := setupRouter()
-		router.ServeHTTP(response, request)
-
-		var bodyData struct {
-			Args map[string]string `json:"args"`
-		}
-
-		err := json.NewDecoder(response.Body).Decode(&bodyData)
-		g.Expect(err).NotTo(HaveOccurred(), "error while decoding body: %v ", response.Body)
-
-		g.Expect(bodyData.Args["plan_id"]).To(Equal(expectedPlan))
 	})
 
 }
@@ -334,4 +289,39 @@ func TestReturnCodeOfGet(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(200))
+}
+
+func TestCorrectUrlForwarded(t *testing.T) {
+	config.forwardURL = "http://xxxxx.xx"
+	g := NewGomegaWithT(t)
+	body := []byte{'{', '}'}
+	handlerStub := NewHandlerStub(http.StatusOK, body)
+	server := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/somepath", bytes.NewReader(body))
+
+	response := httptest.NewRecorder()
+	router := setupRouter()
+	router.ServeHTTP(response, request)
+
+	g.Expect(handlerStub.spy.url).To(Equal("http://xxxxx.xx/somepath"))
+}
+
+func TestCorrectRequestParamForDelete(t *testing.T) {
+	config.forwardURL = "http://xxxxx.xx/suffix"
+	g := NewGomegaWithT(t)
+	body := []byte(`{}`)
+	handlerStub := NewHandlerStub(http.StatusOK, body)
+	server := injectClientStub(handlerStub)
+
+	defer server.Close()
+	request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/delete?plan_id=myplan", bytes.NewReader(body))
+
+	response := httptest.NewRecorder()
+	router := setupRouter()
+	router.ServeHTTP(response, request)
+
+	g.Expect(handlerStub.spy.url).To(Equal("http://xxxxx.xx/suffix/delete?plan_id=myplan"))
 }
