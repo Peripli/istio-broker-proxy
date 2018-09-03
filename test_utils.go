@@ -1,29 +1,34 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"net/http/httptest"
 )
 
-func setupRouterStub() *gin.Engine {
-
-	mux := gin.Default()
-	mux.NoRoute(mirrorRequest)
-
-	return mux
+type handlerStub struct {
+	code         int
+	responseBody []byte
 }
 
-func mirrorRequest(ctx *gin.Context) {
-	writer := ctx.Writer
-	request := ctx.Request
+func (stub handlerStub) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	writer.WriteHeader(stub.code)
+	writer.Write(stub.responseBody)
+}
 
-	body, err := ioutil.ReadAll(request.Body)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
+func NewHandlerStub(code int, responseBody []byte) http.Handler {
+	stub := handlerStub{code, responseBody}
+	return stub
+}
+
+func injectClientStub(handler http.Handler) *httptest.Server {
+	ts := httptest.NewServer(handler)
+	client := ts.Client()
+	config.httpClientFactory = func(tr *http.Transport) *http.Client {
+		return client
 	}
-
-	writer.WriteHeader(http.StatusOK)
-	writer.Write(body)
+	config.httpRequestFactory = func(method string, url string, body io.Reader) (*http.Request, error) {
+		return http.NewRequest(method, ts.URL, body)
+	}
+	return ts
 }

@@ -127,23 +127,6 @@ func TestRedirect(t *testing.T) {
 		g.Expect(got).To(Equal(want))
 	})
 
-	t.Run("Check return code of redirected get with error code", func(t *testing.T) {
-		g := NewGomegaWithT(t)
-		body := []byte{'{', '}'}
-		request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/status/503", bytes.NewReader(body))
-		request.Header = make(http.Header)
-		request.Header["accept"] = []string{"application/json"}
-
-		response := httptest.NewRecorder()
-		router := setupRouter()
-		router.ServeHTTP(response, request)
-		got := response.Code
-
-		want := 503
-		g.Expect(got).To(Equal(want))
-
-	})
-
 	t.Run("Check URL in response", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 		body := []byte{'{', '}'}
@@ -304,7 +287,7 @@ func TestEmptyBodyInTranslate(t *testing.T) {
 }
 
 func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
-	config.forwardURL = "http://localhost:9999/mirror"
+	config.forwardURL = "http://xxxxx.xx"
 	g := NewGomegaWithT(t)
 	body := []byte(`{
 					"credentials":
@@ -314,15 +297,14 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 						"uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
  					}
 					}`)
-	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
-	request.Header = make(http.Header)
-	request.Header.Set("accept", "application/json")
-	request.Header.Set("'Content-Type", "application/json")
+	handlerStub := NewHandlerStub(http.StatusServiceUnavailable, body)
+	server := injectClientStub(handlerStub)
 
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
 	response := httptest.NewRecorder()
 	router := setupRouter()
-	routerStub := setupRouterStub()
-	go routerStub.Run(":9999")
 	router.ServeHTTP(response, request)
 
 	var bodyData struct {
@@ -332,4 +314,22 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 	err := json.NewDecoder(response.Body).Decode(&bodyData)
 	g.Expect(err).NotTo(HaveOccurred(), "error while decoding body: %v ", response.Body)
 	g.Expect(bodyData.Endpoints).To(HaveLen(1))
+}
+
+func TestErrorCodeOfForwardIsReturned(t *testing.T) {
+	config.forwardURL = "http://xxxxx.xx"
+	g := NewGomegaWithT(t)
+	handlerStub := NewHandlerStub(http.StatusServiceUnavailable, nil)
+	server := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	body := []byte{'{', '}'}
+	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/status/503", bytes.NewReader(body))
+
+	response := httptest.NewRecorder()
+	router := setupRouter()
+	router.ServeHTTP(response, request)
+
+	g.Expect(response.Code).To(Equal(503))
 }

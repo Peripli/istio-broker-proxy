@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -21,12 +22,14 @@ const (
 )
 
 type ProxyConfig struct {
-	forwardURL string
-	port       int
+	forwardURL         string
+	port               int
+	httpClientFactory  func(tr *http.Transport) *http.Client
+	httpRequestFactory func(method string, url string, body io.Reader) (*http.Request, error)
 }
 
 var (
-	config = ProxyConfig{port: DefaultPort}
+	config = ProxyConfig{port: DefaultPort, httpClientFactory: httpClientFactory, httpRequestFactory: httpRequestFactory}
 )
 
 func updateCredentials(ctx *gin.Context) {
@@ -63,6 +66,7 @@ func forward(ctx *gin.Context) {
 func forwardAndTransform(ctx *gin.Context, transform func([]byte) ([]byte, error)) {
 	writer := ctx.Writer
 	request := ctx.Request
+
 	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
 
 	// we need to buffer the body if we want to read it here and send it
@@ -73,13 +77,13 @@ func forwardAndTransform(ctx *gin.Context, transform func([]byte) ([]byte, error
 		return
 	}
 
-	proxyReq := createForwardingRequest(request, err, body)
+	proxyRequest := createForwardingRequest(request, err, body)
 
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	client := &http.Client{Transport: tr}
-	response, err := client.Do(proxyReq)
+	client := config.httpClientFactory(tr)
+	response, err := client.Do(proxyRequest)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadGateway)
 		log.Printf("ERROR: %s\n", err.Error())
@@ -128,9 +132,18 @@ func forwardAndTransform(ctx *gin.Context, transform func([]byte) ([]byte, error
 	log.Printf("Response:\n%v\n", string(responseDump))
 }
 
+func httpClientFactory(tr *http.Transport) *http.Client {
+	client := &http.Client{Transport: tr}
+	return client
+}
+
+func httpRequestFactory(method string, url string, body io.Reader) (*http.Request, error) {
+	return http.NewRequest(method, url, body)
+}
+
 func createForwardingRequest(request *http.Request, err error, body []byte) *http.Request {
 	url := createNewUrl(config.forwardURL, request)
-	proxyRequest, err := http.NewRequest(request.Method, url, bytes.NewReader(body))
+	proxyRequest, err := config.httpRequestFactory(request.Method, url, bytes.NewReader(body))
 	// We may want to filter some headers, otherwise we could just use a shallow copy
 	// proxyRequest.Header = request.Header
 	proxyRequest.Header = make(http.Header)
