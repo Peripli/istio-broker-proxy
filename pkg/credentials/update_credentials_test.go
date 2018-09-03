@@ -120,8 +120,8 @@ func TestTwoEndpointsAreApplied(t *testing.T) {
 
 	translatedCredentials := translateCredentials(actual())
 	g.Expect(translatedCredentials).To(haveTheSameCredentialFieldAs(expected(), "uri"))
-	g.Expect(translatedCredentials).To(haveTheEndpoint("c", "3"))
-	g.Expect(translatedCredentials).To(haveTheEndpoint("d", "4"))
+	g.Expect(translatedCredentials).To(HaveTheEndpoint("c", "3"))
+	g.Expect(translatedCredentials).To(HaveTheEndpoint("d", "4"))
 }
 
 func TestUriIsChangedToTargetHostAndPort(t *testing.T) {
@@ -186,8 +186,8 @@ func TestEndpointIsAddedAfterApplying(t *testing.T) {
 
 	translatedRequest := translateCredentials(exampleRequest)
 
-	g.Expect(exampleRequest).NotTo(haveTheEndpoint("appnethost", "9876"))
-	g.Expect(translatedRequest).To(haveTheEndpoint("appnethost", "9876"))
+	g.Expect(exampleRequest).NotTo(HaveTheEndpoint("appnethost", "9876"))
+	g.Expect(translatedRequest).To(HaveTheEndpoint("appnethost", "9876"))
 }
 
 func TestWriteUrlIsAdapted(t *testing.T) {

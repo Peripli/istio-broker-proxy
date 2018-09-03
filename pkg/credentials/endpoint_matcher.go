@@ -17,7 +17,7 @@ func hasEndpointMappings(jsonString string) bool {
 	return mappingFound
 }
 
-func haveTheEndpoint(host string, port string) types.GomegaMatcher {
+func HaveTheEndpoint(host string, port string) types.GomegaMatcher {
 	return EndpointMatcher{host, port}
 }
 

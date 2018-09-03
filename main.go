@@ -30,9 +30,9 @@ var (
 )
 
 func updateCredentials(ctx *gin.Context) {
-	log.Println("Received update credentials")
 	writer := ctx.Writer
 	request := ctx.Request
+	log.Printf("Update credentials request: %v %v", request.Method, request.URL.Path)
 
 	body, err := ioutil.ReadAll(request.Body)
 	if err != nil {
@@ -40,7 +40,7 @@ func updateCredentials(ctx *gin.Context) {
 		return
 	}
 
-	log.Printf("%v\n", string(body))
+	log.Printf("Received body: %v\n", string(body))
 	response, err := credentials.Update(body)
 
 	if err != nil {
@@ -52,12 +52,15 @@ func updateCredentials(ctx *gin.Context) {
 	writer.Write(response)
 }
 
-func translateResponseBody(originalRequest *http.Request, responseBody []byte) ([]byte, error) {
-	newBody, err := endpoints.GenerateEndpoint(responseBody)
-	return newBody, err
+func forwardAndCreateEndpoints(ctx *gin.Context) {
+	forwardAndTransform(ctx, endpoints.GenerateEndpoint)
 }
 
 func forward(ctx *gin.Context) {
+	forwardAndTransform(ctx, func(in []byte) ([]byte, error) { return in, nil })
+}
+
+func forwardAndTransform(ctx *gin.Context, transform func([]byte) ([]byte, error)) {
 	writer := ctx.Writer
 	request := ctx.Request
 	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
@@ -76,24 +79,24 @@ func forward(ctx *gin.Context) {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-	resp, err := client.Do(proxyReq)
+	response, err := client.Do(proxyReq)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadGateway)
 		log.Printf("ERROR: %s\n", err.Error())
 		return
 	}
-	log.Printf("Request forwarded: %d %s\n", resp.StatusCode, resp.Status)
+	log.Printf("Request forwarded: %s\n", response.Status)
 
 	defer func() {
-		resp.Body.Close()
+		response.Body.Close()
 	}()
 
-	for name, values := range resp.Header {
+	for name, values := range response.Header {
 		writer.Header()[name] = values
 	}
 
-	writer.WriteHeader(resp.StatusCode)
-	body, err = ioutil.ReadAll(resp.Body)
+	writer.WriteHeader(response.StatusCode)
+	body, err = ioutil.ReadAll(response.Body)
 	log.Printf("respBody:\n %v", string(body))
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
@@ -101,6 +104,7 @@ func forward(ctx *gin.Context) {
 		return
 	}
 
+	body, err = transform(body)
 	log.Printf("translatedBody:\n %v", string(body))
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
@@ -109,18 +113,19 @@ func forward(ctx *gin.Context) {
 	}
 
 	log.Printf("before write body")
+	count, err := writer.Write(body)
 
-	writer.Write(body)
+	fmt.Printf("count: %d\n", count)
+	fmt.Printf("error: %v\n", err)
 
-	// reassign body for dump
-	resp.Body = ioutil.NopCloser(bytes.NewReader(body))
-	responseDump, err := httputil.DumpResponse(resp, true)
+	//reassign body for dump
+	response.Body = ioutil.NopCloser(bytes.NewReader(body))
+	responseDump, err := httputil.DumpResponse(response, true)
 	if err != nil {
 		log.Printf("ERROR: %s\n", err.Error())
 	}
 
 	log.Printf("Response:\n%v\n", string(responseDump))
-
 }
 
 func createForwardingRequest(request *http.Request, err error, body []byte) *http.Request {
@@ -179,6 +184,7 @@ func setupRouter() *gin.Engine {
 
 	mux := gin.Default()
 	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", updateCredentials)
+	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", forwardAndCreateEndpoints)
 	mux.NoRoute(forward)
 
 	return mux

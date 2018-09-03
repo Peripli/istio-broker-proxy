@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	. "github.com/onsi/gomega"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -240,6 +241,7 @@ func TestRedirect(t *testing.T) {
 
 		g.Expect(bodyData.Args["plan_id"]).To(Equal(expectedPlan))
 	})
+
 }
 
 func TestBadGateway(t *testing.T) {
@@ -295,8 +297,39 @@ func TestAdaptCredentials(t *testing.T) {
 func TestEmptyBodyInTranslate(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	body, err := translateResponseBody(nil, make([]byte, 0))
+	body, err := endpoints.GenerateEndpoint(make([]byte, 0))
 
 	g.Expect(err).Should(HaveOccurred())
 	g.Expect(body).To(BeEmpty())
+}
+
+func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
+	config.forwardURL = "http://localhost:9999/mirror"
+	g := NewGomegaWithT(t)
+	body := []byte(`{
+					"credentials":
+					{
+ 						"hostname": "10.11.241.0",
+ 						"port": "47637",
+						"uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
+ 					}
+					}`)
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
+	request.Header = make(http.Header)
+	request.Header.Set("accept", "application/json")
+	request.Header.Set("'Content-Type", "application/json")
+
+	response := httptest.NewRecorder()
+	router := setupRouter()
+	routerStub := setupRouterStub()
+	go routerStub.Run(":9999")
+	router.ServeHTTP(response, request)
+
+	var bodyData struct {
+		Endpoints []interface{} `json:"endpoints"`
+	}
+
+	err := json.NewDecoder(response.Body).Decode(&bodyData)
+	g.Expect(err).NotTo(HaveOccurred(), "error while decoding body: %v ", response.Body)
+	g.Expect(bodyData.Endpoints).To(HaveLen(1))
 }
