@@ -111,22 +111,6 @@ func TestCreateNewURL(t *testing.T) {
 func TestRedirect(t *testing.T) {
 	config.forwardURL = "https://httpbin.org"
 
-	t.Run("Check return code of redirected get", func(t *testing.T) {
-		g := NewGomegaWithT(t)
-		body := []byte{'{', '}'}
-		request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/get", bytes.NewReader(body))
-		request.Header = make(http.Header)
-		request.Header["accept"] = []string{"application/json"}
-
-		response := httptest.NewRecorder()
-		router := setupRouter()
-		router.ServeHTTP(response, request)
-		got := response.Code
-
-		want := 200
-		g.Expect(got).To(Equal(want))
-	})
-
 	t.Run("Check URL in response", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 		body := []byte{'{', '}'}
@@ -297,7 +281,7 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 						"uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
  					}
 					}`)
-	handlerStub := NewHandlerStub(http.StatusServiceUnavailable, body)
+	handlerStub := NewHandlerStub(http.StatusOK, body)
 	server := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -332,4 +316,22 @@ func TestErrorCodeOfForwardIsReturned(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(503))
+}
+
+func TestReturnCodeOfGet(t *testing.T) {
+	config.forwardURL = "http://xxxxx.xx"
+	g := NewGomegaWithT(t)
+	body := []byte{'{', '}'}
+	handlerStub := NewHandlerStub(http.StatusOK, body)
+	server := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/xxx", bytes.NewReader(body))
+
+	response := httptest.NewRecorder()
+	router := setupRouter()
+	router.ServeHTTP(response, request)
+
+	g.Expect(response.Code).To(Equal(200))
 }
