@@ -12,14 +12,20 @@ func main() {
 	var serviceName, endpointServiceEntry, hostVirtualService string
 	var portServiceEntry int
 	var clientConfig bool
+	var help bool
 
 	flag.BoolVar(&clientConfig, "client", false, "Create client configuration")
 	flag.StringVar(&serviceName, "service", "<service>", "name of the service")
 	flag.StringVar(&hostVirtualService, "virtual-service", "<host>", "host of virtual service")
 	flag.StringVar(&endpointServiceEntry, "endpoint", "<0.0.0.0>", "endpoint(ip) of the service entry")
 	flag.IntVar(&portServiceEntry, "port", 99999, "port of the service entry")
+	flag.BoolVar(&help, "help", false, "Print usage")
 
 	flag.Parse()
+	if help {
+		flag.Usage()
+		return
+	}
 
 	createOutput(clientConfig, serviceName, hostVirtualService, portServiceEntry, endpointServiceEntry)
 }
