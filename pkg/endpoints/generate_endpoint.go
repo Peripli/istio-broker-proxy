@@ -13,6 +13,7 @@ const KEY_PORT string = "port"
 type responseData struct {
 	Credentials map[string]interface{} `json:"credentials"`
 	Endpoints   []map[string]string    `json:"endpoints"`
+	ProviderId  string                 `json:"provider_id"`
 }
 
 func isPostgres(data responseData) bool {
@@ -45,6 +46,7 @@ func generateEndpointForPostgres(input responseData) ([]byte, error) {
 	endpoint[KEY_PORT] = input.Credentials[KEY_PORT].(string)
 	endpoint[KEY_HOSTNAME] = input.Credentials[KEY_HOSTNAME].(string)
 	input.Endpoints = append(input.Endpoints, endpoint)
+	input.ProviderId = "my-provider"
 
 	jsonResult, err := json.Marshal(input)
 	return jsonResult, err

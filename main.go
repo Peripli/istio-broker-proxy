@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 	"io"
 	"io/ioutil"
 	"log"
@@ -56,14 +57,14 @@ func updateCredentials(ctx *gin.Context) {
 }
 
 func forwardAndCreateEndpoints(ctx *gin.Context) {
-	forwardAndTransform(ctx, endpoints.GenerateEndpoint)
+	forwardAndTransform(ctx, endpoints.GenerateEndpoint, profiles.AddIstioNetworkDataToResponse("my-provider", ctx, ""))
 }
 
 func forward(ctx *gin.Context) {
 	forwardAndTransform(ctx, func(in []byte) ([]byte, error) { return in, nil })
 }
 
-func forwardAndTransform(ctx *gin.Context, transform func([]byte) ([]byte, error)) {
+func forwardAndTransform(ctx *gin.Context, transforms ...func([]byte) ([]byte, error)) {
 	writer := ctx.Writer
 	request := ctx.Request
 
@@ -108,7 +109,12 @@ func forwardAndTransform(ctx *gin.Context, transform func([]byte) ([]byte, error
 		return
 	}
 
-	body, err = transform(body)
+	for _, transform := range transforms {
+		body, err = transform(body)
+		if err != nil {
+			break
+		}
+	}
 	log.Printf("translatedBody:\n %v", string(body))
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
@@ -116,7 +122,13 @@ func forwardAndTransform(ctx *gin.Context, transform func([]byte) ([]byte, error
 		return
 	}
 
-	log.Printf("before write body")
+	//TODO
+	//* get external port from config
+	//* get provider id from config
+	//* get service instance id from gin context
+	//* read endpoints from response body
+	//* add network_data to response body
+
 	count, err := writer.Write(body)
 
 	fmt.Printf("count: %d\n", count)
