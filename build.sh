@@ -2,10 +2,14 @@
 
 set -euo pipefail
 
-export GOPATH=$GOPATH:$(pwd)/go
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
-go get -d -v github.infra.hana.ondemand.com/istio/istio-broker/...
-go build github.infra.hana.ondemand.com/istio/istio-broker/pkg/config/client
+export GOPATH=$GOPATH:${SCRIPT_DIR}/../../../..
+
+cd ${SCRIPT_DIR}
+
+go get -d -v ./...
+go build ./pkg/config/client
 ./client --help
-go build -v github.infra.hana.ondemand.com/istio/istio-broker
-( cd go/src/github.infra.hana.ondemand.com/istio/istio-broker/test && ./test_update_credentials.sh )
+go build -v
+( cd test && ./test_update_credentials.sh )
