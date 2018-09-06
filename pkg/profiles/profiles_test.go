@@ -2,7 +2,6 @@ package profiles
 
 import (
 	"encoding/json"
-	"fmt"
 	. "github.com/onsi/gomega"
 
 	//"os"
@@ -22,46 +21,15 @@ type networkData struct {
 
 type endpoints struct {
 	Host string `json:"host"`
-	Port string `json:"port"`
-}
-
-func TestAddIstioNetworkData(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	body := []byte(`{}`)
-	bodyWithIstioData, err := AddIstioNetworkData(body)
-
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(bodyWithIstioData).NotTo(BeNil())
-
-	parsedBody := bodyData{}
-	json.Unmarshal(bodyWithIstioData, &parsedBody)
-	g.Expect(parsedBody.NetworkData.NetworkProfileId).To(Equal("urn:com.sap.istio:public"))
-	g.Expect(parsedBody.NetworkData.ProviderId).To(Equal("my-provider"))
-}
-
-func TestAddIstioNetworkDataPreservesOriginalBody(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	body := []byte(`{"something_else": "body of response"}`)
-	bodyWithIstioData, err := AddIstioNetworkData(body)
-
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(bodyWithIstioData).NotTo(BeNil())
-
-	parsedBody := bodyData{}
-	json.Unmarshal(bodyWithIstioData, &parsedBody)
-	g.Expect(parsedBody.NetworkData.NetworkProfileId).To(Equal("urn:com.sap.istio:public"))
-	g.Expect(parsedBody.NetworkData.ProviderId).To(Equal("my-provider"))
-	g.Expect(parsedBody.SomethingElse).To(Equal("body of response"))
+	Port int    `json:"port"`
 }
 
 func TestAddIstioNetworkDataHasConfigurableProviderId(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	addIstioDataFunc := CreateConfigurableNetworkProfile("my-provider", "", "", nil)
+	addIstioDataFunc := AddIstioNetworkDataToResponse("my-provider", "", "", 0)
 
-	body := []byte(`{"something_else": "body of response"}`)
+	body := []byte(`{"something_else": "body of response", "endpoints": []}`)
 	bodyWithIstioData, err := addIstioDataFunc(body)
 
 	g.Expect(err).NotTo(HaveOccurred())
@@ -74,7 +42,7 @@ func TestAddIstioNetworkDataHasConfigurableProviderId(t *testing.T) {
 	g.Expect(parsedBody.SomethingElse).To(Equal("body of response"))
 }
 
-func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
+func TestCreateEndpointHosts(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	serviceId := "postgres-34de6ac"
@@ -88,25 +56,25 @@ func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
 	g.Expect(endpointHost).To(HaveLen(2))
 	g.Expect(endpointHost).To(ContainElement("1.postgres-34de6ac.istio.sapcloud.io"))
 	g.Expect(endpointHost).To(ContainElement("2.postgres-34de6ac.istio.sapcloud.io"))
+}
 
-	addIstioDataFunc := CreateConfigurableNetworkProfile("my-provider", serviceId, systemDomain, endpoints)
+func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
+	g := NewGomegaWithT(t)
 
-	body := []byte(`{"something_else": "body of response"}`)
+	addIstioDataFunc := AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "istio.sapcloud.io", 9000)
+
+	body := []byte(`{"something_else": "body of response", "endpoints": [{}, {}]}`)
 	bodyWithIstioData, err := addIstioDataFunc(body)
 
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(bodyWithIstioData).NotTo(BeNil())
 
-	g.Expect(string(bodyWithIstioData)).To(ContainSubstring("2.postgres-34de6ac.istio.sapcloud.io"))
-
 	parsedBody := bodyData{}
 	json.Unmarshal(bodyWithIstioData, &parsedBody)
-	fmt.Printf("ep: %v", parsedBody.NetworkData.Endpoints)
 	g.Expect(parsedBody.NetworkData.Endpoints).NotTo(BeNil())
-	//ToDo why are additional array elements not parsed?
 	g.Expect(parsedBody.NetworkData.Endpoints).To(HaveLen(2))
 	g.Expect(parsedBody.NetworkData.Endpoints[0].Host).To(ContainSubstring("1.postgres-34de6ac.istio.sapcloud.io"))
-
+	g.Expect(parsedBody.NetworkData.Endpoints[0].Port).To(Equal(9000))
 }
 
 //func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAndEndpointIndex(t *testing.T) {
@@ -125,9 +93,3 @@ func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
 //
 //	g.Expect(true).To(BeFalse())
 //}
-
-func TestAddIstioNetworkDataHasConfigurableEndpointPort(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	g.Expect(true).To(BeFalse())
-}

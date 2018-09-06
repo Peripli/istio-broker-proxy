@@ -12,6 +12,7 @@ import (
 )
 
 func TestInvalidUpdateCredentials(t *testing.T) {
+	config.providerId = "x"
 	g := NewGomegaWithT(t)
 	router := setupRouter()
 
@@ -255,10 +256,11 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 	g.Expect(bodyData.Endpoints).To(HaveLen(1))
 }
 
-func TestBindingResponseNetworkDataContainsProviderId(t *testing.T) {
+func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAndEndpointIndex(t *testing.T) {
 	config.forwardURL = "http://xxxxx.xx"
+	config.SystemDomain = "istio.sapcloud.io"
+	config.providerId = "your-provider"
 	g := NewGomegaWithT(t)
-	//body := []byte{'{', '}'}
 	body := []byte(`{
 					"credentials":
 					{
@@ -277,33 +279,17 @@ func TestBindingResponseNetworkDataContainsProviderId(t *testing.T) {
 	router := setupRouter()
 	router.ServeHTTP(response, request)
 
-	var bodyData struct {
-		//Endpoints []interface{} `json:"endpoints"`
-		ProviderId string `json:"provider_id,omitempty"`
-	}
-
-	err := json.NewDecoder(response.Body).Decode(&bodyData)
-	g.Expect(err).NotTo(HaveOccurred(), "error while decoding body: %v ", response.Body)
-	//g.Expect(bodyData.Endpoints).To(HaveLen(1))
-	g.Expect(bodyData.ProviderId).To(Equal("my-provider"))
+	bodyString := response.Body.String()
+	g.Expect(bodyString).To(ContainSubstring("network_data"))
+	g.Expect(bodyString).To(ContainSubstring("istio.sapcloud.io"))
+	g.Expect(bodyString).To(ContainSubstring("your-provider"))
 }
 
-func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAndEndpointIndex(t *testing.T) {
-
-	//e.g.
-	// serviceId = "postgres-34de6ac"
-	// systemDomain = "istio.sapcloud.io"
-	// two endpoints
-	// 1.postgres-34de6ac.istio.sapcloud.io
-	// 2.postgres-34de6ac.istio.sapcloud.io
-
-	//serviceId can be found via ctx.Params.GetByName instance_id
-	//systemdomain via global config
-	//endpoints via upstreambroker (response)
-
+func TestTransparentProxyIsTransparent(t *testing.T) {
+	config.providerId = ""
 	config.forwardURL = "http://xxxxx.xx"
+
 	g := NewGomegaWithT(t)
-	//body := []byte{'{', '}'}
 	body := []byte(`{
 					"credentials":
 					{
@@ -322,9 +308,10 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 	router := setupRouter()
 	router.ServeHTTP(response, request)
 
-	g.Expect(response.Body.String()).To(ContainSubstring("network_data"))
-	//Todo how to get systemdomain either from ctx or reponse
-	g.Expect(response.Body.String()).To(ContainSubstring("1.123.istio.sapcloud.io"))
+	bodyString := response.Body.String()
+	g.Expect(bodyString).NotTo(ContainSubstring("network_data"))
+	g.Expect(bodyString).NotTo(ContainSubstring("endpoints"))
+	g.Expect(bodyString).NotTo(ContainSubstring("provider_id"))
 }
 
 func TestErrorCodeOfForwardIsReturned(t *testing.T) {
