@@ -76,20 +76,3 @@ func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
 	g.Expect(parsedBody.NetworkData.Endpoints[0].Host).To(ContainSubstring("1.postgres-34de6ac.istio.sapcloud.io"))
 	g.Expect(parsedBody.NetworkData.Endpoints[0].Port).To(Equal(9000))
 }
-
-//func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAndEndpointIndex(t *testing.T) {
-//	g := NewGomegaWithT(t)
-//
-//	//e.g.
-//	// serviceId = "postgres-34de6ac"
-//	// systemDomain = "istio.sapcloud.io"
-//	// two endpoints
-//	// 1.postgres-34de6ac.istio.sapcloud.io
-//	// 2.postgres-34de6ac.istio.sapcloud.io
-//
-//	//serviceId can be found via ctx.Params.GetByName instance_id
-//	//systemdomain via global config
-//	//endpoints via upstreambroker (response)
-//
-//	g.Expect(true).To(BeFalse())
-//}
