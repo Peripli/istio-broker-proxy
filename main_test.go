@@ -12,6 +12,7 @@ import (
 )
 
 func TestInvalidUpdateCredentials(t *testing.T) {
+	config.providerId = "x"
 	g := NewGomegaWithT(t)
 	router := setupRouter()
 
@@ -253,6 +254,64 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 	err := json.NewDecoder(response.Body).Decode(&bodyData)
 	g.Expect(err).NotTo(HaveOccurred(), "error while decoding body: %v ", response.Body)
 	g.Expect(bodyData.Endpoints).To(HaveLen(1))
+}
+
+func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAndEndpointIndex(t *testing.T) {
+	config.forwardURL = "http://xxxxx.xx"
+	config.SystemDomain = "istio.sapcloud.io"
+	config.providerId = "your-provider"
+	g := NewGomegaWithT(t)
+	body := []byte(`{
+					"credentials":
+					{
+ 						"hostname": "10.11.241.0",
+ 						"port": "47637",
+						"uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
+ 					}
+					}`)
+	handlerStub := NewHandlerStub(http.StatusOK, body)
+	server := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
+	response := httptest.NewRecorder()
+	router := setupRouter()
+	router.ServeHTTP(response, request)
+
+	bodyString := response.Body.String()
+	g.Expect(bodyString).To(ContainSubstring("network_data"))
+	g.Expect(bodyString).To(ContainSubstring("istio.sapcloud.io"))
+	g.Expect(bodyString).To(ContainSubstring("your-provider"))
+}
+
+func TestTransparentProxyIsTransparent(t *testing.T) {
+	config.providerId = ""
+	config.forwardURL = "http://xxxxx.xx"
+
+	g := NewGomegaWithT(t)
+	body := []byte(`{
+					"credentials":
+					{
+ 						"hostname": "10.11.241.0",
+ 						"port": "47637",
+						"uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
+ 					}
+					}`)
+	handlerStub := NewHandlerStub(http.StatusOK, body)
+	server := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
+	response := httptest.NewRecorder()
+	router := setupRouter()
+	router.ServeHTTP(response, request)
+
+	bodyString := response.Body.String()
+	g.Expect(bodyString).NotTo(ContainSubstring("network_data"))
+	g.Expect(bodyString).NotTo(ContainSubstring("endpoints"))
+	g.Expect(bodyString).NotTo(ContainSubstring("provider_id"))
 }
 
 func TestErrorCodeOfForwardIsReturned(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 	"io"
 	"io/ioutil"
 	"log"
@@ -26,6 +27,8 @@ type ProxyConfig struct {
 	port               int
 	httpClientFactory  func(tr *http.Transport) *http.Client
 	httpRequestFactory func(method string, url string, body io.Reader) (*http.Request, error)
+	SystemDomain       string
+	providerId         string
 }
 
 var (
@@ -56,14 +59,17 @@ func updateCredentials(ctx *gin.Context) {
 }
 
 func forwardAndCreateEndpoints(ctx *gin.Context) {
-	forwardAndTransform(ctx, endpoints.GenerateEndpoint)
+	serviceId := ctx.Params.ByName("instance_id")
+	systemDomain := config.SystemDomain
+	providerId := config.providerId
+	forwardAndTransform(ctx, endpoints.GenerateEndpoint, profiles.AddIstioNetworkDataToResponse(providerId, serviceId, systemDomain, config.port))
 }
 
 func forward(ctx *gin.Context) {
-	forwardAndTransform(ctx, func(in []byte) ([]byte, error) { return in, nil })
+	forwardAndTransform(ctx)
 }
 
-func forwardAndTransform(ctx *gin.Context, transform func([]byte) ([]byte, error)) {
+func forwardAndTransform(ctx *gin.Context, transforms ...func([]byte) ([]byte, error)) {
 	writer := ctx.Writer
 	request := ctx.Request
 
@@ -108,7 +114,12 @@ func forwardAndTransform(ctx *gin.Context, transform func([]byte) ([]byte, error
 		return
 	}
 
-	body, err = transform(body)
+	for _, transform := range transforms {
+		body, err = transform(body)
+		if err != nil {
+			break
+		}
+	}
 	log.Printf("translatedBody:\n %v", string(body))
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
@@ -116,7 +127,6 @@ func forwardAndTransform(ctx *gin.Context, transform func([]byte) ([]byte, error
 		return
 	}
 
-	log.Printf("before write body")
 	count, err := writer.Write(body)
 
 	fmt.Printf("count: %d\n", count)
@@ -184,6 +194,8 @@ func readPort() {
 func main() {
 	flag.IntVar(&config.port, "port", DefaultPort, "port to be used")
 	flag.StringVar(&config.forwardURL, "forwardUrl", "", "url for forwarding incoming requests")
+	flag.StringVar(&config.SystemDomain, "systemdomain", "", "system domain of the landscape")
+	flag.StringVar(&config.providerId, "providerId", "", "The subject alternative name for which the service has a certificate, if not set the broker is transparent")
 	flag.Parse()
 	readPort()
 
@@ -194,10 +206,11 @@ func main() {
 }
 
 func setupRouter() *gin.Engine {
-
 	mux := gin.Default()
-	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", updateCredentials)
-	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", forwardAndCreateEndpoints)
+	if config.providerId != "" {
+		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", updateCredentials)
+		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", forwardAndCreateEndpoints)
+	}
 	mux.NoRoute(forward)
 
 	return mux

@@ -3,7 +3,7 @@ set -ueo pipefail
 
 go build github.infra.hana.ondemand.com/istio/istio-broker
 
-./istio-broker &
+./istio-broker --providerId="x" &
 ISTIOPID=$!
 trap "kill $ISTIOPID" 0
 sleep 1
