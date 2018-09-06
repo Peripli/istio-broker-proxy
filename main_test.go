@@ -260,6 +260,7 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 	config.forwardURL = "http://xxxxx.xx"
 	config.SystemDomain = "istio.sapcloud.io"
 	config.providerId = "your-provider"
+	config.loadBalancerPort = 9000
 	g := NewGomegaWithT(t)
 	body := []byte(`{
 					"credentials":
@@ -283,6 +284,7 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 	g.Expect(bodyString).To(ContainSubstring("network_data"))
 	g.Expect(bodyString).To(ContainSubstring("istio.sapcloud.io"))
 	g.Expect(bodyString).To(ContainSubstring("your-provider"))
+	g.Expect(bodyString).To(ContainSubstring("9000"))
 }
 
 func TestTransparentProxyIsTransparent(t *testing.T) {

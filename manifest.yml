@@ -2,7 +2,7 @@
 applications:
 - name: istio-broker
   buildpack: go_buildpack
-  command: istio-broker --forwardUrl https://10.11.252.10:9293/cf
+  command: istio-broker --forwardUrl https://10.11.252.10:9293/cf --systemdomain services.cf.dev01.aws.istio.sapcloud.io --providerId pinger.services.cf.dev01.aws.istio.sapcloud.io --loadBalancerPort 9000
   env:
     GOVERSION: 1.x
     GOPACKAGENAME: github.infra.hana.ondemand.com/istio/istio-broker

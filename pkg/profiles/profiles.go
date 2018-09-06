@@ -14,6 +14,10 @@ func AddIstioNetworkDataToResponse(providerId string, serviceId string, systemDo
 			return nil, err
 		}
 
+		if fromJson["endpoints"] == nil {
+			return body, nil
+		}
+
 		endpoints := fromJson["endpoints"].([]interface{})
 		endpointHosts, err := createEndpointHostsBasedOnSystemDomainServiceId(serviceId, systemDomain, endpoints)
 

@@ -76,3 +76,11 @@ func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
 	g.Expect(parsedBody.NetworkData.Endpoints[0].Host).To(ContainSubstring("1.postgres-34de6ac.istio.sapcloud.io"))
 	g.Expect(parsedBody.NetworkData.Endpoints[0].Port).To(Equal(9000))
 }
+
+func TestBlueprintServiceDoesntCrash(t *testing.T) {
+	g := NewGomegaWithT(t)
+	addIstioDataFunc := AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "istio.sapcloud.io", 9000)
+	body := []byte(`{"credentials":{"hosts":["10.11.31.128"],"hostname":"10.11.31.128","port":8080,"uri":"http://50da4fff492a97c635a4bfe4fc64276e:160bbfd6e913f353e6f4ea526e8e58df@10.11.31.128:8080","username":"50da4fff492a97c635a4bfe4fc64276e","password":"160bbfd6e913f353e6f4ea526e8e58df"}}`)
+	_, err := addIstioDataFunc(body)
+	g.Expect(err).NotTo(HaveOccurred())
+}

@@ -29,6 +29,7 @@ type ProxyConfig struct {
 	httpRequestFactory func(method string, url string, body io.Reader) (*http.Request, error)
 	SystemDomain       string
 	providerId         string
+	loadBalancerPort   int
 }
 
 var (
@@ -62,7 +63,7 @@ func forwardAndCreateEndpoints(ctx *gin.Context) {
 	serviceId := ctx.Params.ByName("instance_id")
 	systemDomain := config.SystemDomain
 	providerId := config.providerId
-	forwardAndTransform(ctx, endpoints.GenerateEndpoint, profiles.AddIstioNetworkDataToResponse(providerId, serviceId, systemDomain, config.port))
+	forwardAndTransform(ctx, endpoints.GenerateEndpoint, profiles.AddIstioNetworkDataToResponse(providerId, serviceId, systemDomain, config.loadBalancerPort))
 }
 
 func forward(ctx *gin.Context) {
@@ -196,6 +197,7 @@ func main() {
 	flag.StringVar(&config.forwardURL, "forwardUrl", "", "url for forwarding incoming requests")
 	flag.StringVar(&config.SystemDomain, "systemdomain", "", "system domain of the landscape")
 	flag.StringVar(&config.providerId, "providerId", "", "The subject alternative name for which the service has a certificate, if not set the broker is transparent")
+	flag.IntVar(&config.loadBalancerPort, "loadBalancerPort", 0, "port of the load balancer of the landscape")
 	flag.Parse()
 	readPort()
 
