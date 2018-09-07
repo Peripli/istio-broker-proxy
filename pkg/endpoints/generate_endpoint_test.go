@@ -38,10 +38,17 @@ func TestEndpointIsCreated(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte(`{
             "credentials": {
-               "uri": "postgres://user:pass@mysqlhost:3306/dbname",
+               "uri": "postgres://user:pass@dbhost:3306/dbname",
                "hostname": "dbhost",
-               "port": "3306"
-			} }`)
+                "port": "3306",
+                "end_points": [
+                    {
+                        "host": "dbhost",
+                        "network_id": "SF",
+                        "port": 3306
+                    }
+                ]
+            } }`)
 	expected := parseResponseData(body, t)
 
 	newBody, err := GenerateEndpoint(body)
@@ -57,49 +64,110 @@ func TestEndpointDataIsCorrect(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte(`{
             "credentials": {
-               "uri": "postgres://user:pass@mysqlhost:3306/dbname",
+               "uri": "postgres://user:pass@dbhost:3306/dbname",
                 "hostname": "dbhost",
-                "port": "3306"
-			} }`)
+                "port": "3306",
+                "end_points": [
+                    {
+                        "host": "dbhost",
+                        "network_id": "SF",
+                        "port": 3306
+                    }
+                ]
+            } }`)
 
 	newBody, err := GenerateEndpoint(body)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	result := parseResponseData(newBody, t)
-	actualPort := result.Endpoints[0]["port"]
-	g.Expect(actualPort).To(Equal("3306"))
-	actualHost := result.Endpoints[0]["hostname"]
-	g.Expect(actualHost).To(Equal("dbhost"))
+	g.Expect(result.Endpoints).To(HaveLen(1))
+	g.Expect(result.Endpoints[0]).To(Equal(endpoint{"dbhost", 3306}))
 }
 
 func TestRealWorldExample(t *testing.T) {
 	g := NewGomegaWithT(t)
-	body := []byte(`{"credentials":{"hostname":"10.11.241.0","ports":{"5432/tcp":"47637"},"port":"47637","username":"mma4G8N0isoxe17v","password":"tkREVXOktdT2TRF6","dbname":"yLO2WoE0-mCcEppn","uri":"postgres://mma4G8N0isoxe17v:tkREVXOktdT2TRF6@10.11.241.0:47637/yLO2WoE0-mCcEppn"}}`)
+	body := []byte(`{
+    "credentials": {
+        "hostname": "10.11.241.0",
+        "ports": {
+            "5432/tcp": "47637"
+        },
+        "end_points": [
+            {
+                "host": "10.11.241.0",
+                "network_id": "SF",
+                "port": 47637
+            }
+        ],
+        "port": "47637",
+        "username": "mma4G8N0isoxe17v",
+        "password": "tkREVXOktdT2TRF6",
+        "dbname": "yLO2WoE0-mCcEppn",
+        "uri": "postgres://mma4G8N0isoxe17v:tkREVXOktdT2TRF6@10.11.241.0:47637/yLO2WoE0-mCcEppn"
+    }
+    }`)
 
 	newBody, err := GenerateEndpoint(body)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	result := parseResponseData(newBody, t)
 	g.Expect(result.Endpoints).To(HaveLen(1))
-	actualPort := result.Endpoints[0]["port"]
-	g.Expect(actualPort).To(Equal("47637"))
-	actualHost := result.Endpoints[0]["hostname"]
-	g.Expect(actualHost).To(Equal("10.11.241.0"))
+	g.Expect(result.Endpoints[0]).To(Equal(endpoint{"10.11.241.0", 47637}))
+}
+
+func TestInvalidEndpoints(t *testing.T) {
+	g := NewGomegaWithT(t)
+	body := []byte(`{
+    "credentials": {
+        "end_points": ["invalid"],
+        "uri": "postgres://mma4G8N0isoxe17v:tkREVXOktdT2TRF6@10.11.241.0:47637/yLO2WoE0-mCcEppn"
+    }
+    }`)
+
+	_, err := GenerateEndpoint(body)
+	g.Expect(err).To(HaveOccurred())
 }
 
 func TestHaPostgresExample(t *testing.T) {
 	g := NewGomegaWithT(t)
-	body := []byte(`{"credentials":{"dbname":"e2b91324e12361f3eaeb35fe570efe1d","end_points":[{"host":"10.11.19.245","network_id":"SF","port":5432},{"host":"10.11.19.240","network_id":"SF","port":5432},{"host":"10.11.19.241","network_id":"SF","port":5432}],"hostname":"10.11.19.245","password":"c00132ea8771e16c8aecc9a7b819f91c","port":"5432","read_url":"jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=preferSlave\u0026loadBalanceHosts=true","uri":"postgres://0d158137ea834372c7f7f53036b1faf6:c00132ea8771e16c8aecc9a7b819f91c@10.11.19.245:5432/e2b91324e12361f3eaeb35fe570efe1d","username":"0d158137ea834372c7f7f53036b1faf6","write_url":"jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master"}}`)
+	body := []byte(`{
+    "credentials": {
+        "dbname": "e2b91324e12361f3eaeb35fe570efe1d",
+        "end_points": [
+            {
+                "host": "10.11.19.245",
+                "network_id": "SF",
+                "port": 5432
+            },
+            {
+                "host": "10.11.19.240",
+                "network_id": "SF",
+                "port": 5432
+            },
+            {
+                "host": "10.11.19.241",
+                "network_id": "SF",
+                "port": 5432
+            }
+        ],
+        "hostname": "10.11.19.245",
+        "password": "c00132ea8771e16c8aecc9a7b819f91c",
+        "port": "5432",
+        "read_url": "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=preferSlave\u0026loadBalanceHosts=true",
+        "uri": "postgres://0d158137ea834372c7f7f53036b1faf6:c00132ea8771e16c8aecc9a7b819f91c@10.11.19.245:5432/e2b91324e12361f3eaeb35fe570efe1d",
+        "username": "0d158137ea834372c7f7f53036b1faf6",
+        "write_url": "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master"
+    }
+    }`)
 	newBody, err := GenerateEndpoint(body)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	result := parseResponseData(newBody, t)
-	g.Expect(result.Endpoints).To(HaveLen(1))
-	actualPort := result.Endpoints[0]["port"]
-	g.Expect(actualPort).To(Equal("5432"))
-	actualHost := result.Endpoints[0]["hostname"]
-	g.Expect(actualHost).To(Equal("10.11.19.245"))
+	g.Expect(result.Endpoints).To(HaveLen(3))
 
+	g.Expect(result.Endpoints[0]).To(Equal(endpoint{"10.11.19.245", 5432}))
+	g.Expect(result.Endpoints[1]).To(Equal(endpoint{"10.11.19.240", 5432}))
+	g.Expect(result.Endpoints[2]).To(Equal(endpoint{"10.11.19.241", 5432}))
 }
 
 func TestIgnoreBlueprintService(t *testing.T) {
