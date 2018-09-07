@@ -42,6 +42,28 @@ func TestAddIstioNetworkDataHasConfigurableProviderId(t *testing.T) {
 	g.Expect(parsedBody.SomethingElse).To(Equal("body of response"))
 }
 
+func TestAddIstioNetworkDataWithInvalidEndpoints(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	addIstioDataFunc := AddIstioNetworkDataToResponse("my-provider", "", "", 0)
+
+	body := []byte(`{"something_else": "body of response", "endpoints": {"noarray": true}}`)
+	_, err := addIstioDataFunc(body)
+
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestAddIstioNetworkDataWithInvalidJson(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	addIstioDataFunc := AddIstioNetworkDataToResponse("my-provider", "", "", 0)
+
+	body := []byte(`{"something_invalid}`)
+	_, err := addIstioDataFunc(body)
+
+	g.Expect(err).To(HaveOccurred())
+}
+
 func TestCreateEndpointHosts(t *testing.T) {
 	g := NewGomegaWithT(t)
 
