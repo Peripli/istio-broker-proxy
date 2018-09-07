@@ -297,6 +297,40 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 	g.Expect(bodyString).To(ContainSubstring("9000"))
 }
 
+func TestHttpClientError(t *testing.T) {
+	config.forwardURL = "http://xxxxx.xx"
+	config.SystemDomain = "istio.sapcloud.io"
+	config.providerId = "your-provider"
+	config.loadBalancerPort = 9000
+	g := NewGomegaWithT(t)
+	body := []byte(`{
+					"credentials":
+					{
+                        "hostname": "10.11.241.0",
+                        "port": "47637",
+                        "end_points": [
+                        {
+                            "host": "10.11.241.0",
+                            "port": 47637
+                        }],
+                        "uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
+                    }
+                    }`)
+	handlerStub := NewHandlerStub(http.StatusNotFound, []byte{})
+	server := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
+	response := httptest.NewRecorder()
+	router := setupRouter()
+	router.ServeHTTP(response, request)
+
+	bodyString := response.Body.String()
+	g.Expect(response.Code).To(Equal(http.StatusNotFound))
+	g.Expect(bodyString).To(Equal(""))
+}
+
 func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
 	config.providerId = ""
 	config.consumerId = "your-consumer"

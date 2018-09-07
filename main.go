@@ -150,14 +150,16 @@ func forwardAndTransform(ctx *gin.Context, transformRequest func([]byte) ([]byte
 		return
 	}
 
-	body, err = transformResponse(body)
-	log.Printf("translatedResponseBody:\n %v", string(body))
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		log.Printf("ERROR: %s\n", err.Error())
-		return
+	okResponse := response.StatusCode/100 == 2
+	if okResponse {
+		body, err = transformResponse(body)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			log.Printf("ERROR: %s\n", err.Error())
+			return
+		}
+		log.Printf("translatedResponseBody:\n %v", string(body))
 	}
-
 	count, err := writer.Write(body)
 
 	fmt.Printf("count: %d\n", count)
