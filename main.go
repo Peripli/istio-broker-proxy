@@ -29,6 +29,7 @@ type ProxyConfig struct {
 	httpRequestFactory func(method string, url string, body io.Reader) (*http.Request, error)
 	SystemDomain       string
 	providerId         string
+	consumerId         string
 	loadBalancerPort   int
 }
 
@@ -59,18 +60,45 @@ func updateCredentials(ctx *gin.Context) {
 	writer.Write(response)
 }
 
-func forwardAndCreateEndpoints(ctx *gin.Context) {
-	serviceId := ctx.Params.ByName("instance_id")
-	systemDomain := config.SystemDomain
-	providerId := config.providerId
-	forwardAndTransform(ctx, endpoints.GenerateEndpoint, profiles.AddIstioNetworkDataToResponse(providerId, serviceId, systemDomain, config.loadBalancerPort))
+func noOpTransform(data []byte) ([]byte, error) {
+	return data, nil
+}
+
+func chainTransform(transformList ...func([]byte) ([]byte, error)) func([]byte) ([]byte, error) {
+	return func(body []byte) ([]byte, error) {
+		var err error
+		for _, transform := range transformList {
+			body, err = transform(body)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return body, nil
+	}
+}
+
+func forwardAndTransformServiceBinding(ctx *gin.Context) {
+	transformRequest := noOpTransform
+	transformResponse := noOpTransform
+
+	if config.providerId != "" {
+		serviceId := ctx.Params.ByName("instance_id")
+		systemDomain := config.SystemDomain
+		providerId := config.providerId
+		transformResponse = chainTransform(endpoints.GenerateEndpoint, profiles.AddIstioNetworkDataToResponse(providerId, serviceId, systemDomain, config.loadBalancerPort))
+	} else if config.consumerId != "" {
+		consumerId := config.consumerId
+		transformRequest = profiles.AddIstioNetworkDataToRequest(consumerId)
+	}
+
+	forwardAndTransform(ctx, transformRequest, transformResponse)
 }
 
 func forward(ctx *gin.Context) {
-	forwardAndTransform(ctx)
+	forwardAndTransform(ctx, noOpTransform, noOpTransform)
 }
 
-func forwardAndTransform(ctx *gin.Context, transforms ...func([]byte) ([]byte, error)) {
+func forwardAndTransform(ctx *gin.Context, transformRequest func([]byte) ([]byte, error), transformResponse func([]byte) ([]byte, error)) {
 	writer := ctx.Writer
 	request := ctx.Request
 
@@ -84,6 +112,13 @@ func forwardAndTransform(ctx *gin.Context, transforms ...func([]byte) ([]byte, e
 		return
 	}
 
+	body, err = transformRequest(body)
+	log.Printf("translatedRequestBody:\n %v", string(body))
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		log.Printf("ERROR: %s\n", err.Error())
+		return
+	}
 	proxyRequest := createForwardingRequest(request, err, body)
 
 	tr := &http.Transport{
@@ -115,13 +150,8 @@ func forwardAndTransform(ctx *gin.Context, transforms ...func([]byte) ([]byte, e
 		return
 	}
 
-	for _, transform := range transforms {
-		body, err = transform(body)
-		if err != nil {
-			break
-		}
-	}
-	log.Printf("translatedBody:\n %v", string(body))
+	body, err = transformResponse(body)
+	log.Printf("translatedResponseBody:\n %v", string(body))
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		log.Printf("ERROR: %s\n", err.Error())
@@ -196,7 +226,8 @@ func main() {
 	flag.IntVar(&config.port, "port", DefaultPort, "port to be used")
 	flag.StringVar(&config.forwardURL, "forwardUrl", "", "url for forwarding incoming requests")
 	flag.StringVar(&config.SystemDomain, "systemdomain", "", "system domain of the landscape")
-	flag.StringVar(&config.providerId, "providerId", "", "The subject alternative name for which the service has a certificate, if not set the broker is transparent")
+	flag.StringVar(&config.providerId, "providerId", "", "The subject alternative name of the provider for which the service has a certificate")
+	flag.StringVar(&config.consumerId, "consumerId", "", "The subject alternative name of the consumer for which the service has a certificate")
 	flag.IntVar(&config.loadBalancerPort, "loadBalancerPort", 0, "port of the load balancer of the landscape")
 	flag.Parse()
 	readPort()
@@ -211,8 +242,8 @@ func setupRouter() *gin.Engine {
 	mux := gin.Default()
 	if config.providerId != "" {
 		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", updateCredentials)
-		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", forwardAndCreateEndpoints)
 	}
+	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", forwardAndTransformServiceBinding)
 	mux.NoRoute(forward)
 
 	return mux

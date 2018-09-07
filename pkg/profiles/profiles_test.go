@@ -8,12 +8,22 @@ import (
 	"testing"
 )
 
-type bodyData struct {
-	SomethingElse string      `json:"something_else,omitempty"`
-	NetworkData   networkData `json:"network_data"`
+type requestBodyData struct {
+	SomethingElse string             `json:"something_else,omitempty"`
+	NetworkData   requestNetworkData `json:"network_data"`
 }
 
-type networkData struct {
+type requestNetworkData struct {
+	NetworkProfileId string `json:"network_profile_id"`
+	ConsumerId       string `json:"consumer_id"`
+}
+
+type responseBodyData struct {
+	SomethingElse string              `json:"something_else,omitempty"`
+	NetworkData   responseNetworkData `json:"network_data"`
+}
+
+type responseNetworkData struct {
 	NetworkProfileId string      `json:"network_profile_id"`
 	ProviderId       string      `json:"provider_id"`
 	Endpoints        []endpoints `json:"endpoints, omitempty"`
@@ -35,7 +45,7 @@ func TestAddIstioNetworkDataHasConfigurableProviderId(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(bodyWithIstioData).NotTo(BeNil())
 
-	parsedBody := bodyData{}
+	parsedBody := responseBodyData{}
 	json.Unmarshal(bodyWithIstioData, &parsedBody)
 	g.Expect(parsedBody.NetworkData.NetworkProfileId).To(Equal("urn:com.sap.istio:public"))
 	g.Expect(parsedBody.NetworkData.ProviderId).To(Equal("my-provider"))
@@ -88,7 +98,7 @@ func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(bodyWithIstioData).NotTo(BeNil())
 
-	parsedBody := bodyData{}
+	parsedBody := responseBodyData{}
 	json.Unmarshal(bodyWithIstioData, &parsedBody)
 	g.Expect(parsedBody.NetworkData.Endpoints).NotTo(BeNil())
 	g.Expect(parsedBody.NetworkData.Endpoints).To(HaveLen(2))
@@ -103,4 +113,20 @@ func TestBlueprintServiceDoesntCrash(t *testing.T) {
 	resultBody, err := addIstioDataFunc(body)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(resultBody).To(Equal(body))
+}
+
+func TestAddIstioNetworkToRequest(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	addIstioDataFunc := AddIstioNetworkDataToRequest("my-consumer")
+
+	body := []byte(`{"something_else": "body of response"}`)
+	bodyWithIstioData, err := addIstioDataFunc(body)
+
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(bodyWithIstioData).NotTo(BeNil())
+
+	parsedBody := requestBodyData{}
+	json.Unmarshal(bodyWithIstioData, &parsedBody)
+	g.Expect(parsedBody.NetworkData.ConsumerId).To(Equal("my-consumer"))
 }

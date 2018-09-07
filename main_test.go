@@ -297,8 +297,9 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 	g.Expect(bodyString).To(ContainSubstring("9000"))
 }
 
-func TestTransparentProxyIsTransparent(t *testing.T) {
+func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
 	config.providerId = ""
+	config.consumerId = "your-consumer"
 	config.forwardURL = "http://xxxxx.xx"
 
 	g := NewGomegaWithT(t)
@@ -320,10 +321,9 @@ func TestTransparentProxyIsTransparent(t *testing.T) {
 	router := setupRouter()
 	router.ServeHTTP(response, request)
 
-	bodyString := response.Body.String()
-	g.Expect(bodyString).NotTo(ContainSubstring("network_data"))
-	g.Expect(bodyString).NotTo(ContainSubstring("endpoints"))
-	g.Expect(bodyString).NotTo(ContainSubstring("provider_id"))
+	bodyString := handlerStub.spy.body
+	g.Expect(bodyString).To(ContainSubstring("network_data"))
+	g.Expect(bodyString).To(ContainSubstring("consumer_id"))
 }
 
 func TestErrorCodeOfForwardIsReturned(t *testing.T) {

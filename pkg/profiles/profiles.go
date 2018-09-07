@@ -5,6 +5,27 @@ import (
 	"fmt"
 )
 
+const network_profile = "urn:com.sap.istio:public"
+const key_network_data = "network_data"
+const key_network_profile_id = "network_profile_id"
+
+func AddIstioNetworkDataToRequest(consumerId string) func([]byte) ([]byte, error) {
+	return func(body []byte) ([]byte, error) {
+		var fromJson map[string]interface{}
+		err := json.Unmarshal(body, &fromJson)
+		if err != nil {
+			return nil, err
+		}
+		fromJson[key_network_data] = map[string]interface{}{
+			key_network_profile_id: network_profile,
+			"consumer_id":          consumerId,
+		}
+		newBody, err := json.Marshal(fromJson)
+
+		return newBody, err
+	}
+}
+
 func AddIstioNetworkDataToResponse(providerId string, serviceId string, systemDomain string, portNumber int) func([]byte) ([]byte, error) {
 	return func(body []byte) ([]byte, error) {
 		var fromJson map[string]interface{}
@@ -32,10 +53,10 @@ func AddIstioNetworkDataToResponse(providerId string, serviceId string, systemDo
 			)
 		}
 
-		fromJson["network_data"] = map[string]interface{}{
-			"network_profile_id": "urn:com.sap.istio:public",
-			"provider_id":        providerId,
-			"endpoints":          newEndpoints,
+		fromJson[key_network_data] = map[string]interface{}{
+			key_network_profile_id: network_profile,
+			"provider_id":          providerId,
+			"endpoints":            newEndpoints,
 		}
 
 		newBody, err := json.Marshal(fromJson)

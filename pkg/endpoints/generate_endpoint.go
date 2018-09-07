@@ -6,9 +6,7 @@ import (
 	"strings"
 )
 
-const KEY_URI string = "uri"
-const KEY_HOSTNAME string = "hostname"
-const KEY_PORT string = "port"
+const key_uri string = "uri"
 
 type endpoint struct {
 	Host string `json:"host"`
@@ -21,11 +19,11 @@ type responseData struct {
 }
 
 func isPostgres(data responseData) bool {
-	if data.Credentials[KEY_URI] == nil {
+	if data.Credentials[key_uri] == nil {
 		return false
 	}
 
-	uri := data.Credentials[KEY_URI].(string)
+	uri := data.Credentials[key_uri].(string)
 	isPostgres := strings.HasPrefix(uri, "postgres://")
 	return isPostgres
 }

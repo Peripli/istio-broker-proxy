@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 type requestSpy struct {
 	method string
 	url    string
+	body   string
 }
 
 type handlerStub struct {
@@ -36,6 +38,10 @@ func injectClientStub(handler *handlerStub) *httptest.Server {
 	config.httpRequestFactory = func(method string, url string, body io.Reader) (*http.Request, error) {
 		handler.spy.method = method
 		handler.spy.url = url
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(body)
+
+		handler.spy.body = buf.String() // Does a complete copy of the bytes in the buffer.
 		return http.NewRequest(method, ts.URL, body)
 	}
 	return ts
