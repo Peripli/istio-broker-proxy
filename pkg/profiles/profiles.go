@@ -2,7 +2,6 @@ package profiles
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 )
 
@@ -14,12 +13,14 @@ func AddIstioNetworkDataToResponse(providerId string, serviceId string, systemDo
 			return nil, err
 		}
 
-		if fromJson["endpoints"] == nil {
+		endpointCount, err := countEndpoints(fromJson)
+		if err != nil {
+			return nil, err
+		}
+		if endpointCount == 0 {
 			return body, nil
 		}
-
-		endpoints := fromJson["endpoints"].([]interface{})
-		endpointHosts, err := createEndpointHostsBasedOnSystemDomainServiceId(serviceId, systemDomain, endpoints)
+		endpointHosts := createEndpointHostsBasedOnSystemDomainServiceId(serviceId, systemDomain, endpointCount)
 
 		newEndpoints := make([]map[string]interface{}, 0)
 		for _, endpointHost := range endpointHosts {
@@ -43,17 +44,27 @@ func AddIstioNetworkDataToResponse(providerId string, serviceId string, systemDo
 	}
 }
 
-func createEndpointHostsBasedOnSystemDomainServiceId(serviceId string, systemDomain string, endpoints []interface{}) ([]string, error) {
-	var endpointsHost []string
-
-	if endpoints == nil {
-		return endpointsHost, errors.New("no valid endpoints given!")
+func countEndpoints(fromJson map[string]interface{}) (int, error) {
+	untypedEndpoints := fromJson["endpoints"]
+	if untypedEndpoints == nil {
+		return 0, nil
 	}
-
-	for i, _ := range endpoints {
-		epIndex := i + 1
-		newHost := fmt.Sprintf("%d.%s.%s", epIndex, serviceId, systemDomain)
-		endpointsHost = append(endpointsHost, newHost)
+	var endpoints []interface{}
+	switch untypedEndpoints.(type) {
+	case []interface{}:
+		endpoints = untypedEndpoints.([]interface{})
+	default:
+		return 0, fmt.Errorf("request contains invalid endpoints '%v'", untypedEndpoints)
 	}
-	return endpointsHost, nil
+	return len(endpoints), nil
+}
+
+func createEndpointHostsBasedOnSystemDomainServiceId(serviceId string, systemDomain string, count int) []string {
+	var endpointsHosts []string
+
+	for i := 0; i < count; i++ {
+		newHost := fmt.Sprintf("%d.%s.%s", i+1, serviceId, systemDomain)
+		endpointsHosts = append(endpointsHosts, newHost)
+	}
+	return endpointsHosts
 }

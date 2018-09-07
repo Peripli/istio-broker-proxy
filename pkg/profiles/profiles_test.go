@@ -29,7 +29,7 @@ func TestAddIstioNetworkDataHasConfigurableProviderId(t *testing.T) {
 
 	addIstioDataFunc := AddIstioNetworkDataToResponse("my-provider", "", "", 0)
 
-	body := []byte(`{"something_else": "body of response", "endpoints": []}`)
+	body := []byte(`{"something_else": "body of response", "endpoints": [{}]}`)
 	bodyWithIstioData, err := addIstioDataFunc(body)
 
 	g.Expect(err).NotTo(HaveOccurred())
@@ -69,11 +69,8 @@ func TestCreateEndpointHosts(t *testing.T) {
 
 	serviceId := "postgres-34de6ac"
 	systemDomain := "istio.sapcloud.io"
-	endpoints := make([]interface{}, 2)
 
-	endpointHost, err := createEndpointHostsBasedOnSystemDomainServiceId(serviceId, systemDomain, endpoints)
-
-	g.Expect(err).NotTo(HaveOccurred())
+	endpointHost := createEndpointHostsBasedOnSystemDomainServiceId(serviceId, systemDomain, 2)
 
 	g.Expect(endpointHost).To(HaveLen(2))
 	g.Expect(endpointHost).To(ContainElement("1.postgres-34de6ac.istio.sapcloud.io"))
@@ -103,6 +100,7 @@ func TestBlueprintServiceDoesntCrash(t *testing.T) {
 	g := NewGomegaWithT(t)
 	addIstioDataFunc := AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "istio.sapcloud.io", 9000)
 	body := []byte(`{"credentials":{"hosts":["10.11.31.128"],"hostname":"10.11.31.128","port":8080,"uri":"http://50da4fff492a97c635a4bfe4fc64276e:160bbfd6e913f353e6f4ea526e8e58df@10.11.31.128:8080","username":"50da4fff492a97c635a4bfe4fc64276e","password":"160bbfd6e913f353e6f4ea526e8e58df"}}`)
-	_, err := addIstioDataFunc(body)
+	resultBody, err := addIstioDataFunc(body)
 	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(resultBody).To(Equal(body))
 }
