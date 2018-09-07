@@ -234,6 +234,11 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 					{
  						"hostname": "10.11.241.0",
  						"port": "47637",
+                        "end_points": [
+                        {
+                            "host": "10.11.241.0",
+                            "port": 47637
+                        }],
 						"uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
  					}
 					}`)
@@ -267,6 +272,11 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 					{
  						"hostname": "10.11.241.0",
  						"port": "47637",
+                        "end_points": [
+                        {
+                            "host": "10.11.241.0",
+                            "port": 47637
+                        }],
 						"uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
  					}
 					}`)
