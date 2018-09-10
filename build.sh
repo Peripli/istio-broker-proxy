@@ -12,4 +12,3 @@ go get -d -v ./...
 go build ./pkg/config/client
 ./client --help
 go build -v
-( cd test && ./test_update_credentials.sh )
