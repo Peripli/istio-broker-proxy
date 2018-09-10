@@ -3,6 +3,8 @@ package endpoints
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -11,6 +13,24 @@ const key_uri string = "uri"
 type endpoint struct {
 	Host string `json:"host"`
 	Port int    `json:"port"`
+}
+
+func (ep *endpoint) UnmarshalJSON(b []byte) error {
+	var untyped struct {
+		Host string      `json:"host"`
+		Port interface{} `json:"port"`
+	}
+	err := json.Unmarshal(b, &untyped)
+	if err != nil {
+		return err
+	}
+
+	ep.Host = untyped.Host
+
+	portAsString := fmt.Sprintf("%v", untyped.Port)
+	ep.Port, err = strconv.Atoi(portAsString)
+
+	return err
 }
 
 type responseData struct {

@@ -179,3 +179,28 @@ func TestIgnoreBlueprintService(t *testing.T) {
 
 	g.Expect(newBody).To(Equal(body))
 }
+
+func TestEndpointUnmarshalPortAsString(t *testing.T) {
+	g := NewGomegaWithT(t)
+	body := []byte(`{
+                "host": "10.11.19.245",
+                "network_id": "SF",
+                "port": "5432"
+            }`)
+	var ep endpoint
+	err := json.Unmarshal(body, &ep)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(ep.Port).To(Equal(5432))
+}
+func TestEndpointUnmarshalPortAsIntg(t *testing.T) {
+	g := NewGomegaWithT(t)
+	body := []byte(`{
+                "host": "10.11.19.245",
+                "network_id": "SF",
+                "port": 5432
+            }`)
+	var ep endpoint
+	err := json.Unmarshal(body, &ep)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(ep.Port).To(Equal(5432))
+}
