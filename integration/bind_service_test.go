@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 	"os"
 	"testing"
+	"time"
 )
 
 const service_instance = `apiVersion: servicecatalog.k8s.io/v1beta1
@@ -36,8 +37,7 @@ func TestServiceBindingIsSuccessful(t *testing.T) {
 
 	// Test if list of available services is not empty
 	var classes v1beta1.ClusterServiceClassList
-	err := kubectl.List(&classes)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	kubectl.List(&classes)
 	g.Expect(classes.Items).NotTo(BeEmpty(), "List of available services in OSB should not be empty")
 
 	// Clean up old services
@@ -46,10 +46,28 @@ func TestServiceBindingIsSuccessful(t *testing.T) {
 
 	// Create service binding
 	kubectl.Apply([]byte(service_instance))
+	var serviceInstance v1beta1.ServiceInstance
+	waitForCompletion(g, func() bool {
+		kubectl.Read(&serviceInstance, "postgres-instance")
+		return len(serviceInstance.Status.Conditions) > 0 && serviceInstance.Status.Conditions[0].Status == v1beta1.ConditionTrue
+	})
 	kubectl.Apply([]byte(service_binding))
 	var status v1beta1.ServiceBinding
-	err = kubectl.Get(&status, "postgres-binding")
-	g.Expect(err).ShouldNot(HaveOccurred())
-	g.Expect(status.Status.Conditions[0].Status).To(Equal(v1beta1.ConditionTrue))
+	waitForCompletion(g, func() bool {
+		kubectl.Read(&status, "postgres-binding")
+		return len(status.Status.Conditions) > 0 && status.Status.Conditions[0].Status == v1beta1.ConditionTrue
+	})
 
+}
+
+func waitForCompletion(g *GomegaWithT, test func() bool) {
+	valid := false
+	expiry := time.Now().Add(time.Duration(60) * time.Second)
+	for !valid {
+		valid = test()
+		if !valid {
+			time.Sleep(time.Duration(5) * time.Second)
+			g.Expect(time.Now().Before(expiry)).To(BeTrue(), "Timeout expired")
+		}
+	}
 }

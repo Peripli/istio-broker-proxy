@@ -42,17 +42,19 @@ func (self Kubectl) Apply(fileBody []byte) {
 	self.run("apply", "-f", file.Name())
 }
 
-func (self Kubectl) Get(result interface{}, name string) error {
+func (self Kubectl) Read(result interface{}, name string) {
 	kind := reflect.TypeOf(result).Elem().Name()
 	response := self.run("get", kind, name, "-o", "json")
-	return json.Unmarshal(response, result)
+	err := json.Unmarshal(response, result)
+	self.g.Expect(err).ShouldNot(HaveOccurred())
 }
 
-func (self Kubectl) List(result interface{}) error {
+func (self Kubectl) List(result interface{}) {
 	kind := reflect.TypeOf(result).Elem().Name()
 	if strings.HasSuffix(kind, "List") {
 		kind = kind[0 : len(kind)-4]
 	}
 	response := self.run("get", kind, "-o", "json")
-	return json.Unmarshal(response, result)
+	err := json.Unmarshal(response, result)
+	self.g.Expect(err).ShouldNot(HaveOccurred())
 }
