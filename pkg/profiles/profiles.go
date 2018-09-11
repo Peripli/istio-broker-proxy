@@ -18,7 +18,7 @@ func AddIstioNetworkDataToRequest(consumerId string) func([]byte) ([]byte, error
 		}
 		fromJson[key_network_data] = map[string]interface{}{
 			key_network_profile_id: network_profile,
-			"consumer_id":          consumerId,
+			"data":                 map[string]interface{}{"consumer_id": consumerId},
 		}
 		newBody, err := json.Marshal(fromJson)
 
@@ -55,8 +55,9 @@ func AddIstioNetworkDataToResponse(providerId string, serviceId string, systemDo
 
 		fromJson[key_network_data] = map[string]interface{}{
 			key_network_profile_id: network_profile,
-			"provider_id":          providerId,
-			"endpoints":            newEndpoints,
+			"data": map[string]interface{}{
+				"provider_id": providerId,
+				"endpoints":   newEndpoints},
 		}
 
 		newBody, err := json.Marshal(fromJson)

@@ -14,8 +14,12 @@ type requestBodyData struct {
 }
 
 type requestNetworkData struct {
-	NetworkProfileId string `json:"network_profile_id"`
-	ConsumerId       string `json:"consumer_id"`
+	NetworkProfileId string      `json:"network_profile_id"`
+	Data             requestData `json:"data"`
+}
+
+type requestData struct {
+	ConsumerId string `json:"consumer_id"`
 }
 
 type responseBodyData struct {
@@ -24,9 +28,13 @@ type responseBodyData struct {
 }
 
 type responseNetworkData struct {
-	NetworkProfileId string      `json:"network_profile_id"`
-	ProviderId       string      `json:"provider_id"`
-	Endpoints        []endpoints `json:"endpoints, omitempty"`
+	NetworkProfileId string       `json:"network_profile_id"`
+	Data             responseData `json:"data"`
+}
+
+type responseData struct {
+	ProviderId string      `json:"provider_id"`
+	Endpoints  []endpoints `json:"endpoints, omitempty"`
 }
 
 type endpoints struct {
@@ -48,7 +56,7 @@ func TestAddIstioNetworkDataHasConfigurableProviderId(t *testing.T) {
 	parsedBody := responseBodyData{}
 	json.Unmarshal(bodyWithIstioData, &parsedBody)
 	g.Expect(parsedBody.NetworkData.NetworkProfileId).To(Equal("urn:com.sap.istio:public"))
-	g.Expect(parsedBody.NetworkData.ProviderId).To(Equal("my-provider"))
+	g.Expect(parsedBody.NetworkData.Data.ProviderId).To(Equal("my-provider"))
 	g.Expect(parsedBody.SomethingElse).To(Equal("body of response"))
 }
 
@@ -100,10 +108,10 @@ func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
 
 	parsedBody := responseBodyData{}
 	json.Unmarshal(bodyWithIstioData, &parsedBody)
-	g.Expect(parsedBody.NetworkData.Endpoints).NotTo(BeNil())
-	g.Expect(parsedBody.NetworkData.Endpoints).To(HaveLen(2))
-	g.Expect(parsedBody.NetworkData.Endpoints[0].Host).To(ContainSubstring("1.postgres-34de6ac.istio.sapcloud.io"))
-	g.Expect(parsedBody.NetworkData.Endpoints[0].Port).To(Equal(9000))
+	g.Expect(parsedBody.NetworkData.Data.Endpoints).NotTo(BeNil())
+	g.Expect(parsedBody.NetworkData.Data.Endpoints).To(HaveLen(2))
+	g.Expect(parsedBody.NetworkData.Data.Endpoints[0].Host).To(ContainSubstring("1.postgres-34de6ac.istio.sapcloud.io"))
+	g.Expect(parsedBody.NetworkData.Data.Endpoints[0].Port).To(Equal(9000))
 }
 
 func TestBlueprintServiceDoesntCrash(t *testing.T) {
@@ -128,5 +136,5 @@ func TestAddIstioNetworkToRequest(t *testing.T) {
 
 	parsedBody := requestBodyData{}
 	json.Unmarshal(bodyWithIstioData, &parsedBody)
-	g.Expect(parsedBody.NetworkData.ConsumerId).To(Equal("my-consumer"))
+	g.Expect(parsedBody.NetworkData.Data.ConsumerId).To(Equal("my-consumer"))
 }
