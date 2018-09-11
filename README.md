@@ -42,7 +42,6 @@ cf marketplace
 ```
 
 
-
 ## Steps to validate
 
 * Use service broker
