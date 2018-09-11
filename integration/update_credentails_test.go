@@ -10,6 +10,8 @@ import (
 	"testing"
 )
 
+const baseUrl = "https://istio-broker.cfapps.dev01.aws.istio.sapcloud.io"
+
 func TestAdaptCredentialsWithInvalidRequest(t *testing.T) {
 	g := NewGomegaWithT(t)
 
@@ -31,7 +33,7 @@ func TestAdaptCredentialsWithInvalidRequest(t *testing.T) {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}}
 
-	request, err := http.NewRequest(http.MethodPut, "https://istio-broker.cfapps.dev01.aws.istio.sapcloud.io/v2/service_instances/1/service_bindings/2/adapt_credentials", bytes.NewReader(body))
+	request, err := http.NewRequest(http.MethodPut, baseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", bytes.NewReader(body))
 	g.Expect(err).NotTo(HaveOccurred())
 
 	response, err := client.Do(request)
@@ -65,7 +67,7 @@ func TestAdaptCredentialsWithValidRequest(t *testing.T) {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}}
 
-	request, err := http.NewRequest(http.MethodPut, "https://istio-broker.cfapps.dev01.aws.istio.sapcloud.io/v2/service_instances/1/service_bindings/2/adapt_credentials", bytes.NewReader(body))
+	request, err := http.NewRequest(http.MethodPut, baseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", bytes.NewReader(body))
 	g.Expect(err).NotTo(HaveOccurred())
 
 	response, err := client.Do(request)
