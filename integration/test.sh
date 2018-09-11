@@ -9,5 +9,5 @@ export CGO_ENABLED=0
 
 cd ${SCRIPT_DIR}
 
-go get -d -v ../...
-go test --tags=integration -v
+go get --tags=integration -d -v ../...
+comm
