@@ -34,7 +34,7 @@ func CreateEntriesForExternalService(serviceName string, endpointServiceEntry st
 
 func CreateIstioConfigForProvider(request *profiles.BindRequest, response *profiles.BindResponse, bindingId string) []model.Config {
 	var istioConfig []model.Config
-	for _, endpoint := range response.NetworkData.Data.Endpoints {
+	for _, endpoint := range response.Endpoints {
 		originalEndpointHost := endpoint.Host
 		portServiceEntry := uint32(endpoint.Port)
 		ingressDomain := "services.cf.dev01.aws.istio.sapcloud.io"

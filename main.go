@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/config"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 	"io"
 	"io/ioutil"
@@ -73,25 +72,14 @@ func (client osbProxy) updateCredentials(ctx *gin.Context) {
 	writer.Write(response)
 }
 
-func noOpTransform(data []byte) ([]byte, error) {
-	return data, nil
+func noOpTransformRequest(*profiles.BindRequest) {
+}
+
+func noOpTransform(*profiles.BindResponse) {
 }
 
 func noOpHandleRequestCompleted(*profiles.BindRequest, *profiles.BindResponse) error {
 	return nil
-}
-
-func chainTransform(transformList ...func([]byte) ([]byte, error)) func([]byte) ([]byte, error) {
-	return func(body []byte) ([]byte, error) {
-		var err error
-		for _, transform := range transformList {
-			body, err = transform(body)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return body, nil
-	}
 }
 
 func writeIstioFilesForProvider(istioDirectory string, bindingId string) func(*profiles.BindRequest, *profiles.BindResponse) error {
@@ -116,7 +104,7 @@ func writeIstioFilesForProvider(istioDirectory string, bindingId string) func(*p
 }
 
 func (client osbProxy) forwardAndTransformServiceBinding(ctx *gin.Context) {
-	transformRequest := noOpTransform
+	transformRequest := noOpTransformRequest
 	transformResponse := noOpTransform
 	handleRequestCompleted := noOpHandleRequestCompleted
 	if proxyConfig.providerId != "" {
@@ -124,11 +112,16 @@ func (client osbProxy) forwardAndTransformServiceBinding(ctx *gin.Context) {
 		bindingId := ctx.Params.ByName("binding_id")
 		systemDomain := proxyConfig.SystemDomain
 		providerId := proxyConfig.providerId
-		transformResponse = chainTransform(endpoints.GenerateEndpoint, profiles.AddIstioNetworkDataToResponse(providerId, serviceId, systemDomain, proxyConfig.loadBalancerPort))
+		transformNetworkData := profiles.AddIstioNetworkDataToResponse(providerId, serviceId, systemDomain, proxyConfig.loadBalancerPort)
+		transformResponse = func(bindResponse *profiles.BindResponse) {
+			bindResponse.Endpoints = bindResponse.Credentials.Endpoints
+			transformNetworkData(bindResponse)
+		}
 		handleRequestCompleted = writeIstioFilesForProvider(proxyConfig.istioDirectory, bindingId)
 	} else if proxyConfig.consumerId != "" {
-		consumerId := proxyConfig.consumerId
-		transformRequest = profiles.AddIstioNetworkDataToRequest(consumerId)
+		transformRequest = func(request *profiles.BindRequest) {
+			request.NetworkData.Data.ConsumerId = proxyConfig.consumerId
+		}
 	}
 
 	client.forwardAndTransform(ctx, transformRequest, transformResponse, handleRequestCompleted)
@@ -162,7 +155,7 @@ func (client osbProxy) forward(ctx *gin.Context) {
 	io.Copy(writer, response.Body)
 }
 
-func (client osbProxy) forwardAndTransform(ctx *gin.Context, transformRequest func([]byte) ([]byte, error), transformResponse func([]byte) ([]byte, error),
+func (client osbProxy) forwardAndTransform(ctx *gin.Context, transformRequest func(*profiles.BindRequest), transformResponse func(response *profiles.BindResponse),
 	handleRequestCompleted func(request *profiles.BindRequest, response *profiles.BindResponse) error) {
 	writer := ctx.Writer
 	request := ctx.Request
@@ -177,7 +170,15 @@ func (client osbProxy) forwardAndTransform(ctx *gin.Context, transformRequest fu
 		return
 	}
 
-	requestBody, err = transformRequest(requestBody)
+	var bindRequest profiles.BindRequest
+	err = json.Unmarshal(requestBody, &bindRequest)
+	if err != nil {
+		httpError(writer, err)
+		return
+	}
+
+	transformRequest(&bindRequest)
+	requestBody, err = json.Marshal(bindRequest)
 	log.Printf("translatedRequestBody:\n %v", string(requestBody))
 	if err != nil {
 		httpError(writer, err)
@@ -210,25 +211,16 @@ func (client osbProxy) forwardAndTransform(ctx *gin.Context, transformRequest fu
 
 	okResponse := response.StatusCode/100 == 2
 	if okResponse {
-		responseBody, err = transformResponse(responseBody)
-		if err != nil {
-			httpError(writer, err)
-			return
-		}
-		log.Printf("translatedResponseBody:\n %v", string(responseBody))
-		var bindRequest profiles.BindRequest
-		err = json.Unmarshal(requestBody, &bindRequest)
-		if err != nil {
-			httpError(writer, err)
-			return
-		}
 		var bindResponse profiles.BindResponse
 		err = json.Unmarshal(responseBody, &bindResponse)
 		if err != nil {
 			httpError(writer, err)
 			return
 		}
+		transformResponse(&bindResponse)
 		handleRequestCompleted(&bindRequest, &bindResponse)
+		responseBody, err = json.Marshal(bindResponse)
+		log.Printf("translatedResponseBody:\n %v", string(responseBody))
 	}
 	count, err := writer.Write(responseBody)
 

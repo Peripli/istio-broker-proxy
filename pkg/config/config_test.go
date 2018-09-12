@@ -181,9 +181,10 @@ func TestCreateIstioConfigForProvider(t *testing.T) {
 			NetworkProfileId: "your-profile-id",
 			Data: profiles.DataResponse{
 				ProviderId: "852",
-				Endpoints:  eps,
 			}},
-		Credentials: json.RawMessage([]byte(`{"user": "myuser"}`))}
+		Endpoints: eps,
+
+		Credentials: profiles.Credentials{AdditionalProperties: map[string]json.RawMessage{"user": json.RawMessage([]byte(`"myuser"`))}}}
 
 	istioConfig := CreateIstioConfigForProvider(&request, &response, "my-binding-id")
 

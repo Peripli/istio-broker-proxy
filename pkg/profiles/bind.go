@@ -5,9 +5,14 @@ import (
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
 )
 
+type Credentials struct {
+	AdditionalProperties map[string]json.RawMessage
+	Endpoints            []endpoints.Endpoint
+}
+
 type BindRequest struct {
 	AdditionalProperties map[string]json.RawMessage
-	NetworkData          NetworkDataRequest `json:"network_data"`
+	NetworkData          NetworkDataRequest
 }
 
 type NetworkDataRequest struct {
@@ -21,8 +26,9 @@ type DataRequest struct {
 
 type BindResponse struct {
 	AdditionalProperties map[string]json.RawMessage
-	NetworkData          NetworkDataResponse `json:"network_data"`
-	Credentials          json.RawMessage     `json:"credentials"`
+	NetworkData          NetworkDataResponse
+	Credentials          Credentials
+	Endpoints            []endpoints.Endpoint
 }
 
 type NetworkDataResponse struct {
@@ -67,6 +73,10 @@ func (bindResponse *BindResponse) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
+	err = removeProperty(bindResponse.AdditionalProperties, "endpoints", &bindResponse.Endpoints)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -80,6 +90,37 @@ func (bindResponse BindResponse) MarshalJSON() ([]byte, error) {
 	if nil != err {
 		return nil, err
 	}
+	if len(bindResponse.Endpoints) != 0 {
+
+		err = addProperty(properties, "endpoints", bindResponse.Endpoints)
+		if nil != err {
+			return nil, err
+		}
+	}
+
+	return json.Marshal(properties)
+}
+
+func (credentials *Credentials) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &credentials.AdditionalProperties); err != nil {
+		return err
+	}
+	err := removeProperty(credentials.AdditionalProperties, "end_points", &credentials.Endpoints)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (credentials Credentials) MarshalJSON() ([]byte, error) {
+	properties := clone(credentials.AdditionalProperties)
+	if len(credentials.Endpoints) != 0 {
+		err := addProperty(properties, "end_points", credentials.Endpoints)
+		if nil != err {
+			return nil, err
+		}
+	}
+
 	return json.Marshal(properties)
 }
 
