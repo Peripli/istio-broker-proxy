@@ -10,12 +10,12 @@ import (
 
 const key_uri string = "uri"
 
-type endpoint struct {
+type Endpoint struct {
 	Host string `json:"host"`
 	Port int    `json:"port"`
 }
 
-func (ep *endpoint) UnmarshalJSON(b []byte) error {
+func (ep *Endpoint) UnmarshalJSON(b []byte) error {
 	var untyped struct {
 		Host string      `json:"host"`
 		Port interface{} `json:"port"`
@@ -26,16 +26,16 @@ func (ep *endpoint) UnmarshalJSON(b []byte) error {
 	}
 
 	ep.Host = untyped.Host
-
-	portAsString := fmt.Sprintf("%v", untyped.Port)
-	ep.Port, err = strconv.Atoi(portAsString)
-
+	if untyped.Port != nil {
+		portAsString := fmt.Sprintf("%v", untyped.Port)
+		ep.Port, err = strconv.Atoi(portAsString)
+	}
 	return err
 }
 
 type responseData struct {
 	Credentials map[string]interface{} `json:"credentials"`
-	Endpoints   []endpoint             `json:"endpoints"`
+	Endpoints   []Endpoint             `json:"endpoints"`
 }
 
 func isPostgres(data responseData) bool {

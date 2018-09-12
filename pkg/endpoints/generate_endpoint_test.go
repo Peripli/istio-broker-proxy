@@ -81,7 +81,7 @@ func TestEndpointDataIsCorrect(t *testing.T) {
 
 	result := parseResponseData(newBody, t)
 	g.Expect(result.Endpoints).To(HaveLen(1))
-	g.Expect(result.Endpoints[0]).To(Equal(endpoint{"dbhost", 3306}))
+	g.Expect(result.Endpoints[0]).To(Equal(Endpoint{"dbhost", 3306}))
 }
 
 func TestRealWorldExample(t *testing.T) {
@@ -112,7 +112,7 @@ func TestRealWorldExample(t *testing.T) {
 
 	result := parseResponseData(newBody, t)
 	g.Expect(result.Endpoints).To(HaveLen(1))
-	g.Expect(result.Endpoints[0]).To(Equal(endpoint{"10.11.241.0", 47637}))
+	g.Expect(result.Endpoints[0]).To(Equal(Endpoint{"10.11.241.0", 47637}))
 }
 
 func TestInvalidEndpoints(t *testing.T) {
@@ -165,9 +165,9 @@ func TestHaPostgresExample(t *testing.T) {
 	result := parseResponseData(newBody, t)
 	g.Expect(result.Endpoints).To(HaveLen(3))
 
-	g.Expect(result.Endpoints[0]).To(Equal(endpoint{"10.11.19.245", 5432}))
-	g.Expect(result.Endpoints[1]).To(Equal(endpoint{"10.11.19.240", 5432}))
-	g.Expect(result.Endpoints[2]).To(Equal(endpoint{"10.11.19.241", 5432}))
+	g.Expect(result.Endpoints[0]).To(Equal(Endpoint{"10.11.19.245", 5432}))
+	g.Expect(result.Endpoints[1]).To(Equal(Endpoint{"10.11.19.240", 5432}))
+	g.Expect(result.Endpoints[2]).To(Equal(Endpoint{"10.11.19.241", 5432}))
 }
 
 func TestIgnoreBlueprintService(t *testing.T) {
@@ -187,7 +187,7 @@ func TestEndpointUnmarshalPortAsString(t *testing.T) {
                 "network_id": "SF",
                 "port": "5432"
             }`)
-	var ep endpoint
+	var ep Endpoint
 	err := json.Unmarshal(body, &ep)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(ep.Port).To(Equal(5432))
@@ -199,7 +199,7 @@ func TestEndpointUnmarshalPortAsIntg(t *testing.T) {
                 "network_id": "SF",
                 "port": 5432
             }`)
-	var ep endpoint
+	var ep Endpoint
 	err := json.Unmarshal(body, &ep)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(ep.Port).To(Equal(5432))

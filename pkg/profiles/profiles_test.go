@@ -3,6 +3,7 @@ package profiles
 import (
 	"encoding/json"
 	. "github.com/onsi/gomega"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
 
 	//"os"
 	"testing"
@@ -33,13 +34,8 @@ type responseNetworkData struct {
 }
 
 type responseData struct {
-	ProviderId string      `json:"provider_id"`
-	Endpoints  []endpoints `json:"endpoints, omitempty"`
-}
-
-type endpoints struct {
-	Host string `json:"host"`
-	Port int    `json:"port"`
+	ProviderId string               `json:"provider_id"`
+	Endpoints  []endpoints.Endpoint `json:"endpoints, omitempty"`
 }
 
 func TestAddIstioNetworkDataHasConfigurableProviderId(t *testing.T) {

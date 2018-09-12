@@ -1,6 +1,9 @@
 package config
 
 import (
+	"encoding/json"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 	"regexp"
 	"testing"
 
@@ -149,7 +152,7 @@ func TestCompleteEntryClientVirtualServices(t *testing.T) {
 
 func TestCreatesYamlDocuments(t *testing.T) {
 	g := NewGomegaWithT(t)
-	dummyConfigs := []model.Config{model.Config{Spec: &v1alpha3.ServiceEntry{}}}
+	dummyConfigs := []model.Config{{Spec: &v1alpha3.ServiceEntry{}}}
 	dummyConfigs[0].Type = serviceEntry
 	text, err := ToYamlDocuments(dummyConfigs)
 	g.Expect(err).ShouldNot(HaveOccurred())
@@ -162,6 +165,47 @@ func TestErrorInToText(t *testing.T) {
 	_, err := toText(model.Config{})
 
 	g.Expect(err).Should(HaveOccurred())
+}
+
+func TestCreateIstioConfigForProvider(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	eps := []endpoints.Endpoint{{"host1", 9999}, {"host2", 7777}}
+
+	request := profiles.BindRequest{
+		NetworkData: profiles.NetworkDataRequest{
+			NetworkProfileId: "my-profile-id",
+			Data:             profiles.DataRequest{ConsumerId: "147"}}}
+	response := profiles.BindResponse{
+		NetworkData: profiles.NetworkDataResponse{
+			NetworkProfileId: "your-profile-id",
+			Data: profiles.DataResponse{
+				ProviderId: "852",
+				Endpoints:  eps,
+			}},
+		Credentials: json.RawMessage([]byte(`{"user": "myuser"}`))}
+
+	istioConfig := CreateIstioConfigForProvider(&request, &response, "my-binding-id")
+
+	gatewaySpec, gatewayMetadata := getSpecsAndMetadatasFromConfig(g, istioConfig, gateway)
+
+	virtualServiceSpec, _ := getSpecsAndMetadatasFromConfig(g, istioConfig, virtualService)
+
+	serviceEntrySpec, _ := getSpecsAndMetadatasFromConfig(g, istioConfig, serviceEntry)
+
+	g.Expect(len(gatewaySpec)).To(Equal(len(eps)))
+	g.Expect(len(gatewayMetadata)).To(Equal(len(eps)))
+	g.Expect(len(virtualServiceSpec)).To(Equal(len(eps)))
+	g.Expect(len(serviceEntrySpec)).To(Equal(len(eps)))
+
+	g.Expect(gatewaySpec[0]).To(ContainSubstring("147"))
+	g.Expect(gatewaySpec[0]).To(ContainSubstring("my-binding-id-host1-services.cf.dev01.aws.istio.sapcloud.io"))
+	g.Expect(gatewayMetadata[0]).To(ContainSubstring("name: my-binding-id-host1-gateway"))
+	g.Expect(serviceEntrySpec[0]).To(ContainSubstring("- address: host1"))
+	g.Expect(serviceEntrySpec[1]).To(ContainSubstring("- address: host2"))
+	g.Expect(virtualServiceSpec[0]).To(ContainSubstring("number: 9999"))
+	g.Expect(virtualServiceSpec[1]).To(ContainSubstring("number: 7777"))
+
 }
 
 func getSpecAndMetadataFromConfig(g *GomegaWithT, configObjects []model.Config, configType string) (string, string) {

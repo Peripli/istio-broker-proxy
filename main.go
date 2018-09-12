@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -16,6 +17,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"path"
 	"strconv"
 )
 
@@ -35,7 +37,7 @@ type ProxyConfig struct {
 	istioDirectory     string
 }
 
-type OSBClient struct {
+type osbProxy struct {
 	*http.Client
 }
 
@@ -43,7 +45,7 @@ var (
 	proxyConfig = ProxyConfig{port: DefaultPort, httpClientFactory: httpClientFactory, httpRequestFactory: httpRequestFactory}
 )
 
-func (client OSBClient) updateCredentials(ctx *gin.Context) {
+func (client osbProxy) updateCredentials(ctx *gin.Context) {
 	writer := ctx.Writer
 	request := ctx.Request
 	log.Printf("Update credentials request: %v %v", request.Method, request.URL.Path)
@@ -70,7 +72,7 @@ func noOpTransform(data []byte) ([]byte, error) {
 	return data, nil
 }
 
-func noOpHandleRequestCompleted([]byte, []byte) error {
+func noOpHandleRequestCompleted(*profiles.BindRequest, *profiles.BindResponse) error {
 	return nil
 }
 
@@ -87,7 +89,26 @@ func chainTransform(transformList ...func([]byte) ([]byte, error)) func([]byte) 
 	}
 }
 
-func (client OSBClient) forwardAndTransformServiceBinding(ctx *gin.Context) {
+func writeIstioFilesForProvider(istioDirectory string, bindingId string) func(*profiles.BindRequest, *profiles.BindResponse) error {
+	return func(request *profiles.BindRequest, response *profiles.BindResponse) error {
+		file, err := os.Create(path.Join(istioDirectory, bindingId) + ".yml")
+		if nil != err {
+			return err
+		}
+		defer file.Close()
+
+		istioConfig := config.CreateIstioConfigForProvider(request, response, bindingId)
+
+		fileContent, err := config.ToYamlDocuments(istioConfig)
+		if nil != err {
+			return err
+		}
+		file.Write([]byte(fileContent))
+		return nil
+	}
+}
+
+func (client osbProxy) forwardAndTransformServiceBinding(ctx *gin.Context) {
 	transformRequest := noOpTransform
 	transformResponse := noOpTransform
 	handleRequestCompleted := noOpHandleRequestCompleted
@@ -97,7 +118,7 @@ func (client OSBClient) forwardAndTransformServiceBinding(ctx *gin.Context) {
 		systemDomain := proxyConfig.SystemDomain
 		providerId := proxyConfig.providerId
 		transformResponse = chainTransform(endpoints.GenerateEndpoint, profiles.AddIstioNetworkDataToResponse(providerId, serviceId, systemDomain, proxyConfig.loadBalancerPort))
-		handleRequestCompleted = config.WriteIstioFilesForProvider(proxyConfig.istioDirectory, bindingId)
+		handleRequestCompleted = writeIstioFilesForProvider(proxyConfig.istioDirectory, bindingId)
 	} else if proxyConfig.consumerId != "" {
 		consumerId := proxyConfig.consumerId
 		transformRequest = profiles.AddIstioNetworkDataToRequest(consumerId)
@@ -106,7 +127,7 @@ func (client OSBClient) forwardAndTransformServiceBinding(ctx *gin.Context) {
 	client.forwardAndTransform(ctx, transformRequest, transformResponse, handleRequestCompleted)
 }
 
-func (client OSBClient) forward(ctx *gin.Context) {
+func (client osbProxy) forward(ctx *gin.Context) {
 	writer := ctx.Writer
 	request := ctx.Request
 
@@ -134,8 +155,8 @@ func (client OSBClient) forward(ctx *gin.Context) {
 	io.Copy(writer, response.Body)
 }
 
-func (client OSBClient) forwardAndTransform(ctx *gin.Context, transformRequest func([]byte) ([]byte, error), transformResponse func([]byte) ([]byte, error),
-	handleRequestCompleted func([]byte, []byte) error) {
+func (client osbProxy) forwardAndTransform(ctx *gin.Context, transformRequest func([]byte) ([]byte, error), transformResponse func([]byte) ([]byte, error),
+	handleRequestCompleted func(request *profiles.BindRequest, response *profiles.BindResponse) error) {
 	writer := ctx.Writer
 	request := ctx.Request
 
@@ -145,23 +166,21 @@ func (client OSBClient) forwardAndTransform(ctx *gin.Context, transformRequest f
 	// in the request.
 	requestBody, err := ioutil.ReadAll(request.Body)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		httpError(writer, err)
 		return
 	}
 
 	requestBody, err = transformRequest(requestBody)
 	log.Printf("translatedRequestBody:\n %v", string(requestBody))
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		log.Printf("ERROR: %s\n", err.Error())
+		httpError(writer, err)
 		return
 	}
 	proxyRequest := createForwardingRequest(request, err, requestBody)
 
 	response, err := client.Do(proxyRequest)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadGateway)
-		log.Printf("ERROR: %s\n", err.Error())
+		httpError(writer, err)
 		return
 	}
 	log.Printf("Request forwarded: %s\n", response.Status)
@@ -178,8 +197,7 @@ func (client OSBClient) forwardAndTransform(ctx *gin.Context, transformRequest f
 	responseBody, err := ioutil.ReadAll(response.Body)
 	log.Printf("respBody:\n %v", string(responseBody))
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		log.Printf("ERROR: %s\n", err.Error())
+		httpError(writer, err)
 		return
 	}
 
@@ -187,12 +205,23 @@ func (client OSBClient) forwardAndTransform(ctx *gin.Context, transformRequest f
 	if okResponse {
 		responseBody, err = transformResponse(responseBody)
 		if err != nil {
-			http.Error(writer, err.Error(), http.StatusInternalServerError)
-			log.Printf("ERROR: %s\n", err.Error())
+			httpError(writer, err)
 			return
 		}
 		log.Printf("translatedResponseBody:\n %v", string(responseBody))
-		handleRequestCompleted(requestBody, responseBody)
+		var bindRequest profiles.BindRequest
+		err = json.Unmarshal(requestBody, &bindRequest)
+		if err != nil {
+			httpError(writer, err)
+			return
+		}
+		var bindResponse profiles.BindResponse
+		err = json.Unmarshal(responseBody, &bindResponse)
+		if err != nil {
+			httpError(writer, err)
+			return
+		}
+		handleRequestCompleted(&bindRequest, &bindResponse)
 	}
 	count, err := writer.Write(responseBody)
 
@@ -207,6 +236,11 @@ func (client OSBClient) forwardAndTransform(ctx *gin.Context, transformRequest f
 	}
 
 	log.Printf("Response:\n%v\n", string(responseDump))
+}
+
+func httpError(writer gin.ResponseWriter, err error) {
+	http.Error(writer, err.Error(), http.StatusInternalServerError)
+	log.Printf("ERROR: %s\n", err.Error())
 }
 
 func httpClientFactory(tr *http.Transport) *http.Client {
@@ -280,7 +314,7 @@ func setupRouter() *gin.Engine {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	client := OSBClient{proxyConfig.httpClientFactory(tr)}
+	client := osbProxy{proxyConfig.httpClientFactory(tr)}
 	if proxyConfig.providerId != "" {
 		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
 	}

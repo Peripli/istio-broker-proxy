@@ -3,10 +3,9 @@ package config
 import (
 	"fmt"
 	"github.com/ghodss/yaml"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
 	"istio.io/istio/pilot/pkg/model"
-	"os"
-	"path"
 )
 
 const (
@@ -33,35 +32,23 @@ func CreateEntriesForExternalService(serviceName string, endpointServiceEntry st
 	return configs
 }
 
-func WriteIstioFilesForProvider(istioDirectory string, bindingId string) func([]byte, []byte) error {
-	return func(request []byte, response []byte) error {
-		file, err := os.Create(path.Join(istioDirectory, bindingId) + ".yml")
-		if nil != err {
-			return err
-		}
-		defer file.Close()
-
-		//Todo: get values for parameters from request and response
-		serviceInstanceId := ""
-		originalEndpointHost := "" //responseBody cave! can be more than one!
-		portServiceEntry := uint32(0)
-		ingressDomain := ""
-
-		consumerId := "147" //requestBody
+func CreateIstioConfigForProvider(request *profiles.BindRequest, response *profiles.BindResponse, bindingId string) []model.Config {
+	var istioConfig []model.Config
+	for _, endpoint := range response.NetworkData.Data.Endpoints {
+		originalEndpointHost := endpoint.Host
+		portServiceEntry := uint32(endpoint.Port)
+		ingressDomain := "services.cf.dev01.aws.istio.sapcloud.io"
+		consumerId := request.NetworkData.Data.ConsumerId
 		ingressPort := uint32(9000)
-
-		serviceName := fmt.Sprintf("%s%v", serviceInstanceId, originalEndpointHost) //ToDo: orignalEndpointHost might be hashed
+		serviceName := fmt.Sprintf("%s-%v", bindingId, originalEndpointHost)
 		endpointServiceEntry := originalEndpointHost
-		hostVirtualService := fmt.Sprintf("%s%v%s", serviceInstanceId, originalEndpointHost, ingressDomain)
-
-		fileContent, err := ToYamlDocuments(CreateEntriesForExternalService(serviceName, endpointServiceEntry, portServiceEntry, hostVirtualService, consumerId, ingressPort))
-		if nil != err {
-			return err
-		}
-		file.Write([]byte(fileContent))
-		return nil
+		hostVirtualService := fmt.Sprintf("%s-%v-%s", bindingId, originalEndpointHost, ingressDomain)
+		istioConfig = append(istioConfig,
+			CreateEntriesForExternalService(serviceName, endpointServiceEntry, portServiceEntry, hostVirtualService, consumerId, ingressPort)...)
 	}
+	return istioConfig
 }
+
 func CreateEntriesForExternalServiceClient(serviceName string, hostName string, portNumber uint32) []model.Config {
 	var configs []model.Config
 
