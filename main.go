@@ -33,11 +33,15 @@ type ProxyConfig struct {
 	loadBalancerPort   int
 }
 
+type OSBClient struct {
+	*http.Client
+}
+
 var (
 	config = ProxyConfig{port: DefaultPort, httpClientFactory: httpClientFactory, httpRequestFactory: httpRequestFactory}
 )
 
-func updateCredentials(ctx *gin.Context) {
+func (client OSBClient) updateCredentials(ctx *gin.Context) {
 	writer := ctx.Writer
 	request := ctx.Request
 	log.Printf("Update credentials request: %v %v", request.Method, request.URL.Path)
@@ -77,7 +81,7 @@ func chainTransform(transformList ...func([]byte) ([]byte, error)) func([]byte) 
 	}
 }
 
-func forwardAndTransformServiceBinding(ctx *gin.Context) {
+func (client OSBClient) forwardAndTransformServiceBinding(ctx *gin.Context) {
 	transformRequest := noOpTransform
 	transformResponse := noOpTransform
 
@@ -91,14 +95,38 @@ func forwardAndTransformServiceBinding(ctx *gin.Context) {
 		transformRequest = profiles.AddIstioNetworkDataToRequest(consumerId)
 	}
 
-	forwardAndTransform(ctx, transformRequest, transformResponse)
+	client.forwardAndTransform(ctx, transformRequest, transformResponse)
 }
 
-func forward(ctx *gin.Context) {
-	forwardAndTransform(ctx, noOpTransform, noOpTransform)
+func (client OSBClient) forward(ctx *gin.Context) {
+	writer := ctx.Writer
+	request := ctx.Request
+
+	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
+
+	url := createNewUrl(config.forwardURL, request)
+	proxyRequest, err := config.httpRequestFactory(request.Method, url, request.Body)
+	proxyRequest.Header = request.Header
+
+	response, err := client.Do(proxyRequest)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusBadGateway)
+		log.Printf("ERROR: %s\n", err.Error())
+		return
+	}
+	log.Printf("Request forwarded: %s\n", response.Status)
+
+	defer response.Body.Close()
+
+	for name, values := range response.Header {
+		writer.Header()[name] = values
+	}
+
+	writer.WriteHeader(response.StatusCode)
+	io.Copy(writer, response.Body)
 }
 
-func forwardAndTransform(ctx *gin.Context, transformRequest func([]byte) ([]byte, error), transformResponse func([]byte) ([]byte, error)) {
+func (client OSBClient) forwardAndTransform(ctx *gin.Context, transformRequest func([]byte) ([]byte, error), transformResponse func([]byte) ([]byte, error)) {
 	writer := ctx.Writer
 	request := ctx.Request
 
@@ -121,10 +149,6 @@ func forwardAndTransform(ctx *gin.Context, transformRequest func([]byte) ([]byte
 	}
 	proxyRequest := createForwardingRequest(request, err, body)
 
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := config.httpClientFactory(tr)
 	response, err := client.Do(proxyRequest)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadGateway)
@@ -242,11 +266,15 @@ func main() {
 
 func setupRouter() *gin.Engine {
 	mux := gin.Default()
-	if config.providerId != "" {
-		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", updateCredentials)
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", forwardAndTransformServiceBinding)
-	mux.NoRoute(forward)
+	client := OSBClient{config.httpClientFactory(tr)}
+	if config.providerId != "" {
+		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
+	}
+	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardAndTransformServiceBinding)
+	mux.NoRoute(client.forward)
 
 	return mux
 }
