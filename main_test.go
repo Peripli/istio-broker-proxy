@@ -5,14 +5,16 @@ import (
 	"encoding/json"
 	. "github.com/onsi/gomega"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path"
 	"testing"
 )
 
 func TestInvalidUpdateCredentials(t *testing.T) {
-	config.providerId = "x"
+	proxyConfig.providerId = "x"
 	g := NewGomegaWithT(t)
 	router := setupRouter()
 
@@ -60,7 +62,7 @@ func TestDefaultPortUsed(t *testing.T) {
 
 	readPort()
 
-	g.Expect(config.port).To(Equal(DefaultPort))
+	g.Expect(proxyConfig.port).To(Equal(DefaultPort))
 }
 
 func TestCustomPortUsed(t *testing.T) {
@@ -74,7 +76,7 @@ func TestCustomPortUsed(t *testing.T) {
 
 	readPort()
 
-	g.Expect(config.port).To(Equal(1234))
+	g.Expect(proxyConfig.port).To(Equal(1234))
 }
 
 func TestCreateNewURL(t *testing.T) {
@@ -110,7 +112,7 @@ func TestCreateNewURL(t *testing.T) {
 }
 
 func TestRedirect(t *testing.T) {
-	config.forwardURL = "https://httpbin.org"
+	proxyConfig.forwardURL = "https://httpbin.org"
 
 	t.Run("Check that headers are forwarded", func(t *testing.T) {
 		const testHeaderKey = "X-Broker-Api-Version"
@@ -170,7 +172,7 @@ func TestRedirect(t *testing.T) {
 func TestBadGateway(t *testing.T) {
 	g := NewGomegaWithT(t)
 	router := setupRouter()
-	config.forwardURL = "doesntexist.org"
+	proxyConfig.forwardURL = "doesntexist.org"
 
 	body := []byte{'{', '}'}
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/get", bytes.NewReader(body))
@@ -186,7 +188,7 @@ func TestBadGateway(t *testing.T) {
 func TestAdaptCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
 	router := setupRouter()
-	config.forwardURL = ""
+	proxyConfig.forwardURL = ""
 
 	body := []byte(`{
 "credentials": {
@@ -227,7 +229,7 @@ func TestEmptyBodyInTranslate(t *testing.T) {
 }
 
 func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
-	config.forwardURL = "http://xxxxx.xx"
+	proxyConfig.forwardURL = "http://xxxxx.xx"
 	g := NewGomegaWithT(t)
 	body := []byte(`{
 					"credentials":
@@ -262,10 +264,10 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 }
 
 func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAndEndpointIndex(t *testing.T) {
-	config.forwardURL = "http://xxxxx.xx"
-	config.SystemDomain = "istio.sapcloud.io"
-	config.providerId = "your-provider"
-	config.loadBalancerPort = 9000
+	proxyConfig.forwardURL = "http://xxxxx.xx"
+	proxyConfig.SystemDomain = "istio.sapcloud.io"
+	proxyConfig.providerId = "your-provider"
+	proxyConfig.loadBalancerPort = 9000
 	g := NewGomegaWithT(t)
 	body := []byte(`{
 					"credentials":
@@ -297,11 +299,59 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 	g.Expect(bodyString).To(ContainSubstring("9000"))
 }
 
+func TestIstioConfigFilesAreWritten(t *testing.T) {
+	proxyConfig.forwardURL = "http://xxxxx.xx"
+	proxyConfig.SystemDomain = "istio.sapcloud.io"
+	proxyConfig.providerId = "your-provider"
+	proxyConfig.istioDirectory = os.TempDir()
+	proxyConfig.loadBalancerPort = 9000
+	g := NewGomegaWithT(t)
+	responseBody := []byte(`{
+					"credentials":
+					{
+ 						"hostname": "10.11.241.0",
+ 						"port": "47637",
+                        "end_points": [
+                        {
+                            "host": "10.11.241.0",
+                            "port": 47637
+                        }],
+						"uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
+ 					}
+					}`)
+	requestBody := []byte(`{
+					"network_data":
+					{
+                        "data":
+                        {
+                            "consumer_id": "147"
+                        }
+ 					}
+					}`)
+	handlerStub := NewHandlerStub(http.StatusOK, responseBody)
+	server := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(requestBody))
+	response := httptest.NewRecorder()
+	router := setupRouter()
+	router.ServeHTTP(response, request)
+
+	file, err := os.Open(path.Join(proxyConfig.istioDirectory, "456.yml"))
+	g.Expect(err).NotTo(HaveOccurred())
+	content, err := ioutil.ReadAll(file)
+	contentAsString := string(content)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(contentAsString).To(ContainSubstring("147"))
+	g.Expect(contentAsString).To(MatchRegexp("number: 9000"))
+}
+
 func TestHttpClientError(t *testing.T) {
-	config.forwardURL = "http://xxxxx.xx"
-	config.SystemDomain = "istio.sapcloud.io"
-	config.providerId = "your-provider"
-	config.loadBalancerPort = 9000
+	proxyConfig.forwardURL = "http://xxxxx.xx"
+	proxyConfig.SystemDomain = "istio.sapcloud.io"
+	proxyConfig.providerId = "your-provider"
+	proxyConfig.loadBalancerPort = 9000
 	g := NewGomegaWithT(t)
 	body := []byte(`{
 					"credentials":
@@ -332,9 +382,9 @@ func TestHttpClientError(t *testing.T) {
 }
 
 func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
-	config.providerId = ""
-	config.consumerId = "your-consumer"
-	config.forwardURL = "http://xxxxx.xx"
+	proxyConfig.providerId = ""
+	proxyConfig.consumerId = "your-consumer"
+	proxyConfig.forwardURL = "http://xxxxx.xx"
 
 	g := NewGomegaWithT(t)
 	body := []byte(`{
@@ -361,7 +411,7 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
 }
 
 func TestErrorCodeOfForwardIsReturned(t *testing.T) {
-	config.forwardURL = "http://xxxxx.xx"
+	proxyConfig.forwardURL = "http://xxxxx.xx"
 	g := NewGomegaWithT(t)
 	handlerStub := NewHandlerStub(http.StatusServiceUnavailable, nil)
 	server := injectClientStub(handlerStub)
@@ -379,7 +429,7 @@ func TestErrorCodeOfForwardIsReturned(t *testing.T) {
 }
 
 func TestReturnCodeOfGet(t *testing.T) {
-	config.forwardURL = "http://xxxxx.xx"
+	proxyConfig.forwardURL = "http://xxxxx.xx"
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
 	handlerStub := NewHandlerStub(http.StatusOK, body)
@@ -397,7 +447,7 @@ func TestReturnCodeOfGet(t *testing.T) {
 }
 
 func TestCorrectUrlForwarded(t *testing.T) {
-	config.forwardURL = "http://xxxxx.xx"
+	proxyConfig.forwardURL = "http://xxxxx.xx"
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
 	handlerStub := NewHandlerStub(http.StatusOK, body)
@@ -415,7 +465,7 @@ func TestCorrectUrlForwarded(t *testing.T) {
 }
 
 func TestCorrectRequestParamForDelete(t *testing.T) {
-	config.forwardURL = "http://xxxxx.xx/suffix"
+	proxyConfig.forwardURL = "http://xxxxx.xx/suffix"
 	g := NewGomegaWithT(t)
 	body := []byte(`{}`)
 	handlerStub := NewHandlerStub(http.StatusOK, body)

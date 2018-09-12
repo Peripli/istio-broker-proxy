@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/config"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
@@ -31,6 +32,7 @@ type ProxyConfig struct {
 	providerId         string
 	consumerId         string
 	loadBalancerPort   int
+	istioDirectory     string
 }
 
 type OSBClient struct {
@@ -38,7 +40,7 @@ type OSBClient struct {
 }
 
 var (
-	config = ProxyConfig{port: DefaultPort, httpClientFactory: httpClientFactory, httpRequestFactory: httpRequestFactory}
+	proxyConfig = ProxyConfig{port: DefaultPort, httpClientFactory: httpClientFactory, httpRequestFactory: httpRequestFactory}
 )
 
 func (client OSBClient) updateCredentials(ctx *gin.Context) {
@@ -68,6 +70,10 @@ func noOpTransform(data []byte) ([]byte, error) {
 	return data, nil
 }
 
+func noOpHandleRequestCompleted([]byte, []byte) error {
+	return nil
+}
+
 func chainTransform(transformList ...func([]byte) ([]byte, error)) func([]byte) ([]byte, error) {
 	return func(body []byte) ([]byte, error) {
 		var err error
@@ -84,18 +90,20 @@ func chainTransform(transformList ...func([]byte) ([]byte, error)) func([]byte) 
 func (client OSBClient) forwardAndTransformServiceBinding(ctx *gin.Context) {
 	transformRequest := noOpTransform
 	transformResponse := noOpTransform
-
-	if config.providerId != "" {
+	handleRequestCompleted := noOpHandleRequestCompleted
+	if proxyConfig.providerId != "" {
 		serviceId := ctx.Params.ByName("instance_id")
-		systemDomain := config.SystemDomain
-		providerId := config.providerId
-		transformResponse = chainTransform(endpoints.GenerateEndpoint, profiles.AddIstioNetworkDataToResponse(providerId, serviceId, systemDomain, config.loadBalancerPort))
-	} else if config.consumerId != "" {
-		consumerId := config.consumerId
+		bindingId := ctx.Params.ByName("binding_id")
+		systemDomain := proxyConfig.SystemDomain
+		providerId := proxyConfig.providerId
+		transformResponse = chainTransform(endpoints.GenerateEndpoint, profiles.AddIstioNetworkDataToResponse(providerId, serviceId, systemDomain, proxyConfig.loadBalancerPort))
+		handleRequestCompleted = config.WriteIstioFilesForProvider(proxyConfig.istioDirectory, bindingId)
+	} else if proxyConfig.consumerId != "" {
+		consumerId := proxyConfig.consumerId
 		transformRequest = profiles.AddIstioNetworkDataToRequest(consumerId)
 	}
 
-	client.forwardAndTransform(ctx, transformRequest, transformResponse)
+	client.forwardAndTransform(ctx, transformRequest, transformResponse, handleRequestCompleted)
 }
 
 func (client OSBClient) forward(ctx *gin.Context) {
@@ -104,8 +112,8 @@ func (client OSBClient) forward(ctx *gin.Context) {
 
 	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
 
-	url := createNewUrl(config.forwardURL, request)
-	proxyRequest, err := config.httpRequestFactory(request.Method, url, request.Body)
+	url := createNewUrl(proxyConfig.forwardURL, request)
+	proxyRequest, err := proxyConfig.httpRequestFactory(request.Method, url, request.Body)
 	proxyRequest.Header = request.Header
 
 	response, err := client.Do(proxyRequest)
@@ -126,28 +134,29 @@ func (client OSBClient) forward(ctx *gin.Context) {
 	io.Copy(writer, response.Body)
 }
 
-func (client OSBClient) forwardAndTransform(ctx *gin.Context, transformRequest func([]byte) ([]byte, error), transformResponse func([]byte) ([]byte, error)) {
+func (client OSBClient) forwardAndTransform(ctx *gin.Context, transformRequest func([]byte) ([]byte, error), transformResponse func([]byte) ([]byte, error),
+	handleRequestCompleted func([]byte, []byte) error) {
 	writer := ctx.Writer
 	request := ctx.Request
 
 	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
 
-	// we need to buffer the body if we want to read it here and send it
+	// we need to buffer the requestBody if we want to read it here and send it
 	// in the request.
-	body, err := ioutil.ReadAll(request.Body)
+	requestBody, err := ioutil.ReadAll(request.Body)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	body, err = transformRequest(body)
-	log.Printf("translatedRequestBody:\n %v", string(body))
+	requestBody, err = transformRequest(requestBody)
+	log.Printf("translatedRequestBody:\n %v", string(requestBody))
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		log.Printf("ERROR: %s\n", err.Error())
 		return
 	}
-	proxyRequest := createForwardingRequest(request, err, body)
+	proxyRequest := createForwardingRequest(request, err, requestBody)
 
 	response, err := client.Do(proxyRequest)
 	if err != nil {
@@ -166,8 +175,8 @@ func (client OSBClient) forwardAndTransform(ctx *gin.Context, transformRequest f
 	}
 
 	writer.WriteHeader(response.StatusCode)
-	body, err = ioutil.ReadAll(response.Body)
-	log.Printf("respBody:\n %v", string(body))
+	responseBody, err := ioutil.ReadAll(response.Body)
+	log.Printf("respBody:\n %v", string(responseBody))
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		log.Printf("ERROR: %s\n", err.Error())
@@ -176,21 +185,22 @@ func (client OSBClient) forwardAndTransform(ctx *gin.Context, transformRequest f
 
 	okResponse := response.StatusCode/100 == 2
 	if okResponse {
-		body, err = transformResponse(body)
+		responseBody, err = transformResponse(responseBody)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			log.Printf("ERROR: %s\n", err.Error())
 			return
 		}
-		log.Printf("translatedResponseBody:\n %v", string(body))
+		log.Printf("translatedResponseBody:\n %v", string(responseBody))
+		handleRequestCompleted(requestBody, responseBody)
 	}
-	count, err := writer.Write(body)
+	count, err := writer.Write(responseBody)
 
 	fmt.Printf("count: %d\n", count)
 	fmt.Printf("error: %v\n", err)
 
-	//reassign body for dump
-	response.Body = ioutil.NopCloser(bytes.NewReader(body))
+	//reassign responseBody for dump
+	response.Body = ioutil.NopCloser(bytes.NewReader(responseBody))
 	responseDump, err := httputil.DumpResponse(response, true)
 	if err != nil {
 		log.Printf("ERROR: %s\n", err.Error())
@@ -209,8 +219,8 @@ func httpRequestFactory(method string, url string, body io.Reader) (*http.Reques
 }
 
 func createForwardingRequest(request *http.Request, err error, body []byte) *http.Request {
-	url := createNewUrl(config.forwardURL, request)
-	proxyRequest, err := config.httpRequestFactory(request.Method, url, bytes.NewReader(body))
+	url := createNewUrl(proxyConfig.forwardURL, request)
+	proxyRequest, err := proxyConfig.httpRequestFactory(request.Method, url, bytes.NewReader(body))
 	// We may want to filter some headers, otherwise we could just use a shallow copy
 	// proxyRequest.Header = request.Header
 	proxyRequest.Header = make(http.Header)
@@ -241,27 +251,28 @@ func readPort() {
 	portAsString := os.Getenv("PORT")
 	if len(portAsString) != 0 {
 		var err error
-		config.port, err = strconv.Atoi(portAsString)
+		proxyConfig.port, err = strconv.Atoi(portAsString)
 		if nil != err {
-			config.port = DefaultPort
+			proxyConfig.port = DefaultPort
 		}
 	}
 }
 
 func main() {
-	flag.IntVar(&config.port, "port", DefaultPort, "port to be used")
-	flag.StringVar(&config.forwardURL, "forwardUrl", "", "url for forwarding incoming requests")
-	flag.StringVar(&config.SystemDomain, "systemdomain", "", "system domain of the landscape")
-	flag.StringVar(&config.providerId, "providerId", "", "The subject alternative name of the provider for which the service has a certificate")
-	flag.StringVar(&config.consumerId, "consumerId", "", "The subject alternative name of the consumer for which the service has a certificate")
-	flag.IntVar(&config.loadBalancerPort, "loadBalancerPort", 0, "port of the load balancer of the landscape")
+	flag.IntVar(&proxyConfig.port, "port", DefaultPort, "port to be used")
+	flag.StringVar(&proxyConfig.forwardURL, "forwardUrl", "", "url for forwarding incoming requests")
+	flag.StringVar(&proxyConfig.SystemDomain, "systemdomain", "", "system domain of the landscape")
+	flag.StringVar(&proxyConfig.providerId, "providerId", "", "The subject alternative name of the provider for which the service has a certificate")
+	flag.StringVar(&proxyConfig.consumerId, "consumerId", "", "The subject alternative name of the consumer for which the service has a certificate")
+	flag.IntVar(&proxyConfig.loadBalancerPort, "loadBalancerPort", 0, "port of the load balancer of the landscape")
+	flag.StringVar(&proxyConfig.istioDirectory, "istioDirectory", os.TempDir(), "Directory to store the istio configuration files")
 	flag.Parse()
 	readPort()
 
-	log.Printf("Running on port %d, forwarding to %s\n", config.port, config.forwardURL)
+	log.Printf("Running on port %d, forwarding to %s\n", proxyConfig.port, proxyConfig.forwardURL)
 
 	router := setupRouter()
-	router.Run(fmt.Sprintf(":%d", config.port))
+	router.Run(fmt.Sprintf(":%d", proxyConfig.port))
 }
 
 func setupRouter() *gin.Engine {
@@ -269,8 +280,8 @@ func setupRouter() *gin.Engine {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	client := OSBClient{config.httpClientFactory(tr)}
-	if config.providerId != "" {
+	client := OSBClient{proxyConfig.httpClientFactory(tr)}
+	if proxyConfig.providerId != "" {
 		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
 	}
 	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardAndTransformServiceBinding)

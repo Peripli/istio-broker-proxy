@@ -35,7 +35,7 @@ func createOutput(clientConfig bool, serviceName string, hostVirtualService stri
 	if clientConfig {
 		configs = config.CreateEntriesForExternalServiceClient(serviceName, hostVirtualService, uint32(portServiceEntry))
 	} else {
-		configs = config.CreateEntriesForExternalService(serviceName, endpointServiceEntry, uint32(portServiceEntry), hostVirtualService)
+		configs = config.CreateEntriesForExternalService(serviceName, endpointServiceEntry, uint32(portServiceEntry), hostVirtualService, "client.istio.sapcloud.io", 9000)
 	}
 	out, err := config.ToYamlDocuments(configs)
 	if err == nil {

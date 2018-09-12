@@ -1,9 +1,12 @@
 package config
 
 import (
+	"fmt"
 	"github.com/ghodss/yaml"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
 	"istio.io/istio/pilot/pkg/model"
+	"os"
+	"path"
 )
 
 const (
@@ -20,16 +23,45 @@ var schemas = map[string]model.ProtoSchema{
 	destinationRule: model.DestinationRule,
 }
 
-func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string) []model.Config {
+func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string, clientName string, ingressPort uint32) []model.Config {
 	var configs []model.Config
 
-	configs = append(configs, createIngressGatewayForExternalService(hostVirtualService, 9000, serviceName, "client.istio.sapcloud.io"))
+	configs = append(configs, createIngressGatewayForExternalService(hostVirtualService, ingressPort, serviceName, clientName))
 	configs = append(configs, createIngressVirtualServiceForExternalService(hostVirtualService, portServiceEntry, serviceName))
 	configs = append(configs, createServiceEntryForExternalService(endpointServiceEntry, portServiceEntry, serviceName))
 
 	return configs
 }
 
+func WriteIstioFilesForProvider(istioDirectory string, bindingId string) func([]byte, []byte) error {
+	return func(request []byte, response []byte) error {
+		file, err := os.Create(path.Join(istioDirectory, bindingId) + ".yml")
+		if nil != err {
+			return err
+		}
+		defer file.Close()
+
+		//Todo: get values for parameters from request and response
+		serviceInstanceId := ""
+		originalEndpointHost := "" //responseBody cave! can be more than one!
+		portServiceEntry := uint32(0)
+		ingressDomain := ""
+
+		consumerId := "147" //requestBody
+		ingressPort := uint32(9000)
+
+		serviceName := fmt.Sprintf("%s%v", serviceInstanceId, originalEndpointHost) //ToDo: orignalEndpointHost might be hashed
+		endpointServiceEntry := originalEndpointHost
+		hostVirtualService := fmt.Sprintf("%s%v%s", serviceInstanceId, originalEndpointHost, ingressDomain)
+
+		fileContent, err := ToYamlDocuments(CreateEntriesForExternalService(serviceName, endpointServiceEntry, portServiceEntry, hostVirtualService, consumerId, ingressPort))
+		if nil != err {
+			return err
+		}
+		file.Write([]byte(fileContent))
+		return nil
+	}
+}
 func CreateEntriesForExternalServiceClient(serviceName string, hostName string, portNumber uint32) []model.Config {
 	var configs []model.Config
 

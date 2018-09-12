@@ -14,7 +14,7 @@ import (
 func TestCompleteEntryNotEmpty(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape")
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", "client.istio.sapcloud.io", 9000)
 
 	g.Expect(configObjects).To(HaveLen(3))
 }
@@ -30,7 +30,7 @@ func TestCompleteClientEntryNotEmpty(t *testing.T) {
 func TestCompleteEntryGateway(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape")
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", "client.istio.sapcloud.io", 9000)
 
 	gatewaySpec, gatewayMetadata := getSpecAndMetadataFromConfig(g, configObjects, gateway)
 
@@ -46,7 +46,7 @@ func TestCompleteEntryGateway(t *testing.T) {
 func TestCompleteServiceEntry(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape")
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", "client.istio.sapcloud.io", 9000)
 
 	serviceEntrySpec, serviceEntryMetadata := getSpecAndMetadataFromConfig(g, configObjects, serviceEntry)
 
@@ -59,7 +59,7 @@ func TestCompleteServiceEntry(t *testing.T) {
 func TestCompleteVirtualService(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape")
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", "client.istio.sapcloud.io", 9000)
 	virtualServiceSpec, _ := getSpecAndMetadataFromConfig(g, configObjects, virtualService)
 
 	g.Expect(virtualServiceSpec).To(ContainSubstring("myservice.landscape"))
