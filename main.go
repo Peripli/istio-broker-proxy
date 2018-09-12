@@ -42,7 +42,12 @@ type osbProxy struct {
 }
 
 var (
-	proxyConfig = ProxyConfig{port: DefaultPort, httpClientFactory: httpClientFactory, httpRequestFactory: httpRequestFactory}
+	proxyConfig = ProxyConfig{
+		port:               DefaultPort,
+		httpClientFactory:  httpClientFactory,
+		httpRequestFactory: httpRequestFactory,
+		istioDirectory:     os.TempDir(),
+	}
 )
 
 func (client osbProxy) updateCredentials(ctx *gin.Context) {
@@ -91,7 +96,9 @@ func chainTransform(transformList ...func([]byte) ([]byte, error)) func([]byte) 
 
 func writeIstioFilesForProvider(istioDirectory string, bindingId string) func(*profiles.BindRequest, *profiles.BindResponse) error {
 	return func(request *profiles.BindRequest, response *profiles.BindResponse) error {
-		file, err := os.Create(path.Join(istioDirectory, bindingId) + ".yml")
+		ymlPath := path.Join(istioDirectory, bindingId) + ".yml"
+		log.Printf("PATH to istio conifg: %v.yml\n", ymlPath)
+		file, err := os.Create(ymlPath)
 		if nil != err {
 			return err
 		}
