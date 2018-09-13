@@ -274,7 +274,7 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 	proxyConfig.forwardURL = "http://xxxxx.xx"
 	proxyConfig.systemDomain = "istio.sapcloud.io"
 	proxyConfig.providerId = "your-provider"
-	proxyConfig.istioDirectory = os.TempDir()
+	proxyConfig.istioDirectory = "/tmp"
 	proxyConfig.loadBalancerPort = 9000
 	g := NewGomegaWithT(t)
 	responseBody := []byte(`{

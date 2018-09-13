@@ -6,6 +6,8 @@ import (
 	"istio.io/istio/pilot/pkg/model"
 )
 
+const ingressCertName = "pinger"
+
 func createServiceEntryForExternalService(endpointAddress string, portNumber uint32, serviceName string) model.Config {
 	hosts := []string{createServiceHost(serviceName)}
 	portName := fmt.Sprintf("%s-%d", serviceName, portNumber)
@@ -47,8 +49,8 @@ func createIngressGatewayForExternalService(hostName string, portNumber uint32, 
 	hosts := []string{hostName}
 	certPath := "/var/vcap/jobs/envoy/config/certs/"
 	tls := v1alpha3.Server_TLSOptions{Mode: v1alpha3.Server_TLSOptions_MUTUAL,
-		ServerCertificate: certPath + serviceName + ".crt",
-		PrivateKey:        certPath + serviceName + ".key",
+		ServerCertificate: certPath + ingressCertName + ".crt",
+		PrivateKey:        certPath + ingressCertName + ".key",
 		CaCertificates:    certPath + "ca.crt",
 		SubjectAltNames:   []string{clientName}}
 	gatewaySpec := v1alpha3.Gateway{Servers: []*v1alpha3.Server{&v1alpha3.Server{Port: &port, Hosts: hosts, Tls: &tls}}}
