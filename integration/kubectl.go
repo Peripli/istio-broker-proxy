@@ -4,9 +4,9 @@ package integration
 
 import (
 	"encoding/json"
+	"fmt"
 	. "github.com/onsi/gomega"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"reflect"
@@ -18,8 +18,8 @@ type Kubectl struct {
 }
 
 func (self Kubectl) run(args ...string) []byte {
-	log.Println("kubectl ", strings.Join(args, " "))
-	out, err := exec.Command("kubectl", args...).Output()
+	fmt.Println("kubectl ", strings.Join(args, " "))
+	out, err := exec.Command("kubectl", args...).CombinedOutput()
 	self.g.Expect(err).ShouldNot(HaveOccurred())
 	// fmt.Println(string(out))
 	return out
@@ -49,12 +49,18 @@ func (self Kubectl) Read(result interface{}, name string) {
 	self.g.Expect(err).ShouldNot(HaveOccurred())
 }
 
-func (self Kubectl) List(result interface{}) {
+func (self Kubectl) Exec(podName string, args ...string) string {
+	cmd := append([]string{"exec", podName}, args...)
+	return string(self.run(cmd...))
+}
+
+func (self Kubectl) List(result interface{}, args ...string) {
 	kind := reflect.TypeOf(result).Elem().Name()
 	if strings.HasSuffix(kind, "List") {
 		kind = kind[0 : len(kind)-4]
 	}
-	response := self.run("get", kind, "-o", "json")
+	args = append([]string{"get", kind, "-o", "json"}, args...)
+	response := self.run(args...)
 	err := json.Unmarshal(response, result)
 	self.g.Expect(err).ShouldNot(HaveOccurred())
 }
