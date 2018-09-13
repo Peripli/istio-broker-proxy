@@ -10,11 +10,9 @@ import (
 func TestAddIstioNetworkDataHasConfigurableProviderId(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	addIstioDataFunc := AddIstioNetworkDataToResponse("my-provider", "", "", 0)
-
 	var body BindResponse
 	json.Unmarshal([]byte(`{"something_else": "body of response", "endpoints": [{}]}`), &body)
-	addIstioDataFunc(&body)
+	AddIstioNetworkDataToResponse("my-provider", "", "", 0, &body)
 
 	g.Expect(body).NotTo(BeNil())
 
@@ -39,11 +37,9 @@ func TestCreateEndpointHosts(t *testing.T) {
 func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	addIstioDataFunc := AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "istio.sapcloud.io", 9000)
-
 	var body BindResponse
 	json.Unmarshal([]byte(`{"something_else": "body of response", "endpoints": [{}, {}]}`), &body)
-	addIstioDataFunc(&body)
+	AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "istio.sapcloud.io", 9000, &body)
 
 	g.Expect(body).NotTo(BeNil())
 
@@ -55,7 +51,6 @@ func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
 
 func TestBlueprintServiceDoesntCrash(t *testing.T) {
 	g := NewGomegaWithT(t)
-	addIstioDataFunc := AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "istio.sapcloud.io", 9000)
 	compareBody :=
 		[]byte(`{"credentials":{"hosts":["10.11.31.128"],"hostname":"10.11.31.128","port":8080,"uri":"http://50da4fff492a97c635a4bfe4fc64276e:160bbfd6e913f353e6f4ea526e8e58df@10.11.31.128:8080","username":"50da4fff492a97c635a4bfe4fc64276e","password":"160bbfd6e913f353e6f4ea526e8e58df"}, "network_data": {
                 "network_profile_id": "urn:com.sap.istio:public", "data": { 
@@ -65,7 +60,7 @@ func TestBlueprintServiceDoesntCrash(t *testing.T) {
               }}`)
 	var bindResponse BindResponse
 	json.Unmarshal(compareBody, &bindResponse)
-	addIstioDataFunc(&bindResponse)
+	AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "istio.sapcloud.io", 9000, &bindResponse)
 	body, err := json.Marshal(bindResponse)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(string(body)).To(MatchJSON(compareBody))

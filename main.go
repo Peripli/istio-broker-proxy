@@ -72,59 +72,23 @@ func (client osbProxy) updateCredentials(ctx *gin.Context) {
 	writer.Write(response)
 }
 
-func noOpTransformRequest(*profiles.BindRequest) {
-}
+func writeIstioFilesForProvider(istioDirectory string, bindingId string, request *profiles.BindRequest, response *profiles.BindResponse) error {
+	ymlPath := path.Join(istioDirectory, bindingId) + ".yml"
+	log.Printf("PATH to istio conifg: %v.yml\n", ymlPath)
+	file, err := os.Create(ymlPath)
+	if nil != err {
+		return err
+	}
+	defer file.Close()
 
-func noOpTransform(*profiles.BindResponse) {
-}
+	istioConfig := config.CreateIstioConfigForProvider(request, response, bindingId)
 
-func noOpHandleRequestCompleted(*profiles.BindRequest, *profiles.BindResponse) error {
+	fileContent, err := config.ToYamlDocuments(istioConfig)
+	if nil != err {
+		return err
+	}
+	file.Write([]byte(fileContent))
 	return nil
-}
-
-func writeIstioFilesForProvider(istioDirectory string, bindingId string) func(*profiles.BindRequest, *profiles.BindResponse) error {
-	return func(request *profiles.BindRequest, response *profiles.BindResponse) error {
-		ymlPath := path.Join(istioDirectory, bindingId) + ".yml"
-		log.Printf("PATH to istio conifg: %v.yml\n", ymlPath)
-		file, err := os.Create(ymlPath)
-		if nil != err {
-			return err
-		}
-		defer file.Close()
-
-		istioConfig := config.CreateIstioConfigForProvider(request, response, bindingId)
-
-		fileContent, err := config.ToYamlDocuments(istioConfig)
-		if nil != err {
-			return err
-		}
-		file.Write([]byte(fileContent))
-		return nil
-	}
-}
-
-func (client osbProxy) forwardAndTransformServiceBinding(ctx *gin.Context) {
-	transformRequest := noOpTransformRequest
-	transformResponse := noOpTransform
-	handleRequestCompleted := noOpHandleRequestCompleted
-	if proxyConfig.providerId != "" {
-		serviceId := ctx.Params.ByName("instance_id")
-		bindingId := ctx.Params.ByName("binding_id")
-		systemDomain := proxyConfig.SystemDomain
-		providerId := proxyConfig.providerId
-		transformNetworkData := profiles.AddIstioNetworkDataToResponse(providerId, serviceId, systemDomain, proxyConfig.loadBalancerPort)
-		transformResponse = func(bindResponse *profiles.BindResponse) {
-			bindResponse.Endpoints = bindResponse.Credentials.Endpoints
-			transformNetworkData(bindResponse)
-		}
-		handleRequestCompleted = writeIstioFilesForProvider(proxyConfig.istioDirectory, bindingId)
-	} else if proxyConfig.consumerId != "" {
-		transformRequest = func(request *profiles.BindRequest) {
-			request.NetworkData.Data.ConsumerId = proxyConfig.consumerId
-		}
-	}
-
-	client.forwardAndTransform(ctx, transformRequest, transformResponse, handleRequestCompleted)
 }
 
 func (client osbProxy) forward(ctx *gin.Context) {
@@ -155,8 +119,7 @@ func (client osbProxy) forward(ctx *gin.Context) {
 	io.Copy(writer, response.Body)
 }
 
-func (client osbProxy) forwardAndTransform(ctx *gin.Context, transformRequest func(*profiles.BindRequest), transformResponse func(response *profiles.BindResponse),
-	handleRequestCompleted func(request *profiles.BindRequest, response *profiles.BindResponse) error) {
+func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 	writer := ctx.Writer
 	request := ctx.Request
 
@@ -177,7 +140,10 @@ func (client osbProxy) forwardAndTransform(ctx *gin.Context, transformRequest fu
 		return
 	}
 
-	transformRequest(&bindRequest)
+	if proxyConfig.consumerId != "" {
+		bindRequest.NetworkData.Data.ConsumerId = proxyConfig.consumerId
+	}
+
 	requestBody, err = json.Marshal(bindRequest)
 	log.Printf("translatedRequestBody:\n %v", string(requestBody))
 	if err != nil {
@@ -217,8 +183,18 @@ func (client osbProxy) forwardAndTransform(ctx *gin.Context, transformRequest fu
 			httpError(writer, err)
 			return
 		}
-		transformResponse(&bindResponse)
-		handleRequestCompleted(&bindRequest, &bindResponse)
+		if proxyConfig.providerId != "" {
+			serviceId := ctx.Params.ByName("instance_id")
+			bindingId := ctx.Params.ByName("binding_id")
+			systemDomain := proxyConfig.SystemDomain
+			providerId := proxyConfig.providerId
+			if len(bindResponse.Endpoints) == 0 {
+				bindResponse.Endpoints = bindResponse.Credentials.Endpoints
+			}
+			profiles.AddIstioNetworkDataToResponse(providerId, serviceId, systemDomain, proxyConfig.loadBalancerPort, &bindResponse)
+			writeIstioFilesForProvider(proxyConfig.istioDirectory, bindingId, &bindRequest, &bindResponse)
+		}
+
 		responseBody, err = json.Marshal(bindResponse)
 		log.Printf("translatedResponseBody:\n %v", string(responseBody))
 	}
@@ -317,7 +293,7 @@ func setupRouter() *gin.Engine {
 	if proxyConfig.providerId != "" {
 		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
 	}
-	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardAndTransformServiceBinding)
+	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardBindRequest)
 	mux.NoRoute(client.forward)
 
 	return mux
