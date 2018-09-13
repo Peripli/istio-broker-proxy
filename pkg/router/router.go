@@ -70,7 +70,7 @@ func (client osbProxy) updateCredentials(ctx *gin.Context) {
 
 func writeIstioFilesForProvider(istioDirectory string, bindingId string, request *model.BindRequest, response *model.BindResponse) error {
 	ymlPath := path.Join(istioDirectory, bindingId) + ".yml"
-	log.Printf("PATH to istio conifg: %v.yml\n", ymlPath)
+	log.Printf("PATH to istio config: %v\n", ymlPath)
 	file, err := os.Create(ymlPath)
 	if nil != err {
 		return err
