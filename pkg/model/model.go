@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 type Credentials struct {
@@ -53,10 +54,7 @@ func (bindRequest *BindRequest) UnmarshalJSON(b []byte) error {
 
 func (bindRequest BindRequest) MarshalJSON() ([]byte, error) {
 	properties := clone(bindRequest.AdditionalProperties)
-	err := addProperty(properties, "network_data", &bindRequest.NetworkData)
-	if nil != err {
-		return nil, err
-	}
+	addProperty(properties, "network_data", &bindRequest.NetworkData)
 	return json.Marshal(properties)
 }
 
@@ -81,20 +79,11 @@ func (bindResponse *BindResponse) UnmarshalJSON(b []byte) error {
 
 func (bindResponse BindResponse) MarshalJSON() ([]byte, error) {
 	properties := clone(bindResponse.AdditionalProperties)
-	err := addProperty(properties, "network_data", &bindResponse.NetworkData)
-	if nil != err {
-		return nil, err
-	}
-	err = addProperty(properties, "credentials", &bindResponse.Credentials)
-	if nil != err {
-		return nil, err
-	}
+	addProperty(properties, "network_data", &bindResponse.NetworkData)
+	addProperty(properties, "credentials", &bindResponse.Credentials)
 	if len(bindResponse.Endpoints) != 0 {
 
-		err = addProperty(properties, "endpoints", bindResponse.Endpoints)
-		if nil != err {
-			return nil, err
-		}
+		addProperty(properties, "endpoints", bindResponse.Endpoints)
 	}
 
 	return json.Marshal(properties)
@@ -114,23 +103,19 @@ func (credentials *Credentials) UnmarshalJSON(b []byte) error {
 func (credentials Credentials) MarshalJSON() ([]byte, error) {
 	properties := clone(credentials.AdditionalProperties)
 	if len(credentials.Endpoints) != 0 {
-		err := addProperty(properties, "end_points", credentials.Endpoints)
-		if nil != err {
-			return nil, err
-		}
+		addProperty(properties, "end_points", credentials.Endpoints)
 	}
 
 	return json.Marshal(properties)
 }
 
-func addProperty(additionalProperties map[string]json.RawMessage, key string, data interface{}) error {
+func addProperty(additionalProperties map[string]json.RawMessage, key string, data interface{}) {
 	rawData, err := json.Marshal(data)
 	if err != nil {
-		return err
+		panic(fmt.Sprintf("Error in marshal %v", err))
 	}
 	additionalProperties[key] = json.RawMessage(rawData)
 
-	return nil
 }
 
 func removeProperty(additionalProperties map[string]json.RawMessage, key string, data interface{}) error {

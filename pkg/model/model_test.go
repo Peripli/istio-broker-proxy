@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+// ---------------------  Request ---------------------
+
 func TestBindRequestUnmarshal(t *testing.T) {
 	g := NewGomegaWithT(t)
 	var bindRequest BindRequest
@@ -46,6 +48,24 @@ func TestBindRequestMarshal(t *testing.T) {
     }`))
 }
 
+func TestBindRequestUnmarshalInvalidAdditionalProperties(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var bindRequest BindRequest
+	err := json.Unmarshal([]byte(`[]`), &bindRequest)
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestBindRequestUnmarshalInvalidNetworkData(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var bindRequest BindRequest
+	err := json.Unmarshal([]byte(`{
+		"network_data": 666
+    }`), &bindRequest)
+	g.Expect(err).To(HaveOccurred())
+}
+
+// ---------------------  Response ---------------------
+
 func TestBindResponseUnmarshal(t *testing.T) {
 	g := NewGomegaWithT(t)
 	var bindResponse BindResponse
@@ -76,6 +96,42 @@ func TestBindResponseUnmarshal(t *testing.T) {
 	g.Expect(bindResponse.Endpoints[1]).To(Equal(Endpoint{"host4", 4444}))
 	g.Expect(string(bindResponse.Credentials.AdditionalProperties["user"])).To(Equal(`"myuser"`))
 
+}
+
+func TestBindResponseUnmarshalInvalidNetworkData(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var bindResponse BindResponse
+	err := json.Unmarshal([]byte(`{
+		"network_data": {
+			"network_profile_id" : 1234
+		}
+    }`), &bindResponse)
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestBindResponseUnmarshalInvalidCredentials(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var bindResponse BindResponse
+	err := json.Unmarshal([]byte(`{
+		"credentials": { "end_points" : 1234 }
+    }`), &bindResponse)
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestBindResponseUnmarshalInvalidAdditionalProperties(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var bindResponse BindResponse
+	err := json.Unmarshal([]byte(`[]`), &bindResponse)
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestBindResponseUnmarshalInvalidEndpoints(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var bindResponse BindResponse
+	err := json.Unmarshal([]byte(`{
+		"endpoints": [ 1234 ]
+    }`), &bindResponse)
+	g.Expect(err).To(HaveOccurred())
 }
 
 func TestBindResponseMarshal(t *testing.T) {
@@ -115,6 +171,8 @@ func TestBindResponseMarshal(t *testing.T) {
     }`))
 }
 
+// ---------------------  Credenials ---------------------
+
 func TestCredenialsUnmarshal(t *testing.T) {
 	g := NewGomegaWithT(t)
 	var credentials Credentials
@@ -149,4 +207,11 @@ func TestCredentialsMarshal(t *testing.T) {
 		],
         "user" : "myuser"
     }`))
+}
+
+func TestCredentialsInvalidAdditionalProperties(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var credentials Credentials
+	err := json.Unmarshal([]byte(`[]`), &credentials)
+	g.Expect(err).To(HaveOccurred())
 }
