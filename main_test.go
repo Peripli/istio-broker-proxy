@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path"
+	"strconv"
 	"testing"
 )
 
@@ -283,6 +284,8 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 	router.ServeHTTP(response, request)
 
 	bodyString := response.Body.String()
+	expectedLength, _ := strconv.Atoi(response.Header().Get("content-length"))
+	g.Expect(len(bodyString)).To(Equal(expectedLength))
 	g.Expect(bodyString).To(ContainSubstring("network_data"))
 	g.Expect(bodyString).To(ContainSubstring("istio.sapcloud.io"))
 	g.Expect(bodyString).To(ContainSubstring("your-provider"))

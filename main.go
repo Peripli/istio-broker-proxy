@@ -19,6 +19,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -164,11 +165,6 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 		response.Body.Close()
 	}()
 
-	for name, values := range response.Header {
-		writer.Header()[name] = values
-	}
-
-	writer.WriteHeader(response.StatusCode)
 	responseBody, err := ioutil.ReadAll(response.Body)
 	log.Printf("respBody:\n %v", string(responseBody))
 	if err != nil {
@@ -199,6 +195,20 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 		responseBody, err = json.Marshal(bindResponse)
 		log.Printf("translatedResponseBody:\n %v", string(responseBody))
 	}
+
+	for name, values := range response.Header {
+		switch strings.ToLower(name) {
+		case "content-length":
+			writer.Header()[name] = []string{fmt.Sprintf("%d", len(responseBody))}
+		case "transfer-encoding":
+			// just remove it
+		default:
+			writer.Header()[name] = values
+		}
+	}
+
+	writer.WriteHeader(response.StatusCode)
+
 	count, err := writer.Write(responseBody)
 
 	fmt.Printf("count: %d\n", count)
