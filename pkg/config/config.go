@@ -3,9 +3,9 @@ package config
 import (
 	"fmt"
 	"github.com/ghodss/yaml"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
-	"istio.io/istio/pilot/pkg/model"
+	istioModel "istio.io/istio/pilot/pkg/model"
 )
 
 const (
@@ -15,15 +15,15 @@ const (
 	destinationRule = "DestinationRule"
 )
 
-var schemas = map[string]model.ProtoSchema{
-	gateway:         model.Gateway,
-	serviceEntry:    model.ServiceEntry,
-	virtualService:  model.VirtualService,
-	destinationRule: model.DestinationRule,
+var schemas = map[string]istioModel.ProtoSchema{
+	gateway:         istioModel.Gateway,
+	serviceEntry:    istioModel.ServiceEntry,
+	virtualService:  istioModel.VirtualService,
+	destinationRule: istioModel.DestinationRule,
 }
 
-func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string, clientName string, ingressPort uint32) []model.Config {
-	var configs []model.Config
+func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string, clientName string, ingressPort uint32) []istioModel.Config {
+	var configs []istioModel.Config
 
 	configs = append(configs, createIngressGatewayForExternalService(hostVirtualService, ingressPort, serviceName, clientName))
 	configs = append(configs, createIngressVirtualServiceForExternalService(hostVirtualService, portServiceEntry, serviceName))
@@ -32,8 +32,8 @@ func CreateEntriesForExternalService(serviceName string, endpointServiceEntry st
 	return configs
 }
 
-func CreateIstioConfigForProvider(request *profiles.BindRequest, response *profiles.BindResponse, bindingId string) []model.Config {
-	var istioConfig []model.Config
+func CreateIstioConfigForProvider(request *model.BindRequest, response *model.BindResponse, bindingId string) []istioModel.Config {
+	var istioConfig []istioModel.Config
 	for _, endpoint := range response.Endpoints {
 		originalEndpointHost := endpoint.Host
 		portServiceEntry := uint32(endpoint.Port)
@@ -49,8 +49,8 @@ func CreateIstioConfigForProvider(request *profiles.BindRequest, response *profi
 	return istioConfig
 }
 
-func CreateEntriesForExternalServiceClient(serviceName string, hostName string, portNumber uint32) []model.Config {
-	var configs []model.Config
+func CreateEntriesForExternalServiceClient(serviceName string, hostName string, portNumber uint32) []istioModel.Config {
+	var configs []istioModel.Config
 
 	serviceEntry := createEgressInternServiceEntryForExternalService(hostName, portNumber, serviceName)
 	configs = append(configs, serviceEntry)
@@ -75,7 +75,7 @@ func CreateEntriesForExternalServiceClient(serviceName string, hostName string, 
 	return configs
 }
 
-func ToYamlDocuments(entry []model.Config) (string, error) {
+func ToYamlDocuments(entry []istioModel.Config) (string, error) {
 	var result, text string
 	var err error
 
@@ -87,7 +87,7 @@ func ToYamlDocuments(entry []model.Config) (string, error) {
 	return result, err
 }
 
-func toText(config model.Config) (string, error) {
+func toText(config istioModel.Config) (string, error) {
 	schema := schemas[config.Type]
 	kubernetesConf, err := crd.ConvertConfig(schema, config)
 	if err != nil {

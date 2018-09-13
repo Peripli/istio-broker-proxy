@@ -2,8 +2,7 @@ package config
 
 import (
 	"encoding/json"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
 	"regexp"
 	"testing"
 
@@ -11,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 	"istio.io/api/networking/v1alpha3"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
-	"istio.io/istio/pilot/pkg/model"
+	istioModel "istio.io/istio/pilot/pkg/model"
 )
 
 func TestCompleteEntryNotEmpty(t *testing.T) {
@@ -152,7 +151,7 @@ func TestCompleteEntryClientVirtualServices(t *testing.T) {
 
 func TestCreatesYamlDocuments(t *testing.T) {
 	g := NewGomegaWithT(t)
-	dummyConfigs := []model.Config{{Spec: &v1alpha3.ServiceEntry{}}}
+	dummyConfigs := []istioModel.Config{{Spec: &v1alpha3.ServiceEntry{}}}
 	dummyConfigs[0].Type = serviceEntry
 	text, err := ToYamlDocuments(dummyConfigs)
 	g.Expect(err).ShouldNot(HaveOccurred())
@@ -162,7 +161,7 @@ func TestCreatesYamlDocuments(t *testing.T) {
 func TestErrorInToText(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	_, err := toText(model.Config{})
+	_, err := toText(istioModel.Config{})
 
 	g.Expect(err).Should(HaveOccurred())
 }
@@ -170,21 +169,21 @@ func TestErrorInToText(t *testing.T) {
 func TestCreateIstioConfigForProvider(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	eps := []endpoints.Endpoint{{"host1", 9999}, {"host2", 7777}}
+	eps := []model.Endpoint{{"host1", 9999}, {"host2", 7777}}
 
-	request := profiles.BindRequest{
-		NetworkData: profiles.NetworkDataRequest{
+	request := model.BindRequest{
+		NetworkData: model.NetworkDataRequest{
 			NetworkProfileId: "my-profile-id",
-			Data:             profiles.DataRequest{ConsumerId: "147"}}}
-	response := profiles.BindResponse{
-		NetworkData: profiles.NetworkDataResponse{
+			Data:             model.DataRequest{ConsumerId: "147"}}}
+	response := model.BindResponse{
+		NetworkData: model.NetworkDataResponse{
 			NetworkProfileId: "your-profile-id",
-			Data: profiles.DataResponse{
+			Data: model.DataResponse{
 				ProviderId: "852",
 			}},
 		Endpoints: eps,
 
-		Credentials: profiles.Credentials{AdditionalProperties: map[string]json.RawMessage{"user": json.RawMessage([]byte(`"myuser"`))}}}
+		Credentials: model.Credentials{AdditionalProperties: map[string]json.RawMessage{"user": json.RawMessage([]byte(`"myuser"`))}}}
 
 	istioConfig := CreateIstioConfigForProvider(&request, &response, "my-binding-id")
 
@@ -209,12 +208,12 @@ func TestCreateIstioConfigForProvider(t *testing.T) {
 
 }
 
-func getSpecAndMetadataFromConfig(g *GomegaWithT, configObjects []model.Config, configType string) (string, string) {
+func getSpecAndMetadataFromConfig(g *GomegaWithT, configObjects []istioModel.Config, configType string) (string, string) {
 	specs, metadatas := getSpecsAndMetadatasFromConfig(g, configObjects, configType)
 	return specs[0], metadatas[0]
 }
 
-func getSpecsAndMetadatasFromConfig(g *GomegaWithT, configObjects []model.Config, configType string) ([]string, []string) {
+func getSpecsAndMetadatasFromConfig(g *GomegaWithT, configObjects []istioModel.Config, configType string) ([]string, []string) {
 	configs := lookupObjectsFromConfigs(configObjects, configType)
 	var specs, metadatas []string
 	for _, config := range configs {
@@ -230,7 +229,7 @@ func getSpecsAndMetadatasFromConfig(g *GomegaWithT, configObjects []model.Config
 	return specs, metadatas
 }
 
-func lookupObjectsFromConfigs(configObjects []model.Config, kind string) (array []model.Config) {
+func lookupObjectsFromConfigs(configObjects []istioModel.Config, kind string) (array []istioModel.Config) {
 	for _, entry := range configObjects {
 		if entry.Type == kind {
 			array = append(array, entry)

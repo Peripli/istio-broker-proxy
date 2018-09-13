@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	. "github.com/onsi/gomega"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -217,15 +216,6 @@ func TestAdaptCredentials(t *testing.T) {
 
 	g.Expect(response.Code).To(Equal(200))
 	g.Expect(response.Body).To(ContainSubstring(`"endpoints":[{"host":"appnethost","port":9876}]`))
-}
-
-func TestEmptyBodyInTranslate(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	body, err := endpoints.GenerateEndpoint(make([]byte, 0))
-
-	g.Expect(err).Should(HaveOccurred())
-	g.Expect(body).To(BeEmpty())
 }
 
 func TestCreateServiceBindingContainsEndpoints(t *testing.T) {

@@ -1,13 +1,12 @@
-package profiles
+package model
 
 import (
 	"encoding/json"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
 )
 
 type Credentials struct {
 	AdditionalProperties map[string]json.RawMessage
-	Endpoints            []endpoints.Endpoint
+	Endpoints            []Endpoint
 }
 
 type BindRequest struct {
@@ -28,7 +27,7 @@ type BindResponse struct {
 	AdditionalProperties map[string]json.RawMessage
 	NetworkData          NetworkDataResponse
 	Credentials          Credentials
-	Endpoints            []endpoints.Endpoint
+	Endpoints            []Endpoint
 }
 
 type NetworkDataResponse struct {
@@ -37,8 +36,8 @@ type NetworkDataResponse struct {
 }
 
 type DataResponse struct {
-	ProviderId string               `json:"provider_id"`
-	Endpoints  []endpoints.Endpoint `json:"endpoints, omitempty"`
+	ProviderId string     `json:"provider_id"`
+	Endpoints  []Endpoint `json:"endpoints, omitempty"`
 }
 
 func (bindRequest *BindRequest) UnmarshalJSON(b []byte) error {

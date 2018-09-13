@@ -2,21 +2,21 @@ package profiles
 
 import (
 	"fmt"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/endpoints"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
 )
 
 const network_profile = "urn:com.sap.istio:public"
 
-func AddIstioNetworkDataToResponse(providerId string, serviceId string, systemDomain string, portNumber int, body *BindResponse) {
+func AddIstioNetworkDataToResponse(providerId string, serviceId string, systemDomain string, portNumber int, body *model.BindResponse) {
 
 	endpointCount := len(body.Endpoints)
 
 	endpointHosts := createEndpointHostsBasedOnSystemDomainServiceId(serviceId, systemDomain, endpointCount)
 
-	newEndpoints := make([]endpoints.Endpoint, 0)
+	newEndpoints := make([]model.Endpoint, 0)
 	for _, endpointHost := range endpointHosts {
 
-		newEndpoints = append(newEndpoints, endpoints.Endpoint{
+		newEndpoints = append(newEndpoints, model.Endpoint{
 			endpointHost,
 			portNumber,
 		},

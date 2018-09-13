@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/config"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 	"io"
 	"io/ioutil"
@@ -72,7 +73,7 @@ func (client osbProxy) updateCredentials(ctx *gin.Context) {
 	writer.Write(response)
 }
 
-func writeIstioFilesForProvider(istioDirectory string, bindingId string, request *profiles.BindRequest, response *profiles.BindResponse) error {
+func writeIstioFilesForProvider(istioDirectory string, bindingId string, request *model.BindRequest, response *model.BindResponse) error {
 	ymlPath := path.Join(istioDirectory, bindingId) + ".yml"
 	log.Printf("PATH to istio conifg: %v.yml\n", ymlPath)
 	file, err := os.Create(ymlPath)
@@ -133,7 +134,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 		return
 	}
 
-	var bindRequest profiles.BindRequest
+	var bindRequest model.BindRequest
 	err = json.Unmarshal(requestBody, &bindRequest)
 	if err != nil {
 		httpError(writer, err)
@@ -177,7 +178,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 
 	okResponse := response.StatusCode/100 == 2
 	if okResponse {
-		var bindResponse profiles.BindResponse
+		var bindResponse model.BindResponse
 		err = json.Unmarshal(responseBody, &bindResponse)
 		if err != nil {
 			httpError(writer, err)

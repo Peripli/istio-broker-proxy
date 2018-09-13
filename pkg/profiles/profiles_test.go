@@ -3,6 +3,8 @@ package profiles
 import (
 	"encoding/json"
 	. "github.com/onsi/gomega"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
+
 	//"os"
 	"testing"
 )
@@ -10,7 +12,7 @@ import (
 func TestAddIstioNetworkDataHasConfigurableProviderId(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	var body BindResponse
+	var body model.BindResponse
 	json.Unmarshal([]byte(`{"something_else": "body of response", "endpoints": [{}]}`), &body)
 	AddIstioNetworkDataToResponse("my-provider", "", "", 0, &body)
 
@@ -37,7 +39,7 @@ func TestCreateEndpointHosts(t *testing.T) {
 func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	var body BindResponse
+	var body model.BindResponse
 	json.Unmarshal([]byte(`{"something_else": "body of response", "endpoints": [{}, {}]}`), &body)
 	AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "istio.sapcloud.io", 9000, &body)
 
@@ -58,7 +60,7 @@ func TestBlueprintServiceDoesntCrash(t *testing.T) {
                   "endpoints": []
                 }
               }}`)
-	var bindResponse BindResponse
+	var bindResponse model.BindResponse
 	json.Unmarshal(compareBody, &bindResponse)
 	AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "istio.sapcloud.io", 9000, &bindResponse)
 	body, err := json.Marshal(bindResponse)
