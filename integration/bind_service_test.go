@@ -5,7 +5,6 @@ package integration
 import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	. "github.com/onsi/gomega"
-	"os"
 	"testing"
 	"time"
 )
@@ -29,11 +28,7 @@ spec:
 func TestServiceBindingIsSuccessful(t *testing.T) {
 
 	g := NewGomegaWithT(t)
-
-	kubeconfig := os.Getenv("KUBECONFIG")
-	g.Expect(kubeconfig).NotTo(BeEmpty())
-
-	kubectl := Kubectl{g}
+	kubectl := NewKubeCtl(g)
 
 	// Test if list of available services is not empty
 	var classes v1beta1.ClusterServiceClassList

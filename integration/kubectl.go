@@ -13,11 +13,18 @@ import (
 	"strings"
 )
 
-type Kubectl struct {
+func NewKubeCtl(g *GomegaWithT) *kubectl {
+	kubeconfig := os.Getenv("KUBECONFIG")
+	g.Expect(kubeconfig).NotTo(BeEmpty())
+
+	return &kubectl{g}
+}
+
+type kubectl struct {
 	g *GomegaWithT
 }
 
-func (self Kubectl) run(args ...string) []byte {
+func (self kubectl) run(args ...string) []byte {
 	fmt.Println("kubectl ", strings.Join(args, " "))
 	out, err := exec.Command("kubectl", args...).CombinedOutput()
 	self.g.Expect(err).ShouldNot(HaveOccurred())
@@ -25,11 +32,11 @@ func (self Kubectl) run(args ...string) []byte {
 	return out
 }
 
-func (self Kubectl) Delete(kind string, name string) {
+func (self kubectl) Delete(kind string, name string) {
 	self.run("delete", kind, name, "--ignore-not-found=true")
 }
 
-func (self Kubectl) Apply(fileBody []byte) {
+func (self kubectl) Apply(fileBody []byte) {
 
 	file, err := ioutil.TempFile("", "*")
 	defer os.Remove(file.Name())
@@ -42,19 +49,19 @@ func (self Kubectl) Apply(fileBody []byte) {
 	self.run("apply", "-f", file.Name())
 }
 
-func (self Kubectl) Read(result interface{}, name string) {
+func (self kubectl) Read(result interface{}, name string) {
 	kind := reflect.TypeOf(result).Elem().Name()
 	response := self.run("get", kind, name, "-o", "json")
 	err := json.Unmarshal(response, result)
 	self.g.Expect(err).ShouldNot(HaveOccurred())
 }
 
-func (self Kubectl) Exec(podName string, args ...string) string {
+func (self kubectl) Exec(podName string, args ...string) string {
 	cmd := append([]string{"exec", podName}, args...)
 	return string(self.run(cmd...))
 }
 
-func (self Kubectl) List(result interface{}, args ...string) {
+func (self kubectl) List(result interface{}, args ...string) {
 	kind := reflect.TypeOf(result).Elem().Name()
 	if strings.HasSuffix(kind, "List") {
 		kind = kind[0 : len(kind)-4]
@@ -65,7 +72,7 @@ func (self Kubectl) List(result interface{}, args ...string) {
 	self.g.Expect(err).ShouldNot(HaveOccurred())
 }
 
-func (self Kubectl) GetPod(args ...string) string {
+func (self kubectl) GetPod(args ...string) string {
 	var pods PodList
 	self.List(&pods, args...)
 	self.g.Expect(pods.Items).To(HaveLen(1), "Pod not found")

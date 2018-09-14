@@ -12,15 +12,10 @@ import (
 
 func TestAdaptCredentialsWithInvalidRequest(t *testing.T) {
 
-	const kubeBaseUrl = "http://broker:VoJniQuzmenuhsowelbahenhukejd755@istiobroker.catalog.svc.cluster.local:9999"
-
 	g := NewGomegaWithT(t)
+	kubectl := NewKubeCtl(g)
 
-	kubeconfig := os.Getenv("KUBECONFIG")
-	g.Expect(kubeconfig).NotTo(BeEmpty())
-
-	kubectl := Kubectl{g}
-
+	kubeBaseUrl := getClusterServiceBrokerUrl(kubectl)
 	podName := kubectl.GetPod("-n", "catalog", "-l", "app=istiobroker")
 
 	result := put(g, kubectl, podName, kubeBaseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", `
@@ -45,41 +40,42 @@ func TestAdaptCredentialsWithInvalidRequest(t *testing.T) {
 func TestAdaptCredentialsWithValidRequest(t *testing.T) {
 
 	g := NewGomegaWithT(t)
+	kubectl := NewKubeCtl(g)
 
-	kubeconfig := os.Getenv("KUBECONFIG")
-	g.Expect(kubeconfig).NotTo(BeEmpty())
-
-	kubectl := Kubectl{g}
-
-	var clusterServiceBroker v1beta1.ClusterServiceBroker
-	kubectl.Read(&clusterServiceBroker, "istiobroker")
-	kubeBaseUrl := clusterServiceBroker.GetURL()
+	kubeBaseUrl := getClusterServiceBrokerUrl(kubectl)
 
 	podName := kubectl.GetPod("-n", "catalog", "-l", "app=istiobroker")
 
 	result := put(g, kubectl, podName, kubeBaseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", `{
-                  "credentials": {
-                   "dbname": "yLO2WoE0-mCcEppn",
-                   "hostname": "10.11.241.0",
-                   "password": "redacted",
-                   "port": "47637",
-                   "ports": {
-                    "5432/tcp": "47637"
-                   },
-                   "uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn",
-                   "username": "mma4G8N0isoxe17v"
-                  },
-                  "endpoint_mappings": [{
-                    "source": {"host": "10.11.241.0", "port": 47637},
-                    "target": {"host": "new-magic-host", "port": 9876}
-                  	}]
-                  }`)
+	                  "credentials": {
+	                   "dbname": "yLO2WoE0-mCcEppn",
+	                   "hostname": "10.11.241.0",
+	                   "password": "redacted",
+	                   "port": "47637",
+	                   "ports": {
+	                    "5432/tcp": "47637"
+	                   },
+	                   "uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn",
+	                   "username": "mma4G8N0isoxe17v"
+	                  },
+	                  "endpoint_mappings": [{
+	                    "source": {"host": "10.11.241.0", "port": 47637},
+	                    "target": {"host": "new-magic-host", "port": 9876}
+	                  	}]
+	                  }`)
 
 	g.Expect(result).To(ContainSubstring(`HTTP/1.1 200 OK`))
 	g.Expect(result).To(ContainSubstring(`"hostname":"new-magic-host"`))
 }
 
-func put(g *GomegaWithT, kubectl Kubectl, podName string, url string, body string) string {
+func getClusterServiceBrokerUrl(kubectl *kubectl) string {
+	var clusterServiceBroker v1beta1.ClusterServiceBroker
+	kubectl.Read(&clusterServiceBroker, "istiobroker")
+	kubeBaseUrl := clusterServiceBroker.GetURL()
+	return kubeBaseUrl
+}
+
+func put(g *GomegaWithT, kubectl *kubectl, podName string, url string, body string) string {
 	const podFileName = "/tmp/post.json"
 	fileName := path.Join(os.TempDir(), "post.json")
 	file, err := os.Create(fileName)
