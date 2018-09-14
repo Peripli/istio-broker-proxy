@@ -7,7 +7,6 @@ import (
 	"crypto/tls"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	. "github.com/onsi/gomega"
-	"k8s.io/api/core/v1"
 	"net/http"
 	"os"
 	"path"
@@ -91,25 +90,22 @@ func TestAdaptCredentialsWithInvalidRequestUsingKubectl(t *testing.T) {
 
 	kubectl := Kubectl{g}
 
-	var pods v1.PodList
-	kubectl.List(&pods, "-n", "catalog", "-l", "app=istiobroker")
-	g.Expect(pods.Items).To(HaveLen(1), "Pod not found")
-	podName := pods.Items[0].Name
+	podName := kubectl.GetPod("istiobroker")
 
 	result := put(g, kubectl, podName, kubeBaseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", `
-                  {
-                  "credentials": {
-                   "dbname": "yLO2WoE0-mCcEppn",
-                   "hostname": "10.11.241.0",
-                   "password": "redacted",
-                   "port": "47637",
-                   "ports": {
-                    "5432/tcp": "47637"
-                   },
-                   "uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn",
-                   "username": "mma4G8N0isoxe17v"
-                  }
-                  }`)
+	                  {
+	                  "credentials": {
+	                   "dbname": "yLO2WoE0-mCcEppn",
+	                   "hostname": "10.11.241.0",
+	                   "password": "redacted",
+	                   "port": "47637",
+	                   "ports": {
+	                    "5432/tcp": "47637"
+	                   },
+	                   "uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn",
+	                   "username": "mma4G8N0isoxe17v"
+	                  }
+	                  }`)
 
 	g.Expect(result).To(ContainSubstring(`HTTP/1.1 400 Bad Request`))
 	g.Expect(result).To(ContainSubstring(`Invalid request`))
@@ -128,10 +124,7 @@ func TestAdaptCredentialsWithValidRequestUsingKubectl(t *testing.T) {
 	kubectl.Read(&clusterServiceBroker, "istiobroker")
 	kubeBaseUrl := clusterServiceBroker.GetURL()
 
-	var pods v1.PodList
-	kubectl.List(&pods, "-n", "catalog", "-l", "app=istiobroker")
-	g.Expect(pods.Items).To(HaveLen(1), "Pod not found")
-	podName := pods.Items[0].Name
+	podName := kubectl.GetPod("istiobroker")
 
 	result := put(g, kubectl, podName, kubeBaseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", `{
                   "credentials": {

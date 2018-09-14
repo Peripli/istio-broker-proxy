@@ -64,3 +64,11 @@ func (self Kubectl) List(result interface{}, args ...string) {
 	err := json.Unmarshal(response, result)
 	self.g.Expect(err).ShouldNot(HaveOccurred())
 }
+
+func (self Kubectl) GetPod(appName string) string {
+	var pods PodList
+	self.List(&pods, "-n", "catalog", "-l", "app="+appName)
+	self.g.Expect(pods.Items).To(HaveLen(1), "Pod not found")
+	podName := pods.Items[0].Name
+	return podName
+}
