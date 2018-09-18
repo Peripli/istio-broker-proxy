@@ -6,6 +6,8 @@ import (
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
 	istioModel "istio.io/istio/pilot/pkg/model"
+	"regexp"
+	"strings"
 )
 
 const (
@@ -14,6 +16,7 @@ const (
 	virtualService  = "VirtualService"
 	destinationRule = "DestinationRule"
 )
+var invalidIdentifiers = regexp.MustCompile(`[^0-9a-z-]`)
 
 var schemas = map[string]istioModel.ProtoSchema{
 	gateway:         istioModel.Gateway,
@@ -40,13 +43,23 @@ func CreateIstioConfigForProvider(request *model.BindRequest, response *model.Bi
 		ingressDomain := "services.cf.dev01.aws.istio.sapcloud.io"
 		consumerId := request.NetworkData.Data.ConsumerId
 		ingressPort := uint32(9000)
-		serviceName := fmt.Sprintf("%s-%v", bindingId, originalEndpointHost)
+
+		serviceName := createValidIdentifer(fmt.Sprintf("%s-%v", bindingId, originalEndpointHost))
 		endpointServiceEntry := originalEndpointHost
-		hostVirtualService := fmt.Sprintf("%s-%v-%s", bindingId, originalEndpointHost, ingressDomain)
+		hostVirtualService := createValidIdentifer(fmt.Sprintf("%s-%v-%s", bindingId, originalEndpointHost, ingressDomain))
 		istioConfig = append(istioConfig,
 			CreateEntriesForExternalService(serviceName, endpointServiceEntry, portServiceEntry, hostVirtualService, consumerId, ingressPort)...)
 	}
 	return istioConfig
+}
+
+func createValidIdentifer(identifer string) string {
+	validIdentifier := invalidIdentifiers.ReplaceAllString(strings.ToLower(identifer), "-")
+	if strings.HasPrefix(validIdentifier, "-"){
+		validIdentifier = strings.TrimPrefix(validIdentifier, "-")
+	}
+	return validIdentifier
+
 }
 
 func CreateEntriesForExternalServiceClient(serviceName string, hostName string, portNumber uint32) []istioModel.Config {
