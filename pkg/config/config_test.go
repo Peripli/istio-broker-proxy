@@ -36,6 +36,15 @@ func TestCompleteEntryGateway(t *testing.T) {
 
 	gatewaySpec, gatewayMetadata := getSpecAndMetadataFromConfig(g, configObjects, gateway)
 
+	err := istioModel.ValidateGateway("test", "test", configObjects[0].Spec)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	err = istioModel.ValidateVirtualService("test", "test", configObjects[1].Spec)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	err = istioModel.ValidateServiceEntry("test", "test", configObjects[2].Spec)
+	g.Expect(err).NotTo(HaveOccurred())
+
 	g.Expect(gatewaySpec).To(ContainSubstring("myservice.landscape"))
 	g.Expect(gatewaySpec).To(ContainSubstring("9000"))
 	g.Expect(gatewaySpec).To(ContainSubstring("client.istio.sapcloud.io"))
@@ -169,7 +178,7 @@ func TestErrorInToText(t *testing.T) {
 func TestCreateIstioConfigForProvider(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	eps := []model.Endpoint{{"host1", 9999}, {"host2", 7777}}
+	eps := []model.Endpoint{{"1.1.1.1", 9999}, {"2.2.2.2", 7777}}
 
 	request := model.BindRequest{
 		NetworkData: model.NetworkDataRequest{
@@ -198,11 +207,20 @@ func TestCreateIstioConfigForProvider(t *testing.T) {
 	g.Expect(len(virtualServiceSpec)).To(Equal(len(eps)))
 	g.Expect(len(serviceEntrySpec)).To(Equal(len(eps)))
 
+	err := istioModel.ValidateGateway("test", "test", istioConfig[0].Spec)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	err = istioModel.ValidateVirtualService("test", "test", istioConfig[1].Spec)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	err = istioModel.ValidateServiceEntry("test", "test", istioConfig[2].Spec)
+	g.Expect(err).NotTo(HaveOccurred())
+
 	g.Expect(gatewaySpec[0]).To(ContainSubstring("147"))
-	g.Expect(gatewaySpec[0]).To(ContainSubstring("my-binding-id-host1-services.cf.dev01.aws.istio.sapcloud.io"))
-	g.Expect(gatewayMetadata[0]).To(ContainSubstring("name: my-binding-id-host1-gateway"))
-	g.Expect(serviceEntrySpec[0]).To(ContainSubstring("- address: host1"))
-	g.Expect(serviceEntrySpec[1]).To(ContainSubstring("- address: host2"))
+	g.Expect(gatewaySpec[0]).To(ContainSubstring("my-binding-id-1.1.1.1-services.cf.dev01.aws.istio.sapcloud.io"))
+	g.Expect(gatewayMetadata[0]).To(ContainSubstring("name: my-binding-id-1-1-1-1-gateway"))
+	g.Expect(serviceEntrySpec[0]).To(ContainSubstring("- address: 1.1.1.1"))
+	g.Expect(serviceEntrySpec[1]).To(ContainSubstring("- address: 2.2.2.2"))
 	g.Expect(virtualServiceSpec[0]).To(ContainSubstring("number: 9999"))
 	g.Expect(virtualServiceSpec[1]).To(ContainSubstring("number: 7777"))
 
