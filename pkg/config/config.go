@@ -46,7 +46,7 @@ func CreateIstioConfigForProvider(request *model.BindRequest, response *model.Bi
 
 		serviceName := createValidIdentifer(fmt.Sprintf("%s-%v", bindingId, originalEndpointHost))
 		endpointServiceEntry := originalEndpointHost
-		hostVirtualService := createValidIdentifer(fmt.Sprintf("%s-%v-%s", bindingId, originalEndpointHost, ingressDomain))
+		hostVirtualService := fmt.Sprintf("%s-%v-%s", bindingId, originalEndpointHost, ingressDomain)
 		istioConfig = append(istioConfig,
 			CreateEntriesForExternalService(serviceName, endpointServiceEntry, portServiceEntry, hostVirtualService, consumerId, ingressPort)...)
 	}

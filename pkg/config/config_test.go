@@ -199,7 +199,7 @@ func TestCreateIstioConfigForProvider(t *testing.T) {
 	g.Expect(len(serviceEntrySpec)).To(Equal(len(eps)))
 
 	g.Expect(gatewaySpec[0]).To(ContainSubstring("147"))
-	g.Expect(gatewaySpec[0]).To(ContainSubstring("my-binding-id-host1-services-cf-dev01-aws-istio-sapcloud-io"))
+	g.Expect(gatewaySpec[0]).To(ContainSubstring("my-binding-id-host1-services.cf.dev01.aws.istio.sapcloud.io"))
 	g.Expect(gatewayMetadata[0]).To(ContainSubstring("name: my-binding-id-host1-gateway"))
 	g.Expect(serviceEntrySpec[0]).To(ContainSubstring("- address: host1"))
 	g.Expect(serviceEntrySpec[1]).To(ContainSubstring("- address: host2"))
