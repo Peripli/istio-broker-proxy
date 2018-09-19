@@ -148,6 +148,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 
 	if proxyConfig.consumerId != "" {
 		bindRequest.NetworkData.Data.ConsumerId = proxyConfig.consumerId
+		bindRequest.NetworkData.NetworkProfileId = profiles.NetworkProfile
 	}
 
 	requestBody, err = json.Marshal(bindRequest)
@@ -193,6 +194,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 				bindResponse.Endpoints = bindResponse.Credentials.Endpoints
 			}
 			profiles.AddIstioNetworkDataToResponse(providerId, serviceId, systemDomain, proxyConfig.loadBalancerPort, &bindResponse)
+
 			writeIstioFilesForProvider(proxyConfig.istioDirectory, bindingId, &bindRequest, &bindResponse)
 		}
 

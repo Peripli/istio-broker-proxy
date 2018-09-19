@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	. "github.com/onsi/gomega"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -378,6 +379,7 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
 
 	bodyString := handlerStub.spy.body
 	g.Expect(bodyString).To(ContainSubstring("network_data"))
+	g.Expect(bodyString).To(ContainSubstring(profiles.NetworkProfile))
 	g.Expect(bodyString).To(ContainSubstring("consumer_id"))
 }
 

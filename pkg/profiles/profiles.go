@@ -5,7 +5,7 @@ import (
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
 )
 
-const network_profile = "urn:com.sap.istio:public"
+const NetworkProfile = "urn:com.sap.istio:public"
 
 func AddIstioNetworkDataToResponse(providerId string, serviceId string, systemDomain string, portNumber int, body *model.BindResponse) {
 
@@ -23,7 +23,7 @@ func AddIstioNetworkDataToResponse(providerId string, serviceId string, systemDo
 		)
 	}
 
-	body.NetworkData.NetworkProfileId = network_profile
+	body.NetworkData.NetworkProfileId = NetworkProfile
 	body.NetworkData.Data.ProviderId = providerId
 	body.NetworkData.Data.Endpoints = newEndpoints
 
