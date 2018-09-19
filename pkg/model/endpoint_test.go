@@ -39,11 +39,11 @@ func TestEndpointIsCreated(t *testing.T) {
 	body := []byte(`{
             "credentials": {
                "uri": "postgres://user:pass@dbhost:3306/dbname",
-               "hostname": "dbhost",
+               "hostname": "10.1.0.1",
                 "port": "3306",
                 "end_points": [
                     {
-                        "host": "dbhost",
+                        "host": "10.1.0.1",
                         "network_id": "SF",
                         "port": 3306
                     }
@@ -65,11 +65,11 @@ func TestEndpointDataIsCorrect(t *testing.T) {
 	body := []byte(`{
             "credentials": {
                "uri": "postgres://user:pass@dbhost:3306/dbname",
-                "hostname": "dbhost",
+                "hostname": "0.1.0.1",
                 "port": "3306",
                 "end_points": [
                     {
-                        "host": "dbhost",
+                        "host": "0.1.0.1",
                         "network_id": "SF",
                         "port": 3306
                     }
@@ -81,7 +81,7 @@ func TestEndpointDataIsCorrect(t *testing.T) {
 
 	result := parseResponseData(newBody, t)
 	g.Expect(result.Endpoints).To(HaveLen(1))
-	g.Expect(result.Endpoints[0]).To(Equal(Endpoint{"dbhost", 3306}))
+	g.Expect(result.Endpoints[0]).To(Equal(Endpoint{"0.1.0.1", 3306}))
 }
 
 func TestRealWorldExample(t *testing.T) {
@@ -192,6 +192,7 @@ func TestEndpointUnmarshalPortAsString(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(ep.Port).To(Equal(5432))
 }
+
 func TestEndpointUnmarshalPortAsIntg(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte(`{
@@ -203,4 +204,16 @@ func TestEndpointUnmarshalPortAsIntg(t *testing.T) {
 	err := json.Unmarshal(body, &ep)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(ep.Port).To(Equal(5432))
+}
+
+func TestEndpointHostIsIP(t *testing.T) {
+	g := NewGomegaWithT(t)
+	body := []byte(`{
+                "host": "my-host",
+                "network_id": "SF",
+                "port": "5432"
+            }`)
+	var ep Endpoint
+	err := json.Unmarshal(body, &ep)
+	g.Expect(err).To(HaveOccurred())
 }

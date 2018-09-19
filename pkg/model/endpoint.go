@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 )
@@ -23,6 +24,11 @@ func (ep *Endpoint) UnmarshalJSON(b []byte) error {
 	err := json.Unmarshal(b, &untyped)
 	if err != nil {
 		return err
+	}
+
+	newIP := net.ParseIP(untyped.Host)
+	if newIP == nil{
+		return fmt.Errorf("Host %s is not a valid IP.", untyped.Host)
 	}
 
 	ep.Host = untyped.Host

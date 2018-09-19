@@ -76,24 +76,24 @@ func TestBindResponseUnmarshal(t *testing.T) {
 			"data":{
 				"provider_id": "852",
 				"endpoints":[
-				{"host":"host1", "port": 9999},
-				{"host":"host2", "port": 7777}
+				{"host":"10.0.0.1", "port": 9999},
+				{"host":"10.0.0.2", "port": 7777}
 				]
 			}
 		},
 		"credentials": { "user" : "myuser" },
 		"endpoints":[
-				{"host":"host3", "port": 3333},
-				{"host":"host4", "port": 4444}
+				{"host":"10.0.0.3", "port": 3333},
+				{"host":"10.0.0.4", "port": 4444}
 		]
     }`), &bindResponse)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(string(bindResponse.AdditionalProperties["abc"])).To(Equal(`"1234"`))
 	g.Expect(bindResponse.NetworkData.NetworkProfileId).To(Equal("your-profile-id"))
 	g.Expect(bindResponse.NetworkData.Data.ProviderId).To(Equal("852"))
-	g.Expect(bindResponse.NetworkData.Data.Endpoints[0]).To(Equal(Endpoint{"host1", 9999}))
-	g.Expect(bindResponse.Endpoints[0]).To(Equal(Endpoint{"host3", 3333}))
-	g.Expect(bindResponse.Endpoints[1]).To(Equal(Endpoint{"host4", 4444}))
+	g.Expect(bindResponse.NetworkData.Data.Endpoints[0]).To(Equal(Endpoint{"10.0.0.1", 9999}))
+	g.Expect(bindResponse.Endpoints[0]).To(Equal(Endpoint{"10.0.0.3", 3333}))
+	g.Expect(bindResponse.Endpoints[1]).To(Equal(Endpoint{"10.0.0.4", 4444}))
 	g.Expect(string(bindResponse.Credentials.AdditionalProperties["user"])).To(Equal(`"myuser"`))
 
 }
@@ -179,14 +179,14 @@ func TestCredenialsUnmarshal(t *testing.T) {
 	err := json.Unmarshal([]byte(`{
         "user" : "myuser",
 		"end_points":[
-				{"host":"host3", "port": "3333"},
-				{"host":"host4", "port": "4444"}
+				{"host":"10.0.0.3", "port": "3333"},
+				{"host":"10.0.0.4", "port": "4444"}
 		]
     }`), &credentials)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(string(credentials.AdditionalProperties["user"])).To(Equal(`"myuser"`))
-	g.Expect(credentials.Endpoints[0]).To(Equal(Endpoint{"host3", 3333}))
-	g.Expect(credentials.Endpoints[1]).To(Equal(Endpoint{"host4", 4444}))
+	g.Expect(credentials.Endpoints[0]).To(Equal(Endpoint{"10.0.0.3", 3333}))
+	g.Expect(credentials.Endpoints[1]).To(Equal(Endpoint{"10.0.0.4", 4444}))
 
 }
 
@@ -196,14 +196,14 @@ func TestCredentialsMarshal(t *testing.T) {
 		AdditionalProperties: map[string]json.RawMessage{
 			"user": json.RawMessage([]byte(`"myuser"`)),
 		},
-		Endpoints: []Endpoint{{"host3", 3333}, {"host4", 4444}},
+		Endpoints: []Endpoint{{"10.0.0.3", 3333}, {"10.0.0.4", 4444}},
 	}
 	body, err := json.Marshal(credentials)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(string(body)).To(MatchJSON(`{
 		"end_points":[
-				{"host":"host3", "port": 3333},
-				{"host":"host4", "port": 4444}
+				{"host":"10.0.0.3", "port": 3333},
+				{"host":"10.0.0.4", "port": 4444}
 		],
         "user" : "myuser"
     }`))

@@ -40,7 +40,7 @@ func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	var body model.BindResponse
-	json.Unmarshal([]byte(`{"something_else": "body of response", "endpoints": [{}, {}]}`), &body)
+	json.Unmarshal([]byte(`{"something_else": "body of response", "endpoints": [{"host": "10.0.0.3"}, {"host" : "10.0.0.4"}]}`), &body)
 	AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "istio.sapcloud.io", 9000, &body)
 
 	g.Expect(body).NotTo(BeNil())
