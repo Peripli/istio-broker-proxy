@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ghodss/yaml"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
 	istioModel "istio.io/istio/pilot/pkg/model"
 	"regexp"
@@ -39,15 +40,14 @@ func CreateEntriesForExternalService(serviceName string, endpointServiceEntry st
 func CreateIstioConfigForProvider(request *model.BindRequest, response *model.BindResponse, bindingId string) []istioModel.Config {
 	var istioConfig []istioModel.Config
 	for index, endpoint := range response.Endpoints {
-		originalEndpointHost := endpoint.Host
 		portServiceEntry := uint32(endpoint.Port)
 		ingressDomain := "services.cf.dev01.aws.istio.sapcloud.io"
 		consumerId := request.NetworkData.Data.ConsumerId
 		ingressPort := uint32(9000)
 
-		serviceName := createValidIdentifer(fmt.Sprintf("%s-%v", bindingId, originalEndpointHost))
-		endpointServiceEntry := originalEndpointHost
-		hostVirtualService := fmt.Sprintf("%d.%s.%s", index, bindingId, ingressDomain)
+		serviceName := createValidIdentifer(fmt.Sprintf("%d-%s", index, bindingId))
+		endpointServiceEntry := endpoint.Host
+		hostVirtualService := profiles.CreateEndpointHosts(bindingId, ingressDomain, index)
 		istioConfig = append(istioConfig,
 			CreateEntriesForExternalService(serviceName, endpointServiceEntry, portServiceEntry, hostVirtualService, consumerId, ingressPort)...)
 	}

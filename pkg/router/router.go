@@ -186,14 +186,13 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 			return
 		}
 		if proxyConfig.providerId != "" {
-			serviceId := ctx.Params.ByName("instance_id")
 			bindingId := ctx.Params.ByName("binding_id")
 			systemDomain := proxyConfig.systemDomain
 			providerId := proxyConfig.providerId
 			if len(bindResponse.Endpoints) == 0 {
 				bindResponse.Endpoints = bindResponse.Credentials.Endpoints
 			}
-			profiles.AddIstioNetworkDataToResponse(providerId, serviceId, systemDomain, proxyConfig.loadBalancerPort, &bindResponse)
+			profiles.AddIstioNetworkDataToResponse(providerId, bindingId, systemDomain, proxyConfig.loadBalancerPort, &bindResponse)
 
 			writeIstioFilesForProvider(proxyConfig.istioDirectory, bindingId, &bindRequest, &bindResponse)
 		}

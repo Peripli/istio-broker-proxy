@@ -7,11 +7,11 @@ import (
 
 const NetworkProfile = "urn:com.sap.istio:public"
 
-func AddIstioNetworkDataToResponse(providerId string, serviceId string, systemDomain string, portNumber int, body *model.BindResponse) {
+func AddIstioNetworkDataToResponse(providerId string, bindingId string, systemDomain string, portNumber int, body *model.BindResponse) {
 
 	endpointCount := len(body.Endpoints)
 
-	endpointHosts := createEndpointHostsBasedOnSystemDomainServiceId(serviceId, systemDomain, endpointCount)
+	endpointHosts := createEndpointHostsBasedOnSystemDomainServiceId(bindingId, systemDomain, endpointCount)
 
 	newEndpoints := make([]model.Endpoint, 0)
 	for _, endpointHost := range endpointHosts {
@@ -29,12 +29,16 @@ func AddIstioNetworkDataToResponse(providerId string, serviceId string, systemDo
 
 }
 
-func createEndpointHostsBasedOnSystemDomainServiceId(serviceId string, systemDomain string, count int) []string {
+func createEndpointHostsBasedOnSystemDomainServiceId(bindingId string, systemDomain string, count int) []string {
 	var endpointsHosts []string
 
 	for i := 0; i < count; i++ {
-		newHost := fmt.Sprintf("%d.%s.%s", i+1, serviceId, systemDomain)
+		newHost := CreateEndpointHosts(bindingId, systemDomain, i)
 		endpointsHosts = append(endpointsHosts, newHost)
 	}
 	return endpointsHosts
+}
+
+func CreateEndpointHosts(bindingId string, systemDomain string, index int) string {
+	return fmt.Sprintf("%d.%s.%s", index, bindingId, systemDomain)
 }

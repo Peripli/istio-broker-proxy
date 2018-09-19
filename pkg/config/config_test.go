@@ -218,7 +218,7 @@ func TestCreateIstioConfigForProvider(t *testing.T) {
 
 	g.Expect(gatewaySpec[0]).To(ContainSubstring("147"))
 	g.Expect(gatewaySpec[0]).To(ContainSubstring("0.my-binding-id.services.cf.dev01.aws.istio.sapcloud.io"))
-	g.Expect(gatewayMetadata[0]).To(ContainSubstring("name: my-binding-id-1-1-1-1-gateway"))
+	g.Expect(gatewayMetadata[0]).To(ContainSubstring("name: 0-my-binding-id-gateway"))
 	g.Expect(serviceEntrySpec[0]).To(ContainSubstring("- address: 1.1.1.1"))
 	g.Expect(serviceEntrySpec[1]).To(ContainSubstring("- address: 2.2.2.2"))
 	g.Expect(virtualServiceSpec[0]).To(ContainSubstring("number: 9999"))
