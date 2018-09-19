@@ -290,7 +290,6 @@ func SetupRouter() *gin.Engine {
 }
 
 func Run() {
-	flag.IntVar(&proxyConfig.port, "port", DefaultPort, "port to be used")
 	SetupConfiguration()
 	flag.Parse()
 
