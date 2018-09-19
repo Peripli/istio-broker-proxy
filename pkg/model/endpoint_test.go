@@ -215,5 +215,5 @@ func TestEndpointHostIsIP(t *testing.T) {
             }`)
 	var ep Endpoint
 	err := json.Unmarshal(body, &ep)
-	g.Expect(err).To(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 }
