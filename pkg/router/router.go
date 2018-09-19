@@ -13,12 +13,17 @@ import (
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 	"io"
 	"io/ioutil"
+	istioModel "istio.io/istio/pilot/pkg/model"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"os"
 	"path"
 	"strings"
+)
+
+const (
+	DefaultPort = 8080
 )
 
 type ProxyConfig struct {
@@ -31,6 +36,7 @@ type ProxyConfig struct {
 	consumerId         string
 	loadBalancerPort   int
 	istioDirectory     string
+	ipAddress          string
 }
 
 var (
@@ -38,6 +44,8 @@ var (
 		httpClientFactory:  httpClientFactory,
 		httpRequestFactory: httpRequestFactory,
 		istioDirectory:     os.TempDir(),
+		port:               DefaultPort,
+		ipAddress:          "127.0.0.1",
 	}
 )
 
@@ -69,7 +77,11 @@ func (client osbProxy) updateCredentials(ctx *gin.Context) {
 }
 
 func writeIstioFilesForProvider(istioDirectory string, bindingId string, request *model.BindRequest, response *model.BindResponse) error {
-	ymlPath := path.Join(istioDirectory, bindingId) + ".yml"
+	return writeIstioConfigFiles(istioDirectory, bindingId, config.CreateIstioConfigForProvider(request, response, bindingId))
+}
+
+func writeIstioConfigFiles(istioDirectory string, fileName string, configuration []istioModel.Config) error {
+	ymlPath := path.Join(istioDirectory, fileName) + ".yml"
 	log.Printf("PATH to istio config: %v\n", ymlPath)
 	file, err := os.Create(ymlPath)
 	if nil != err {
@@ -77,9 +89,7 @@ func writeIstioFilesForProvider(istioDirectory string, bindingId string, request
 	}
 	defer file.Close()
 
-	istioConfig := config.CreateIstioConfigForProvider(request, response, bindingId)
-
-	fileContent, err := config.ToYamlDocuments(istioConfig)
+	fileContent, err := config.ToYamlDocuments(configuration)
 	if nil != err {
 		return err
 	}
@@ -266,14 +276,29 @@ func SetupRouter() *gin.Engine {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
+
 	client := osbProxy{proxyConfig.httpClientFactory(tr)}
 	if proxyConfig.providerId != "" {
+		writeIstioConfigFiles(proxyConfig.istioDirectory, "istio-broker",
+			config.CreateEntriesForExternalService("istio-broker", string(proxyConfig.ipAddress), uint32(proxyConfig.port), "istio-broker-host", "client.istio.sapcloud.io", 9000))
 		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
 	}
 	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardBindRequest)
 	mux.NoRoute(client.forward)
 
 	return mux
+}
+
+func Run() {
+	flag.IntVar(&proxyConfig.port, "port", DefaultPort, "port to be used")
+	SetupConfiguration()
+	flag.Parse()
+
+	log.Printf("Running on port %d\n", proxyConfig.port)
+
+	router := SetupRouter()
+	router.Run(fmt.Sprintf(":%d", proxyConfig.port))
+
 }
 
 func SetupConfiguration() {
@@ -283,4 +308,6 @@ func SetupConfiguration() {
 	flag.StringVar(&proxyConfig.consumerId, "consumerId", "", "The subject alternative name of the consumer for which the service has a certificate")
 	flag.IntVar(&proxyConfig.loadBalancerPort, "loadBalancerPort", 0, "port of the load balancer of the landscape")
 	flag.StringVar(&proxyConfig.istioDirectory, "istioDirectory", os.TempDir(), "Directory to store the istio configuration files")
+	flag.StringVar(&proxyConfig.ipAddress, "ipAddress", "127.0.0.1", "IP address of ingress")
+	flag.IntVar(&proxyConfig.port, "port", DefaultPort, "Server listen port")
 }

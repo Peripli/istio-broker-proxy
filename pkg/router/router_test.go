@@ -60,31 +60,31 @@ func TestValidUpdateCredentials(t *testing.T) {
 func TestCreateNewURL(t *testing.T) {
 	const internalHost = "internal-name.test"
 	const externalURL = "https://external-name.test/cf"
-	const path = "hello"
+	const helloPath = "hello"
 
 	t.Run("Test rewrite host", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 		body := []byte{'{', '}'}
-		request, _ := http.NewRequest(http.MethodGet, "https://"+internalHost+"/"+path, bytes.NewReader(body))
+		request, _ := http.NewRequest(http.MethodGet, "https://"+internalHost+"/"+helloPath, bytes.NewReader(body))
 		request.Header = make(http.Header)
 		request.Header["accept"] = []string{"application/json"}
 
 		got := createNewUrl(externalURL, request)
 
-		want := externalURL + "/" + path
+		want := externalURL + "/" + helloPath
 		g.Expect(got).To(Equal(want))
 	})
 
 	t.Run("Test rewrite host with parameter", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 		body := []byte{'{', '}'}
-		request, _ := http.NewRequest(http.MethodGet, "https://"+internalHost+"/"+path+"?debug=true", bytes.NewReader(body))
+		request, _ := http.NewRequest(http.MethodGet, "https://"+internalHost+"/"+helloPath+"?debug=true", bytes.NewReader(body))
 		request.Header = make(http.Header)
 		request.Header["accept"] = []string{"application/json"}
 
 		got := createNewUrl(externalURL, request)
 
-		want := externalURL + "/" + path + "?debug=true"
+		want := externalURL + "/" + helloPath + "?debug=true"
 		g.Expect(got).To(Equal(want))
 	})
 }
@@ -450,4 +450,19 @@ func TestCorrectRequestParamForDelete(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(handlerStub.spy.url).To(Equal("http://xxxxx.xx/suffix/delete?plan_id=myplan"))
+}
+
+func TestDefaultConfigurationIsWritten(t *testing.T) {
+	proxyConfig.providerId = "your-provider"
+	g := NewGomegaWithT(t)
+	proxyConfig.port = 147
+	SetupRouter()
+	file, err := os.Open(path.Join(proxyConfig.istioDirectory, "istio-broker.yml"))
+	g.Expect(err).NotTo(HaveOccurred())
+	content, err := ioutil.ReadAll(file)
+	contentAsString := string(content)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(contentAsString).To(ContainSubstring("147"))
+	g.Expect(contentAsString).To(MatchRegexp("number: 9000"))
+
 }
