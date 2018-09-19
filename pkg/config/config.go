@@ -16,6 +16,7 @@ const (
 	virtualService  = "VirtualService"
 	destinationRule = "DestinationRule"
 )
+
 var invalidIdentifiers = regexp.MustCompile(`[^0-9a-z-]`)
 
 var schemas = map[string]istioModel.ProtoSchema{
@@ -37,7 +38,7 @@ func CreateEntriesForExternalService(serviceName string, endpointServiceEntry st
 
 func CreateIstioConfigForProvider(request *model.BindRequest, response *model.BindResponse, bindingId string) []istioModel.Config {
 	var istioConfig []istioModel.Config
-	for _, endpoint := range response.Endpoints {
+	for index, endpoint := range response.Endpoints {
 		originalEndpointHost := endpoint.Host
 		portServiceEntry := uint32(endpoint.Port)
 		ingressDomain := "services.cf.dev01.aws.istio.sapcloud.io"
@@ -46,7 +47,7 @@ func CreateIstioConfigForProvider(request *model.BindRequest, response *model.Bi
 
 		serviceName := createValidIdentifer(fmt.Sprintf("%s-%v", bindingId, originalEndpointHost))
 		endpointServiceEntry := originalEndpointHost
-		hostVirtualService := fmt.Sprintf("%s-%v-%s", bindingId, originalEndpointHost, ingressDomain)
+		hostVirtualService := fmt.Sprintf("%d.%s.%s", index, bindingId, ingressDomain)
 		istioConfig = append(istioConfig,
 			CreateEntriesForExternalService(serviceName, endpointServiceEntry, portServiceEntry, hostVirtualService, consumerId, ingressPort)...)
 	}
@@ -55,7 +56,7 @@ func CreateIstioConfigForProvider(request *model.BindRequest, response *model.Bi
 
 func createValidIdentifer(identifer string) string {
 	validIdentifier := invalidIdentifiers.ReplaceAllString(strings.ToLower(identifer), "-")
-	if strings.HasPrefix(validIdentifier, "-"){
+	if strings.HasPrefix(validIdentifier, "-") {
 		validIdentifier = strings.TrimPrefix(validIdentifier, "-")
 	}
 	return validIdentifier

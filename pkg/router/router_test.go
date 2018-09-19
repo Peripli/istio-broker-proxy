@@ -317,6 +317,7 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(contentAsString).To(ContainSubstring("147"))
 	g.Expect(contentAsString).To(MatchRegexp("number: 9000"))
+	g.Expect(contentAsString).To(MatchRegexp("0.456.services.cf.dev01.aws.istio.sapcloud.io"))
 }
 
 func TestHttpClientError(t *testing.T) {
