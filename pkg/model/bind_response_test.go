@@ -185,7 +185,7 @@ func TestHaPostgresExample(t *testing.T) {
 
 func TestIgnoreBlueprintService(t *testing.T) {
 	g := NewGomegaWithT(t)
-	body := []byte(`{"credentials":{"hostname":"10.11.241.0","ports":{"8080/tcp":"47818"},"port":"47818","username":"Oqkg-yyjb5Hv_0jJ","password":"vPGsyx0RjNWQ06dF","uri":"http://Oqkg-yyjb5Hv_0jJ:vPGsyx0RjNWQ06dF@10.11.241.0:47818"}}`)
+	body := []byte(`{"credentials":{"hostname":"10.11.241.0","ports":{"8080/tcp":"47818"},"port":47818,"username":"Oqkg-yyjb5Hv_0jJ","password":"vPGsyx0RjNWQ06dF","uri":"http://Oqkg-yyjb5Hv_0jJ:vPGsyx0RjNWQ06dF@10.11.241.0:47818"}}`)
 
 	var result BindResponse
 	err := json.Unmarshal(body, &result)

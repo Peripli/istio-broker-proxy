@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 )
 
 func addProperty(additionalProperties map[string]json.RawMessage, key string, data interface{}) {
@@ -32,4 +33,20 @@ func clone(original map[string]json.RawMessage) map[string]json.RawMessage {
 		copied[key] = value
 	}
 	return copied
+}
+
+func removeIntOrStringProperty(additionalProperties map[string]json.RawMessage, key string, data *int) error {
+	var untyped interface{}
+	err := removeProperty(additionalProperties, key, &untyped)
+	if err != nil {
+		return err
+	}
+	if untyped != nil {
+		portAsString := fmt.Sprintf("%v", untyped)
+		*data, err = strconv.Atoi(portAsString)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -48,3 +48,38 @@ func TestCredentialsInvalidAdditionalProperties(t *testing.T) {
 	err := json.Unmarshal([]byte(`[]`), &credentials)
 	g.Expect(err).To(HaveOccurred())
 }
+
+func TestCredentialsInvalidEndpoints(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var credentials Credentials
+	err := json.Unmarshal([]byte(`{ "end_points" : "test"}`), &credentials)
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestCredentialsInvalidUri(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var credentials Credentials
+	err := json.Unmarshal([]byte(`{ "uri" : 1234}`), &credentials)
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestCredentialsInvalidPort(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var credentials Credentials
+	err := json.Unmarshal([]byte(`{ "port" : []}`), &credentials)
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestCredentialsInvalidHostname(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var credentials Credentials
+	err := json.Unmarshal([]byte(`{ "hostname" : 1234}`), &credentials)
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestCredentialsInvalidEndpointMappings(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var credentials Credentials
+	err := json.Unmarshal([]byte(`{ "endpoint_mappings" : 1234}`), &credentials)
+	g.Expect(err).To(HaveOccurred())
+}
