@@ -37,17 +37,16 @@ func CreateEntriesForExternalService(serviceName string, endpointServiceEntry st
 	return configs
 }
 
-func CreateIstioConfigForProvider(request *model.BindRequest, response *model.BindResponse, bindingId string) []istioModel.Config {
+func CreateIstioConfigForProvider(request *model.BindRequest, response *model.BindResponse, bindingId string, systemDomain string) []istioModel.Config {
 	var istioConfig []istioModel.Config
 	for index, endpoint := range response.Endpoints {
 		portServiceEntry := uint32(endpoint.Port)
-		ingressDomain := "services.cf.dev01.aws.istio.sapcloud.io"
 		consumerId := request.NetworkData.Data.ConsumerId
 		ingressPort := uint32(9000)
 
 		serviceName := createValidIdentifer(fmt.Sprintf("%d-%s", index, bindingId))
 		endpointServiceEntry := endpoint.Host
-		hostVirtualService := profiles.CreateEndpointHosts(bindingId, ingressDomain, index)
+		hostVirtualService := profiles.CreateEndpointHosts(bindingId, systemDomain, index)
 		istioConfig = append(istioConfig,
 			CreateEntriesForExternalService(serviceName, endpointServiceEntry, portServiceEntry, hostVirtualService, consumerId, ingressPort)...)
 	}

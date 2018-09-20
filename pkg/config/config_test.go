@@ -194,7 +194,7 @@ func TestCreateIstioConfigForProvider(t *testing.T) {
 
 		Credentials: model.Credentials{AdditionalProperties: map[string]json.RawMessage{"user": json.RawMessage([]byte(`"myuser"`))}}}
 
-	istioConfig := CreateIstioConfigForProvider(&request, &response, "my-binding-id")
+	istioConfig := CreateIstioConfigForProvider(&request, &response, "my-binding-id", "my-domain")
 
 	gatewaySpec, gatewayMetadata := getSpecsAndMetadatasFromConfig(g, istioConfig, gateway)
 
@@ -217,7 +217,7 @@ func TestCreateIstioConfigForProvider(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 
 	g.Expect(gatewaySpec[0]).To(ContainSubstring("147"))
-	g.Expect(gatewaySpec[0]).To(ContainSubstring("0.my-binding-id.services.cf.dev01.aws.istio.sapcloud.io"))
+	g.Expect(gatewaySpec[0]).To(ContainSubstring("0.my-binding-id.services.my-domain"))
 	g.Expect(gatewayMetadata[0]).To(ContainSubstring("name: 0-my-binding-id-gateway"))
 	g.Expect(serviceEntrySpec[0]).To(ContainSubstring("- address: 1.1.1.1"))
 	g.Expect(serviceEntrySpec[1]).To(ContainSubstring("- address: 2.2.2.2"))

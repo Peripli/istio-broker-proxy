@@ -77,7 +77,7 @@ func (client osbProxy) updateCredentials(ctx *gin.Context) {
 }
 
 func writeIstioFilesForProvider(istioDirectory string, bindingId string, request *model.BindRequest, response *model.BindResponse) error {
-	return writeIstioConfigFiles(istioDirectory, bindingId, config.CreateIstioConfigForProvider(request, response, bindingId))
+	return writeIstioConfigFiles(istioDirectory, bindingId, config.CreateIstioConfigForProvider(request, response, bindingId, proxyConfig.systemDomain))
 }
 
 func writeIstioConfigFiles(istioDirectory string, fileName string, configuration []istioModel.Config) error {
@@ -281,7 +281,7 @@ func SetupRouter() *gin.Engine {
 	client := osbProxy{proxyConfig.httpClientFactory(tr)}
 	if proxyConfig.providerId != "" {
 		writeIstioConfigFiles(proxyConfig.istioDirectory, "istio-broker",
-			config.CreateEntriesForExternalService("istio-broker", string(proxyConfig.ipAddress), uint32(proxyConfig.port), "istio-broker-host", "client.istio.sapcloud.io", 9000))
+			config.CreateEntriesForExternalService("istio-broker", string(proxyConfig.ipAddress), uint32(proxyConfig.port), "istio-broker-host.services."+proxyConfig.systemDomain, "client.istio.sapcloud.io", 9000))
 		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
 	}
 	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardBindRequest)
