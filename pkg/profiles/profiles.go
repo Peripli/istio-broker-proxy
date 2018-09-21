@@ -40,5 +40,5 @@ func createEndpointHostsBasedOnSystemDomainServiceId(bindingId string, systemDom
 }
 
 func CreateEndpointHosts(bindingId string, systemDomain string, index int) string {
-	return fmt.Sprintf("%d.%s.services.%s", index, bindingId, systemDomain)
+	return fmt.Sprintf("%d.%s.%s", index, bindingId, systemDomain)
 }

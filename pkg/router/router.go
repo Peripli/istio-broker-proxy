@@ -281,7 +281,7 @@ func SetupRouter() *gin.Engine {
 	client := osbProxy{proxyConfig.httpClientFactory(tr)}
 	if proxyConfig.providerId != "" {
 		writeIstioConfigFiles(proxyConfig.istioDirectory, "istio-broker",
-			config.CreateEntriesForExternalService("istio-broker", string(proxyConfig.ipAddress), uint32(proxyConfig.port), "istio-broker-host.services."+proxyConfig.systemDomain, "client.istio.sapcloud.io", 9000))
+			config.CreateEntriesForExternalService("istio-broker", string(proxyConfig.ipAddress), uint32(proxyConfig.port), "istio-broker-host."+proxyConfig.systemDomain, "client.istio.sapcloud.io", 9000))
 		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
 	}
 	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardBindRequest)

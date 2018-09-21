@@ -194,7 +194,7 @@ func TestCreateIstioConfigForProvider(t *testing.T) {
 
 		Credentials: model.Credentials{AdditionalProperties: map[string]json.RawMessage{"user": json.RawMessage([]byte(`"myuser"`))}}}
 
-	istioConfig := CreateIstioConfigForProvider(&request, &response, "my-binding-id", "my-domain")
+	istioConfig := CreateIstioConfigForProvider(&request, &response, "my-binding-id", "services.my-domain")
 
 	gatewaySpec, gatewayMetadata := getSpecsAndMetadatasFromConfig(g, istioConfig, gateway)
 

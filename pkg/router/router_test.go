@@ -273,7 +273,7 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 
 func TestIstioConfigFilesAreWritten(t *testing.T) {
 	proxyConfig.forwardURL = "http://xxxxx.xx"
-	proxyConfig.systemDomain = "istio.sapcloud.io"
+	proxyConfig.systemDomain = "services.cf.dev99.sc6.istio.sapcloud.io"
 	proxyConfig.providerId = "your-provider"
 	proxyConfig.istioDirectory = "/tmp"
 	proxyConfig.loadBalancerPort = 9000
@@ -317,7 +317,7 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(contentAsString).To(ContainSubstring("147"))
 	g.Expect(contentAsString).To(MatchRegexp("number: 9000"))
-	g.Expect(contentAsString).To(MatchRegexp("0.456.services.istio.sapcloud.io"))
+	g.Expect(contentAsString).To(MatchRegexp("0.456.services.cf.dev99.sc6.istio.sapcloud.io"))
 }
 
 func TestHttpClientError(t *testing.T) {
@@ -457,6 +457,7 @@ func TestCorrectRequestParamForDelete(t *testing.T) {
 
 func TestDefaultConfigurationIsWritten(t *testing.T) {
 	proxyConfig.providerId = "your-provider"
+	proxyConfig.systemDomain = "services.domain"
 	g := NewGomegaWithT(t)
 	proxyConfig.port = 147
 	SetupRouter()
@@ -466,6 +467,7 @@ func TestDefaultConfigurationIsWritten(t *testing.T) {
 	contentAsString := string(content)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(contentAsString).To(ContainSubstring("147"))
+	g.Expect(contentAsString).To(ContainSubstring("istio-broker-host.services.domain"))
 	g.Expect(contentAsString).To(MatchRegexp("number: 9000"))
 
 }

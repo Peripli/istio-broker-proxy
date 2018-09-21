@@ -27,7 +27,7 @@ func TestCreateEndpointHosts(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	serviceId := "postgres-34de6ac"
-	systemDomain := "istio.sapcloud.io"
+	systemDomain := "services.istio.sapcloud.io"
 
 	endpointHost := createEndpointHostsBasedOnSystemDomainServiceId(serviceId, systemDomain, 2)
 
@@ -41,7 +41,7 @@ func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
 
 	var body model.BindResponse
 	json.Unmarshal([]byte(`{"something_else": "body of response", "endpoints": [{"host": "10.0.0.3"}, {"host" : "10.0.0.4"}]}`), &body)
-	AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "istio.sapcloud.io", 9000, &body)
+	AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "services.istio.sapcloud.io", 9000, &body)
 
 	g.Expect(body).NotTo(BeNil())
 
@@ -70,5 +70,5 @@ func TestBlueprintServiceDoesntCrash(t *testing.T) {
 
 func TestCreateEndpointHost(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(CreateEndpointHosts("binding-id", "domain", 0)).To(Equal("0.binding-id.services.domain"))
+	g.Expect(CreateEndpointHosts("binding-id", "domain", 0)).To(Equal("0.binding-id.domain"))
 }
