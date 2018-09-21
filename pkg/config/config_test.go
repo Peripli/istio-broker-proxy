@@ -1,6 +1,8 @@
 package config
 
 import (
+	"encoding/json"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
 	"regexp"
 	"testing"
 
@@ -8,13 +10,13 @@ import (
 	. "github.com/onsi/gomega"
 	"istio.io/api/networking/v1alpha3"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
-	"istio.io/istio/pilot/pkg/model"
+	istioModel "istio.io/istio/pilot/pkg/model"
 )
 
 func TestCompleteEntryNotEmpty(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape")
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", "client.istio.sapcloud.io", 9000)
 
 	g.Expect(configObjects).To(HaveLen(3))
 }
@@ -30,15 +32,24 @@ func TestCompleteClientEntryNotEmpty(t *testing.T) {
 func TestCompleteEntryGateway(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape")
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", "client.istio.sapcloud.io", 9000)
 
 	gatewaySpec, gatewayMetadata := getSpecAndMetadataFromConfig(g, configObjects, gateway)
+
+	err := istioModel.ValidateGateway("test", "test", configObjects[0].Spec)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	err = istioModel.ValidateVirtualService("test", "test", configObjects[1].Spec)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	err = istioModel.ValidateServiceEntry("test", "test", configObjects[2].Spec)
+	g.Expect(err).NotTo(HaveOccurred())
 
 	g.Expect(gatewaySpec).To(ContainSubstring("myservice.landscape"))
 	g.Expect(gatewaySpec).To(ContainSubstring("9000"))
 	g.Expect(gatewaySpec).To(ContainSubstring("client.istio.sapcloud.io"))
-	g.Expect(gatewaySpec).To(ContainSubstring("config/certs/myservice.key"))
-	g.Expect(gatewaySpec).To(ContainSubstring("config/certs/myservice.crt"))
+	g.Expect(gatewaySpec).To(ContainSubstring("config/certs/pinger.key"))
+	g.Expect(gatewaySpec).To(ContainSubstring("config/certs/pinger.crt"))
 
 	g.Expect(gatewayMetadata).To(ContainSubstring("name: myservice-gateway"))
 }
@@ -46,7 +57,7 @@ func TestCompleteEntryGateway(t *testing.T) {
 func TestCompleteServiceEntry(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape")
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", "client.istio.sapcloud.io", 9000)
 
 	serviceEntrySpec, serviceEntryMetadata := getSpecAndMetadataFromConfig(g, configObjects, serviceEntry)
 
@@ -59,7 +70,7 @@ func TestCompleteServiceEntry(t *testing.T) {
 func TestCompleteVirtualService(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape")
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", "client.istio.sapcloud.io", 9000)
 	virtualServiceSpec, _ := getSpecAndMetadataFromConfig(g, configObjects, virtualService)
 
 	g.Expect(virtualServiceSpec).To(ContainSubstring("myservice.landscape"))
@@ -149,7 +160,7 @@ func TestCompleteEntryClientVirtualServices(t *testing.T) {
 
 func TestCreatesYamlDocuments(t *testing.T) {
 	g := NewGomegaWithT(t)
-	dummyConfigs := []model.Config{model.Config{Spec: &v1alpha3.ServiceEntry{}}}
+	dummyConfigs := []istioModel.Config{{Spec: &v1alpha3.ServiceEntry{}}}
 	dummyConfigs[0].Type = serviceEntry
 	text, err := ToYamlDocuments(dummyConfigs)
 	g.Expect(err).ShouldNot(HaveOccurred())
@@ -159,17 +170,76 @@ func TestCreatesYamlDocuments(t *testing.T) {
 func TestErrorInToText(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	_, err := toText(model.Config{})
+	_, err := toText(istioModel.Config{})
 
 	g.Expect(err).Should(HaveOccurred())
 }
 
-func getSpecAndMetadataFromConfig(g *GomegaWithT, configObjects []model.Config, configType string) (string, string) {
+func TestCreateIstioConfigForProvider(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	eps := []model.Endpoint{{"1.1.1.1", 9999}, {"2.2.2.2", 7777}}
+
+	request := model.BindRequest{
+		NetworkData: model.NetworkDataRequest{
+			NetworkProfileId: "my-profile-id",
+			Data:             model.DataRequest{ConsumerId: "147"}}}
+	response := model.BindResponse{
+		NetworkData: model.NetworkDataResponse{
+			NetworkProfileId: "your-profile-id",
+			Data: model.DataResponse{
+				ProviderId: "852",
+			}},
+		Endpoints: eps,
+
+		Credentials: model.Credentials{AdditionalProperties: map[string]json.RawMessage{"user": json.RawMessage([]byte(`"myuser"`))}}}
+
+	istioConfig := CreateIstioConfigForProvider(&request, &response, "my-binding-id", "my-domain")
+
+	gatewaySpec, gatewayMetadata := getSpecsAndMetadatasFromConfig(g, istioConfig, gateway)
+
+	virtualServiceSpec, _ := getSpecsAndMetadatasFromConfig(g, istioConfig, virtualService)
+
+	serviceEntrySpec, _ := getSpecsAndMetadatasFromConfig(g, istioConfig, serviceEntry)
+
+	g.Expect(len(gatewaySpec)).To(Equal(len(eps)))
+	g.Expect(len(gatewayMetadata)).To(Equal(len(eps)))
+	g.Expect(len(virtualServiceSpec)).To(Equal(len(eps)))
+	g.Expect(len(serviceEntrySpec)).To(Equal(len(eps)))
+
+	err := istioModel.ValidateGateway("test", "test", istioConfig[0].Spec)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	err = istioModel.ValidateVirtualService("test", "test", istioConfig[1].Spec)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	err = istioModel.ValidateServiceEntry("test", "test", istioConfig[2].Spec)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	g.Expect(gatewaySpec[0]).To(ContainSubstring("147"))
+	g.Expect(gatewaySpec[0]).To(ContainSubstring("0.my-binding-id.services.my-domain"))
+	g.Expect(gatewayMetadata[0]).To(ContainSubstring("name: 0-my-binding-id-gateway"))
+	g.Expect(serviceEntrySpec[0]).To(ContainSubstring("- address: 1.1.1.1"))
+	g.Expect(serviceEntrySpec[1]).To(ContainSubstring("- address: 2.2.2.2"))
+	g.Expect(virtualServiceSpec[0]).To(ContainSubstring("number: 9999"))
+	g.Expect(virtualServiceSpec[1]).To(ContainSubstring("number: 7777"))
+
+}
+
+func TestValidIdentifier(t *testing.T) {
+	g := NewGomegaWithT(t)
+	g.Expect(createValidIdentifer("10.1.2.3")).To(Equal("10-1-2-3"))
+	g.Expect(createValidIdentifer(".10.1.2.3")).To(Equal("10-1-2-3"))
+	g.Expect(createValidIdentifer("&10^1%2$3")).To(Equal("10-1-2-3"))
+	g.Expect(createValidIdentifer("ABC-123")).To(Equal("abc-123"))
+
+}
+func getSpecAndMetadataFromConfig(g *GomegaWithT, configObjects []istioModel.Config, configType string) (string, string) {
 	specs, metadatas := getSpecsAndMetadatasFromConfig(g, configObjects, configType)
 	return specs[0], metadatas[0]
 }
 
-func getSpecsAndMetadatasFromConfig(g *GomegaWithT, configObjects []model.Config, configType string) ([]string, []string) {
+func getSpecsAndMetadatasFromConfig(g *GomegaWithT, configObjects []istioModel.Config, configType string) ([]string, []string) {
 	configs := lookupObjectsFromConfigs(configObjects, configType)
 	var specs, metadatas []string
 	for _, config := range configs {
@@ -185,7 +255,7 @@ func getSpecsAndMetadatasFromConfig(g *GomegaWithT, configObjects []model.Config
 	return specs, metadatas
 }
 
-func lookupObjectsFromConfigs(configObjects []model.Config, kind string) (array []model.Config) {
+func lookupObjectsFromConfigs(configObjects []istioModel.Config, kind string) (array []istioModel.Config) {
 	for _, entry := range configObjects {
 		if entry.Type == kind {
 			array = append(array, entry)

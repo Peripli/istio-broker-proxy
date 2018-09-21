@@ -1,13 +1,6 @@
-FROM ubuntu:16.04 as build-env
+FROM gcr.io/sap-se-gcp-istio-dev/client
 
-RUN apt-get update
-RUN apt-get -y install golang
-
-WORKDIR /go/src/github.infra.hana.ondemand.com/istio/istio-broker
-ADD . .
-ENV GOPATH /go
-RUN GOOS=linux go build -v  -o istio-broker
-RUN ls -la istio-broker
-RUN mkdir -p /app && cp istio-broker /app
+RUN mkdir -p /app
+ADD istio-broker /app/istio-broker
 
 ENTRYPOINT [ "/app/istio-broker" ]

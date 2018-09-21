@@ -12,4 +12,3 @@ func Update(in []byte) ([]byte, error) {
 	out := translateCredentials(asString)
 	return []byte(out), nil
 }
-

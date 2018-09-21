@@ -7,8 +7,8 @@ import (
 
 func TestEndpointMatcher(t *testing.T) {
 	g := NewGomegaWithT(t)
-	g.Expect(`{"endpoints": [{"host": "myhost", "port": "1234"}] }`).To(haveTheEndpoint("myhost", "1234"))
-	g.Expect(`{"endpoints": [{"host": "myhost", "port": "1234"}] }`).NotTo(haveTheEndpoint("myhost", "12345"))
+	g.Expect(`{"endpoints": [{"host": "myhost", "port": "1234"}] }`).To(HaveTheEndpoint("myhost", "1234"))
+	g.Expect(`{"endpoints": [{"host": "myhost", "port": "1234"}] }`).NotTo(HaveTheEndpoint("myhost", "12345"))
 }
 
 func TestEndpointMatcherMessage(t *testing.T) {

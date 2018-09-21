@@ -19,5 +19,5 @@ func TestUpdateSimpleExample(t *testing.T) {
 	response, err := Update([]byte(exampleRequest))
 
 	g.Expect(err).ShouldNot(HaveOccurred())
-	g.Expect(string(response)).To(haveTheEndpoint("appnethost", "9876"))
+	g.Expect(string(response)).To(HaveTheEndpoint("appnethost", "9876"))
 }

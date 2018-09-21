@@ -1,0 +1,3 @@
+#!/bin/sh
+docker build . -t gcr.io/sap-se-gcp-istio-dev/istiobroker
+docker push gcr.io/sap-se-gcp-istio-dev/istiobroker

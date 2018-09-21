@@ -25,7 +25,6 @@ func translateCredentials(request string) string {
 	}
 
 	topLevelJson[key_endpoints] = endpoints
-
 	bytes, _ := json.Marshal(topLevelJson)
 	return string(bytes[:])
 }
