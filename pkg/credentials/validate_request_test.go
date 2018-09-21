@@ -299,3 +299,27 @@ func TestShouldApplyEndpointMatchOnUri(t *testing.T) {
 
 	g.Expect(shouldApply(validEndpointMapping, validCredentials)).To(BeTrue())
 }
+
+func TestShouldApplyEndpointMatchOnWriteUrl(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	var validEndpointMapping map[string]interface{}
+	json.Unmarshal([]byte(minimalValidEndpointMapping), &validEndpointMapping)
+
+	var validCredentials map[string]interface{}
+	json.Unmarshal([]byte((`{ "hostname": "xx",  "port": "99", "uri": "postgres://a:b@xx:99/d", "write_url": "x:y://a:1/z"}`)), &validCredentials)
+
+	g.Expect(shouldApply(validEndpointMapping, validCredentials)).To(BeTrue())
+}
+
+func TestShouldApplyEndpointMatchOnReadUrl(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	var validEndpointMapping map[string]interface{}
+	json.Unmarshal([]byte(minimalValidEndpointMapping), &validEndpointMapping)
+
+	var validCredentials map[string]interface{}
+	json.Unmarshal([]byte((`{ "hostname": "xx",  "port": "99", "uri": "postgres://a:b@xx:99/d", "read_url": "x:y://a:1/z"}`)), &validCredentials)
+
+	g.Expect(shouldApply(validEndpointMapping, validCredentials)).To(BeTrue())
+}

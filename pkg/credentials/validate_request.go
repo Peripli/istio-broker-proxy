@@ -135,7 +135,16 @@ func hasField(jsonMap map[string]interface{}, fieldName string) (bool, error) {
 }
 
 func shouldApply(endpoint map[string]interface{}, credentials map[string]interface{}) bool {
-	url := parseUri(credentials[key_uri].(string))
+	if sourceMatchesCredentials(credentials, endpoint) {
+		return true
+	}
 
-	return sourceMatchesCredentials(credentials, endpoint) || sourceMatchesUri(url, endpoint)
+	if sourceMatchesUri(parseUri(credentials[key_uri].(string)), endpoint) {
+		return true
+	}
+
+	if sourceMatchesReadWriteUrl(credentials, endpoint) {
+		return true
+	}
+	return false
 }
