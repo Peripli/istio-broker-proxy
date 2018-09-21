@@ -97,14 +97,14 @@ func replaceInUrl(url string, endpointMapping map[string]interface{}) string {
 
 func toHostPortPattern(host string, port string) *regexp.Regexp {
 	// the groups are only there to capture the rest of the string around the endpoint in question
-	pattern := fmt.Sprintf("^(.*\\W)%s:%s(\\W.*)$", strings.Replace(host, ".", "\\.", -1), port)
+	pattern := fmt.Sprintf("(\\W)%s:%s(\\W)", strings.Replace(host, ".", "\\.", -1), port)
 
 	return regexp.MustCompile(pattern)
 }
 
 func toHostPattern(host string) *regexp.Regexp {
 	// the groups are only there to capture the rest of the string around the endpoint in question
-	pattern := fmt.Sprintf("^(.*\\W)%s(\\W.*)$", strings.Replace(host, ".", "\\.", -1))
+	pattern := fmt.Sprintf("(\\W)%s(\\W)", strings.Replace(host, ".", "\\.", -1))
 
 	return regexp.MustCompile(pattern)
 }
