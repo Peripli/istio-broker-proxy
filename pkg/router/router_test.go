@@ -467,7 +467,32 @@ func TestDefaultConfigurationIsWritten(t *testing.T) {
 	contentAsString := string(content)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(contentAsString).To(ContainSubstring("147"))
-	g.Expect(contentAsString).To(ContainSubstring("istio-broker-host.services.domain"))
+	g.Expect(contentAsString).To(ContainSubstring("istio-broker.services.domain"))
+	g.Expect(contentAsString).To(MatchRegexp("number: 9000"))
+
+}
+
+func TestYmlFileIsCorrectlyWritten(t *testing.T) {
+	///var/vcap/packages/istio-broker/bin/istio-broker --port 8000 --forwardUrl https://10.11.252.10:9293/cf
+	// --systemdomain services.cf.dev01.aws.istio.sapcloud.io --providerId pinger.services.cf.dev01.aws.istio.sapcloud.io
+	// --loadBalancerPort 9000 --istioDirectory /var/vcap/store/istio-config --ipAddress 10.0.81.0
+	proxyConfig.port = 8000
+	proxyConfig.forwardURL = "https://10.11.252.10:9293/cf"
+	proxyConfig.systemDomain = "services.cf.dev01.aws.istio.sapcloud.io"
+	proxyConfig.providerId = "pinger.services.cf.dev01.aws.istio.sapcloud.io"
+	proxyConfig.loadBalancerPort = 9000
+	//proxyConfig.istioDirectory = "/var/vcap/store/istio-config"
+	proxyConfig.ipAddress = "10.0.81.0"
+
+	g := NewGomegaWithT(t)
+	SetupRouter()
+	file, err := os.Open(path.Join(proxyConfig.istioDirectory, "istio-broker.yml"))
+	g.Expect(err).NotTo(HaveOccurred())
+	content, err := ioutil.ReadAll(file)
+	contentAsString := string(content)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(contentAsString).To(ContainSubstring("8000"))
+	g.Expect(contentAsString).To(ContainSubstring("istio-broker.services.cf.dev01.aws.istio.sapcloud.io"))
 	g.Expect(contentAsString).To(MatchRegexp("number: 9000"))
 
 }
