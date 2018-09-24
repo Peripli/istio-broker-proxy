@@ -29,6 +29,14 @@
   name = "github.com/onsi/gomega"
   version = "1.4.1"
 
+[[constraint]]
+  name = "istio.io/api"
+  branch = "master"
+
+[[constraint]]
+  name = "istio.io/istio"
+  branch = "master"
+
 [prune]
   go-tests = true
   unused-packages = true

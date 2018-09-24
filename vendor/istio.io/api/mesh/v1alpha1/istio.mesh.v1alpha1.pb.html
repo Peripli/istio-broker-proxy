@@ -199,15 +199,6 @@ at runtime and config gets distributed dynamically.</p>
 
 </td>
 </tr>
-<tr id="MeshConfig-mixer_address">
-<td><code>mixerAddress</code></td>
-<td><code>string</code></td>
-<td>
-<p>DEPRECATED. Mixer address. This option will be removed soon. Please
-use mixer<em>check and mixer</em>report.</p>
-
-</td>
-</tr>
 <tr id="MeshConfig-outbound_traffic_policy">
 <td><code>outboundTrafficPolicy</code></td>
 <td><code><a href="#MeshConfig-OutboundTrafficPolicy">MeshConfig.OutboundTrafficPolicy</a></code></td>
@@ -238,11 +229,11 @@ Use secret-mount files instead of SDS if set to empty.</p>
 
 </td>
 </tr>
-<tr id="MeshConfig-sds_refresh_delay">
-<td><code>sdsRefreshDelay</code></td>
-<td><code><a href="https://developers.google.com/protocol-buffers/docs/reference/google.protobuf#duration">google.protobuf.Duration</a></code></td>
+<tr id="MeshConfig-galley_address">
+<td><code>galleyAddress</code></td>
+<td><code>string</code></td>
 <td>
-<p>Polling interval for SDS (MUST BE &gt;=1ms)</p>
+<p>Address of the galley service exposing the Mesh Control Protocol (MCP).</p>
 
 </td>
 </tr>

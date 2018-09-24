@@ -61,22 +61,12 @@ type Service struct {
 	// connections
 	Ports PortList `json:"ports,omitempty"`
 
-	// ExternalName is only set for external services and holds the external
-	// service DNS name.  External services are name-based solution to represent
-	// external service instances as a service inside the cluster.
-	// Deprecated : made obsolete by the MeshExternal and Resolution flags.
-	ExternalName Hostname `json:"external"`
-
 	// ServiceAccounts specifies the service accounts that run the service.
 	ServiceAccounts []string `json:"serviceaccounts,omitempty"`
 
 	// MeshExternal (if true) indicates that the service is external to the mesh.
 	// These services are defined using Istio's ServiceEntry spec.
 	MeshExternal bool
-
-	// LoadBalancingDisabled indicates that no load balancing should be done for this service.
-	// Deprecated : made obsolete by the MeshExternal and Resolution flags.
-	LoadBalancingDisabled bool `json:"-"`
 
 	// Resolution indicates how the service instances need to be resolved before routing
 	// traffic. Most services in the service registry will use static load balancing wherein
@@ -390,26 +380,6 @@ type ServiceDiscovery interface {
 	// Deprecated - do not use for anything other than tests
 	GetService(hostname Hostname) (*Service, error)
 
-	// Instances retrieves instances for a service and its ports that match
-	// any of the supplied labels. All instances match an empty tag list.
-	//
-	// For example, consider the example of catalog.mystore.com as described in NetworkEndpoints
-	// Instances(catalog.myservice.com, 80) ->
-	//      --> NetworkEndpoint(172.16.0.1:8888), Service(catalog.myservice.com), Labels(foo=bar)
-	//      --> NetworkEndpoint(172.16.0.2:8888), Service(catalog.myservice.com), Labels(foo=bar)
-	//      --> NetworkEndpoint(172.16.0.3:8888), Service(catalog.myservice.com), Labels(kitty=cat)
-	//      --> NetworkEndpoint(172.16.0.4:8888), Service(catalog.myservice.com), Labels(kitty=cat)
-	//
-	// Calling Instances with specific labels returns a trimmed list.
-	// e.g., Instances(catalog.myservice.com, 80, foo=bar) ->
-	//      --> NetworkEndpoint(172.16.0.1:8888), Service(catalog.myservice.com), Labels(foo=bar)
-	//      --> NetworkEndpoint(172.16.0.2:8888), Service(catalog.myservice.com), Labels(foo=bar)
-	//
-	// Similar concepts apply for calling this function with a specific
-	// port, hostname and labels.
-	// Deprecated: made obsolete by InstancesByPort
-	Instances(hostname Hostname, ports []string, labels LabelsCollection) ([]*ServiceInstance, error)
-
 	// InstancesByPort retrieves instances for a service on the given ports with labels that match
 	// any of the supplied labels. All instances match an empty tag list.
 	//
@@ -471,13 +441,7 @@ type ServiceDiscovery interface {
 type ServiceAccounts interface {
 	// GetIstioServiceAccounts returns a list of service accounts looked up from
 	// the specified service hostname and ports.
-	GetIstioServiceAccounts(hostname Hostname, ports []string) []string
-}
-
-// String returns Hostname as a string; Hostname is already an alias of a string, so this is really for convenience over
-// explicit casting.
-func (h Hostname) String() string {
-	return string(h)
+	GetIstioServiceAccounts(hostname Hostname, ports []int) []string
 }
 
 // Matches returns true if this Hostname "matches" the other hostname. Hostnames match if:
@@ -488,8 +452,10 @@ func (h Hostname) String() string {
 //  Hostname("foo.com").Matches("foo.com")   = true
 //  Hostname("foo.com").Matches("bar.com")   = false
 //  Hostname("*.com").Matches("foo.com")     = true
-//  Hostname("*.com").Matches("foo.com")     = true
+//  Hostname("*.com").Matches("bar.com")     = true
 //  Hostname("*.foo.com").Matches("foo.com") = false
+//  Hostname("*").Matches("foo.com") = true
+//  Hostname("*").Matches("*.com") = true
 func (h Hostname) Matches(o Hostname) bool {
 	if len(h) == 0 && len(o) == 0 {
 		return true
@@ -525,6 +491,36 @@ func (h Hostname) Matches(o Hostname) bool {
 		return false
 	}
 	return matches
+}
+
+// SubsetOf returns true if this hostname is a valid subset of the other hostname. The semantics are
+// the same as "Matches", but only in one direction.
+func (h Hostname) SubsetOf(o Hostname) bool {
+	if len(h) == 0 && len(o) == 0 {
+		return true
+	}
+
+	hWildcard := string(h[0]) == "*"
+	oWildcard := string(o[0]) == "*"
+	if !oWildcard {
+		if hWildcard {
+			return false
+		}
+		return h == o
+	}
+
+	longer, shorter := string(h), string(o)
+	if hWildcard {
+		longer = string(h[1:])
+	}
+	if oWildcard {
+		shorter = string(o[1:])
+	}
+	if len(longer) < len(shorter) {
+		return false
+	}
+
+	return strings.HasSuffix(longer, shorter)
 }
 
 // Hostnames is a collection of Hostname; it exists so it's easy to sort hostnames consistently across Pilot.
@@ -664,7 +660,7 @@ func (ports PortList) GetByPort(num int) (*Port, bool) {
 
 // External predicate checks whether the service is external
 func (s *Service) External() bool {
-	return s.ExternalName != ""
+	return s.MeshExternal
 }
 
 // Key generates a unique string referencing service instances for a given port and labels.
@@ -684,7 +680,7 @@ func (s *Service) Key(port *Port, labels Labels) string {
 func ServiceKey(hostname Hostname, servicePorts PortList, labelsList LabelsCollection) string {
 	// example: name.namespace|http|env=prod;env=test,version=my-v1
 	var buffer bytes.Buffer
-	buffer.WriteString(hostname.String())
+	buffer.WriteString(string(hostname))
 	np := len(servicePorts)
 	nt := len(labelsList)
 

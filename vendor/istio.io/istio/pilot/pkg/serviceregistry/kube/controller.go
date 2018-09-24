@@ -25,8 +25,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
@@ -102,7 +101,7 @@ type cacheHandler struct {
 
 // NewController creates a new Kubernetes controller
 func NewController(client kubernetes.Interface, options ControllerOptions) *Controller {
-	log.Infof("Service controller watching namespace %q for service, endpoint, nodes and pods, refresh %d",
+	log.Infof("Service controller watching namespace %q for service, endpoint, nodes and pods, refresh %s",
 		options.WatchedNamespace, options.ResyncPeriod)
 
 	// Queue requires a time duration for a retry delay after a handler error
@@ -112,37 +111,19 @@ func NewController(client kubernetes.Interface, options ControllerOptions) *Cont
 		queue:        NewQueue(1 * time.Second),
 	}
 
-	out.services = out.createInformer(&v1.Service{}, "Service", options.ResyncPeriod,
-		func(opts meta_v1.ListOptions) (runtime.Object, error) {
-			return client.CoreV1().Services(options.WatchedNamespace).List(opts)
-		},
-		func(opts meta_v1.ListOptions) (watch.Interface, error) {
-			return client.CoreV1().Services(options.WatchedNamespace).Watch(opts)
-		})
+	sharedInformers := informers.NewFilteredSharedInformerFactory(client, options.ResyncPeriod, options.WatchedNamespace, nil)
 
-	out.endpoints = out.createInformer(&v1.Endpoints{}, "Endpoints", options.ResyncPeriod,
-		func(opts meta_v1.ListOptions) (runtime.Object, error) {
-			return client.CoreV1().Endpoints(options.WatchedNamespace).List(opts)
-		},
-		func(opts meta_v1.ListOptions) (watch.Interface, error) {
-			return client.CoreV1().Endpoints(options.WatchedNamespace).Watch(opts)
-		})
+	svcInformer := sharedInformers.Core().V1().Services().Informer()
+	out.services = out.createCacheHandler(svcInformer, "Service")
 
-	out.nodes = out.createInformer(&v1.Node{}, "Node", options.ResyncPeriod,
-		func(opts meta_v1.ListOptions) (runtime.Object, error) {
-			return client.CoreV1().Nodes().List(opts)
-		},
-		func(opts meta_v1.ListOptions) (watch.Interface, error) {
-			return client.CoreV1().Nodes().Watch(opts)
-		})
+	epInformer := sharedInformers.Core().V1().Endpoints().Informer()
+	out.endpoints = out.createCacheHandler(epInformer, "Endpoints")
 
-	out.pods = newPodCache(out.createInformer(&v1.Pod{}, "Pod", options.ResyncPeriod,
-		func(opts meta_v1.ListOptions) (runtime.Object, error) {
-			return client.CoreV1().Pods(options.WatchedNamespace).List(opts)
-		},
-		func(opts meta_v1.ListOptions) (watch.Interface, error) {
-			return client.CoreV1().Pods(options.WatchedNamespace).Watch(opts)
-		}))
+	nodeInformer := sharedInformers.Core().V1().Nodes().Informer()
+	out.nodes = out.createCacheHandler(nodeInformer, "Node")
+
+	podInformer := sharedInformers.Core().V1().Pods().Informer()
+	out.pods = newPodCache(out.createCacheHandler(podInformer, "Pod"))
 
 	return out
 }
@@ -156,24 +137,14 @@ func (c *Controller) notify(obj interface{}, event model.Event) error {
 	return nil
 }
 
-// createInformer registers handlers for a specific event.
+// createCacheHandler registers handlers for a specific event.
 // Current implementation queues the events in queue.go, and the handler is run with
 // some throttling.
 // Used for Service, Endpoint, Node and Pod.
 // See config/kube for CRD events.
 // See config/ingress for Ingress objects
-func (c *Controller) createInformer(
-	o runtime.Object,
-	otype string,
-	resyncPeriod time.Duration,
-	lf cache.ListFunc,
-	wf cache.WatchFunc) cacheHandler {
+func (c *Controller) createCacheHandler(informer cache.SharedIndexInformer, otype string) cacheHandler {
 	handler := &ChainHandler{funcs: []Handler{c.notify}}
-
-	// TODO: finer-grained index (perf)
-	informer := cache.NewSharedIndexInformer(
-		&cache.ListWatch{ListFunc: lf, WatchFunc: wf}, o,
-		resyncPeriod, cache.Indexers{})
 
 	informer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
@@ -298,7 +269,6 @@ func (c *Controller) ManagementPorts(addr string) model.PortList {
 	}
 
 	managementPorts, err := convertProbesToPorts(&pod.Spec)
-
 	if err != nil {
 		log.Infof("Error while parsing liveliness and readiness probe ports for %s => %v", addr, err)
 	}
@@ -365,79 +335,6 @@ func (c *Controller) WorkloadHealthCheckInfo(addr string) model.ProbeList {
 	}
 
 	return probes
-}
-
-// Instances implements a service catalog operation
-func (c *Controller) Instances(hostname model.Hostname, ports []string,
-	labelsList model.LabelsCollection) ([]*model.ServiceInstance, error) {
-	// Get actual service by name
-	name, namespace, err := parseHostname(hostname)
-	if err != nil {
-		log.Infof("parseHostname(%s) => error %v", hostname, err)
-		return nil, err
-	}
-
-	item, exists := c.serviceByKey(name, namespace)
-	if !exists {
-		return nil, nil
-	}
-
-	// Locate all ports in the actual service
-	svc := convertService(*item, c.domainSuffix)
-	if svc == nil {
-		return nil, nil
-	}
-	svcPorts := make(map[string]*model.Port)
-	for _, port := range ports {
-		if svcPort, exists := svc.Ports.Get(port); exists {
-			svcPorts[port] = svcPort
-		}
-	}
-
-	// TODO: single port service missing name
-	for _, item := range c.endpoints.informer.GetStore().List() {
-		ep := *item.(*v1.Endpoints)
-		if ep.Name == name && ep.Namespace == namespace {
-			var out []*model.ServiceInstance
-			for _, ss := range ep.Subsets {
-				for _, ea := range ss.Addresses {
-					labels, _ := c.pods.labelsByIP(ea.IP)
-					// check that one of the input labels is a subset of the labels
-					if !labelsList.HasSubsetOf(labels) {
-						continue
-					}
-
-					pod, exists := c.pods.getPodByIP(ea.IP)
-					az, sa, uid := "", "", ""
-					if exists {
-						az, _ = c.GetPodAZ(pod)
-						sa = kubeToIstioServiceAccount(pod.Spec.ServiceAccountName, pod.GetNamespace(), c.domainSuffix)
-						uid = fmt.Sprintf("kubernetes://%s.%s", pod.Name, pod.Namespace)
-					}
-
-					// identify the port by name
-					for _, port := range ss.Ports {
-						if svcPort, exists := svcPorts[port.Name]; exists {
-							out = append(out, &model.ServiceInstance{
-								Endpoint: model.NetworkEndpoint{
-									Address:     ea.IP,
-									Port:        int(port.Port),
-									ServicePort: svcPort,
-									UID:         uid,
-								},
-								Service:          svc,
-								Labels:           labels,
-								AvailabilityZone: az,
-								ServiceAccount:   sa,
-							})
-						}
-					}
-				}
-			}
-			return out, nil
-		}
-	}
-	return nil, nil
 }
 
 // InstancesByPort implements a service catalog operation
@@ -594,7 +491,7 @@ func getEndpoints(addr []v1.EndpointAddress, proxyIP string, c *Controller,
 // hostname. Each service account is encoded according to the SPIFFE VSID spec.
 // For example, a service account named "bar" in namespace "foo" is encoded as
 // "spiffe://cluster.local/ns/foo/sa/bar".
-func (c *Controller) GetIstioServiceAccounts(hostname model.Hostname, ports []string) []string {
+func (c *Controller) GetIstioServiceAccounts(hostname model.Hostname, ports []int) []string {
 	saSet := make(map[string]bool)
 
 	// Get the service accounts running the service, if it is deployed on VMs. This is retrieved
@@ -609,13 +506,18 @@ func (c *Controller) GetIstioServiceAccounts(hostname model.Hostname, ports []st
 		return nil
 	}
 
+	instances := make([]*model.ServiceInstance, 0)
 	// Get the service accounts running service within Kubernetes. This is reflected by the pods that
 	// the service is deployed on, and the service accounts of the pods.
-	instances, err := c.Instances(hostname, ports, model.LabelsCollection{})
-	if err != nil {
-		log.Warnf("Instances(%s) error: %v", hostname, err)
-		return nil
+	for _, port := range ports {
+		svcinstances, err := c.InstancesByPort(hostname, port, model.LabelsCollection{})
+		if err != nil {
+			log.Warnf("InstancesByPort(%s:%d) error: %v", hostname, port, err)
+			return nil
+		}
+		instances = append(instances, svcinstances...)
 	}
+
 	for _, si := range instances {
 		if si.ServiceAccount != "" {
 			saSet[si.ServiceAccount] = true
@@ -638,7 +540,19 @@ func (c *Controller) GetIstioServiceAccounts(hostname model.Hostname, ports []st
 // AppendServiceHandler implements a service catalog operation
 func (c *Controller) AppendServiceHandler(f func(*model.Service, model.Event)) error {
 	c.services.handler.Append(func(obj interface{}, event model.Event) error {
-		svc := *obj.(*v1.Service)
+		svc, ok := obj.(*v1.Service)
+		if !ok {
+			tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+			if !ok {
+				log.Errorf("Couldn't get object from tombstone %#v", obj)
+				return nil
+			}
+			svc, ok = tombstone.Obj.(*v1.Service)
+			if !ok {
+				log.Errorf("Tombstone contained object that is not a service %#v", obj)
+				return nil
+			}
+		}
 
 		// Do not handle "kube-system" services
 		if svc.Namespace == meta_v1.NamespaceSystem {
@@ -647,7 +561,7 @@ func (c *Controller) AppendServiceHandler(f func(*model.Service, model.Event)) e
 
 		log.Infof("Handle service %s in namespace %s", svc.Name, svc.Namespace)
 
-		if svcConv := convertService(svc, c.domainSuffix); svcConv != nil {
+		if svcConv := convertService(*svc, c.domainSuffix); svcConv != nil {
 			f(svcConv, event)
 		}
 		return nil
@@ -658,7 +572,19 @@ func (c *Controller) AppendServiceHandler(f func(*model.Service, model.Event)) e
 // AppendInstanceHandler implements a service catalog operation
 func (c *Controller) AppendInstanceHandler(f func(*model.ServiceInstance, model.Event)) error {
 	c.endpoints.handler.Append(func(obj interface{}, event model.Event) error {
-		ep := *obj.(*v1.Endpoints)
+		ep, ok := obj.(*v1.Endpoints)
+		if !ok {
+			tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+			if !ok {
+				log.Errorf("Couldn't get object from tombstone %#v", obj)
+				return nil
+			}
+			ep, ok = tombstone.Obj.(*v1.Endpoints)
+			if !ok {
+				log.Errorf("Tombstone contained object that is not a service %#v", obj)
+				return nil
+			}
+		}
 
 		// Do not handle "kube-system" endpoints
 		if ep.Namespace == meta_v1.NamespaceSystem {

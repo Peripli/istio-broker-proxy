@@ -7,6 +7,7 @@ import (
 	"fmt"
 	. "github.com/onsi/gomega"
 	"io/ioutil"
+	"k8s.io/api/core/v1"
 	"os"
 	"os/exec"
 	"reflect"
@@ -73,7 +74,7 @@ func (self kubectl) List(result interface{}, args ...string) {
 }
 
 func (self kubectl) GetPod(args ...string) string {
-	var pods PodList
+	var pods v1.PodList
 	self.List(&pods, args...)
 	self.g.Expect(pods.Items).To(HaveLen(1), "Pod not found")
 	podName := pods.Items[0].Name

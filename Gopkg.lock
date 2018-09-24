@@ -26,6 +26,17 @@
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:e6da94fd4d69511333d122e2ebd9d78d1f49ef01dbb1643d35dc8c9e23728897"
+  name = "github.com/envoyproxy/go-control-plane"
+  packages = [
+    "envoy/api/v2/auth",
+    "envoy/api/v2/core",
+  ]
+  pruneopts = "UT"
+  revision = "676016db8193d83324a507a986a78cd3642ad713"
+  version = "v0.5.0"
+
+[[projects]]
   digest = "1:2cd7915ab26ede7d95b8749e6b1f933f1c6d5398030684e6505940a10f31cfda"
   name = "github.com/ghodss/yaml"
   packages = ["."]
@@ -86,15 +97,14 @@
   revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
 [[projects]]
-  digest = "1:9d6dc4d6de69b330d0de86494d6db90c09848c003d5db748f40c925f865c8534"
+  digest = "1:5d1b5a25486fc7d4e133646d834f6fca7ba1cef9903d40e7aa786c41b89e9e91"
   name = "github.com/golang/protobuf"
   packages = [
-    "jsonpb",
     "proto",
+    "protoc-gen-go/descriptor",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
-    "ptypes/struct",
     "ptypes/timestamp",
   ]
   pruneopts = "UT"
@@ -197,6 +207,25 @@
   version = "v1.1.5"
 
 [[projects]]
+  digest = "1:0c2cd26c94dcf27009b4aa472b8448afc0a35abb17cf40bd00ab474e65e6f5b6"
+  name = "github.com/kubernetes-incubator/service-catalog"
+  packages = [
+    "pkg/apis/servicecatalog",
+    "pkg/apis/servicecatalog/v1beta1",
+  ]
+  pruneopts = "UT"
+  revision = "9c360198dd3960375725dfaa486762df17b6ca86"
+  version = "v0.1.4"
+
+[[projects]]
+  digest = "1:dfe5159383dfcd370555c35374ac99022906f987b55cc65a830fb9ced970b4b1"
+  name = "github.com/lyft/protoc-gen-validate"
+  packages = ["validate"]
+  pruneopts = "UT"
+  revision = "930a67cf7ba41b9d9436ad7a1be70a5d5ff6e1fc"
+  version = "v0.0.6"
+
+[[projects]]
   digest = "1:0981502f9816113c9c8c4ac301583841855c8cf4da8c72f696b3ebedf6d0e4e5"
   name = "github.com/mattn/go-isatty"
   packages = ["."]
@@ -297,6 +326,14 @@
   ]
   pruneopts = "UT"
   revision = "05ee40e3a273f7245e8777337fc7b46e533a9a92"
+
+[[projects]]
+  digest = "1:274f67cb6fed9588ea2521ecdac05a6d62a8c51c074c1fccc6a49a40ba80e925"
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
@@ -537,8 +574,8 @@
   version = "v2.2.1"
 
 [[projects]]
-  branch = "release-1.0"
-  digest = "1:d2be79a1e5ed982502f4260723891babecfbb9e236e7a90a2079d304ce6d5a37"
+  branch = "master"
+  digest = "1:f213ceb2257577fa9e7f7e6e3b69b0ff9af0d8767c6580a916785f32efcb301c"
   name = "istio.io/api"
   packages = [
     "authentication/v1alpha1",
@@ -549,10 +586,11 @@
     "rbac/v1alpha1",
   ]
   pruneopts = "UT"
-  revision = "76349c53b87f03f1e610b3aa3843dba3c38138d7"
+  revision = "66290ace31792383b91143b3bb2e4c3d6b2285de"
 
 [[projects]]
-  digest = "1:aaf092c9a5b49aa5188833cd043430a82607fd10f8098b450f97e05aa5a05762"
+  branch = "master"
+  digest = "1:187dd016d67e921ddfb7231475b72e313dae5ab47a5ca4b09c4bc757155cd7d8"
   name = "istio.io/istio"
   packages = [
     "pilot/pkg/config/kube/crd",
@@ -564,8 +602,7 @@
     "pkg/log",
   ]
   pruneopts = "UT"
-  revision = "42773aacced474d97159902d20579a25b1f98106"
-  version = "1.0.1"
+  revision = "90ea574b4527359fe142361cf932bf629c29fce6"
 
 [[projects]]
   digest = "1:1537dffcab6c5ed740c06e16df243a39a54bc69e0d221271e6da4b235160ceab"
@@ -666,10 +703,50 @@
   version = "kubernetes-1.10.4"
 
 [[projects]]
-  digest = "1:087cebf6661941f017b57db4af7b83692b2c96330c1cc337775701e75c72c09e"
+  digest = "1:afa98a8a31a0b815a507cdc14086ffb3008b6f162433da35d2f0dfe147447cd0"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
+    "informers",
+    "informers/admissionregistration",
+    "informers/admissionregistration/v1alpha1",
+    "informers/admissionregistration/v1beta1",
+    "informers/apps",
+    "informers/apps/v1",
+    "informers/apps/v1beta1",
+    "informers/apps/v1beta2",
+    "informers/autoscaling",
+    "informers/autoscaling/v1",
+    "informers/autoscaling/v2beta1",
+    "informers/batch",
+    "informers/batch/v1",
+    "informers/batch/v1beta1",
+    "informers/batch/v2alpha1",
+    "informers/certificates",
+    "informers/certificates/v1beta1",
+    "informers/core",
+    "informers/core/v1",
+    "informers/events",
+    "informers/events/v1beta1",
+    "informers/extensions",
+    "informers/extensions/v1beta1",
+    "informers/internalinterfaces",
+    "informers/networking",
+    "informers/networking/v1",
+    "informers/policy",
+    "informers/policy/v1beta1",
+    "informers/rbac",
+    "informers/rbac/v1",
+    "informers/rbac/v1alpha1",
+    "informers/rbac/v1beta1",
+    "informers/scheduling",
+    "informers/scheduling/v1alpha1",
+    "informers/settings",
+    "informers/settings/v1alpha1",
+    "informers/storage",
+    "informers/storage/v1",
+    "informers/storage/v1alpha1",
+    "informers/storage/v1beta1",
     "kubernetes",
     "kubernetes/scheme",
     "kubernetes/typed/admissionregistration/v1alpha1",
@@ -700,6 +777,30 @@
     "kubernetes/typed/storage/v1",
     "kubernetes/typed/storage/v1alpha1",
     "kubernetes/typed/storage/v1beta1",
+    "listers/admissionregistration/v1alpha1",
+    "listers/admissionregistration/v1beta1",
+    "listers/apps/v1",
+    "listers/apps/v1beta1",
+    "listers/apps/v1beta2",
+    "listers/autoscaling/v1",
+    "listers/autoscaling/v2beta1",
+    "listers/batch/v1",
+    "listers/batch/v1beta1",
+    "listers/batch/v2alpha1",
+    "listers/certificates/v1beta1",
+    "listers/core/v1",
+    "listers/events/v1beta1",
+    "listers/extensions/v1beta1",
+    "listers/networking/v1",
+    "listers/policy/v1beta1",
+    "listers/rbac/v1",
+    "listers/rbac/v1alpha1",
+    "listers/rbac/v1beta1",
+    "listers/scheduling/v1alpha1",
+    "listers/settings/v1alpha1",
+    "listers/storage/v1",
+    "listers/storage/v1alpha1",
+    "listers/storage/v1beta1",
     "pkg/apis/clientauthentication",
     "pkg/apis/clientauthentication/v1alpha1",
     "pkg/version",
@@ -737,11 +838,13 @@
   input-imports = [
     "github.com/ghodss/yaml",
     "github.com/gin-gonic/gin",
+    "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1",
     "github.com/onsi/gomega",
     "github.com/onsi/gomega/types",
     "istio.io/api/networking/v1alpha3",
     "istio.io/istio/pilot/pkg/config/kube/crd",
     "istio.io/istio/pilot/pkg/model",
+    "k8s.io/api/core/v1",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

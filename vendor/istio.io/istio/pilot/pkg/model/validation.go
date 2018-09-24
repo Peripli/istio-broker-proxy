@@ -25,12 +25,9 @@ import (
 	"strings"
 	"time"
 
-	gogoproto "github.com/gogo/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/duration"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 
 	authn "istio.io/api/authentication/v1alpha1"
 	meshconfig "istio.io/api/mesh/v1alpha1"
@@ -107,7 +104,7 @@ func (descriptor ConfigDescriptor) Validate() error {
 		if !IsDNS1123Label(v.Plural) {
 			errs = multierror.Append(errs, fmt.Errorf("invalid plural: %q", v.Type))
 		}
-		if proto.MessageType(v.MessageName) == nil && gogoproto.MessageType(v.MessageName) == nil {
+		if proto.MessageType(v.MessageName) == nil {
 			errs = multierror.Append(errs, fmt.Errorf("cannot discover proto message type: %q", v.MessageName))
 		}
 		if _, exists := descriptorTypes[v.Type]; exists {
@@ -135,7 +132,7 @@ func (s *Service) Validate() error {
 	if len(s.Hostname) == 0 {
 		errs = multierror.Append(errs, fmt.Errorf("invalid empty hostname"))
 	}
-	parts := strings.Split(s.Hostname.String(), ".")
+	parts := strings.Split(string(s.Hostname), ".")
 	for _, part := range parts {
 		if !IsDNS1123Label(part) {
 			errs = multierror.Append(errs, fmt.Errorf("invalid hostname part: %q", part))
@@ -320,6 +317,19 @@ func ValidatePercent(val int32) error {
 		return fmt.Errorf("percentage %v is not in range 0..100", val)
 	}
 	return nil
+}
+
+// validatePercentageOrDefault checks if the specified fractional percentage is
+// valid. If a nil fractional percentage is supplied, it validates the default
+// integer percent value.
+func validatePercentageOrDefault(percentage *networking.Percent, defaultPercent int32) error {
+	if percentage != nil {
+		if percentage.Value < 0.0 || percentage.Value > 100.0 || (percentage.Value > 0.0 && percentage.Value < 0.0001) {
+			return fmt.Errorf("percentage %v is neither 0.0, nor in range [0.0001, 100.0]", percentage.Value)
+		}
+		return nil
+	}
+	return ValidatePercent(defaultPercent)
 }
 
 // ValidateIPv4Subnet checks that a string is in "CIDR notation" or "Dot-decimal notation"
@@ -603,7 +613,19 @@ func validateLoadBalancer(settings *networking.LoadBalancerSettings) (errs error
 	}
 
 	// simple load balancing is always valid
-	// TODO: settings.GetConsistentHash()
+
+	consistentHash := settings.GetConsistentHash()
+	if consistentHash != nil {
+		httpCookie := consistentHash.GetHttpCookie()
+		if httpCookie != nil {
+			if httpCookie.Name == "" {
+				errs = appendErrors(errs, fmt.Errorf("name required for HttpCookie"))
+			}
+			if httpCookie.Ttl == nil {
+				errs = appendErrors(errs, fmt.Errorf("ttl required for HttpCookie"))
+			}
+		}
+	}
 
 	return
 }
@@ -688,8 +710,8 @@ func ValidateDurationGogo(pd *types.Duration) error {
 }
 
 // ValidateDuration checks that a proto duration is well-formed
-func ValidateDuration(pd *duration.Duration) error {
-	dur, err := ptypes.Duration(pd)
+func ValidateDuration(pd *types.Duration) error {
+	dur, err := types.DurationFromProto(pd)
 	if err != nil {
 		return err
 	}
@@ -702,9 +724,9 @@ func ValidateDuration(pd *duration.Duration) error {
 	return nil
 }
 
-// ValidateGogoDuration validates the gogoproto variant of duration.
+// ValidateGogoDuration validates the variant of duration.
 func ValidateGogoDuration(in *types.Duration) error {
-	return ValidateDuration(&duration.Duration{
+	return ValidateDuration(&types.Duration{
 		Seconds: in.Seconds,
 		Nanos:   in.Nanos,
 	})
@@ -720,7 +742,7 @@ func ValidateDurationRange(dur, min, max time.Duration) error {
 }
 
 // ValidateParentAndDrain checks that parent and drain durations are valid
-func ValidateParentAndDrain(drainTime, parentShutdown *duration.Duration) (errs error) {
+func ValidateParentAndDrain(drainTime, parentShutdown *types.Duration) (errs error) {
 	if err := ValidateDuration(drainTime); err != nil {
 		errs = multierror.Append(errs, multierror.Prefix(err, "invalid drain duration:"))
 	}
@@ -731,8 +753,8 @@ func ValidateParentAndDrain(drainTime, parentShutdown *duration.Duration) (errs 
 		return
 	}
 
-	drainDuration, _ := ptypes.Duration(drainTime)
-	parentShutdownDuration, _ := ptypes.Duration(parentShutdown)
+	drainDuration, _ := types.DurationFromProto(drainTime)
+	parentShutdownDuration, _ := types.DurationFromProto(parentShutdown)
 
 	if drainDuration%time.Second != 0 {
 		errs = multierror.Append(errs,
@@ -763,23 +785,23 @@ func ValidateParentAndDrain(drainTime, parentShutdown *duration.Duration) (errs 
 }
 
 // ValidateRefreshDelay validates the discovery refresh delay time
-func ValidateRefreshDelay(refresh *duration.Duration) error {
+func ValidateRefreshDelay(refresh *types.Duration) error {
 	if err := ValidateDuration(refresh); err != nil {
 		return err
 	}
 
-	refreshDuration, _ := ptypes.Duration(refresh)
+	refreshDuration, _ := types.DurationFromProto(refresh)
 	err := ValidateDurationRange(refreshDuration, discoveryRefreshDelayMin, discoveryRefreshDelayMax)
 	return err
 }
 
 // ValidateConnectTimeout validates the envoy conncection timeout
-func ValidateConnectTimeout(timeout *duration.Duration) error {
+func ValidateConnectTimeout(timeout *types.Duration) error {
 	if err := ValidateDuration(timeout); err != nil {
 		return err
 	}
 
-	timeoutDuration, _ := ptypes.Duration(timeout)
+	timeoutDuration, _ := types.DurationFromProto(timeout)
 	err := ValidateDurationRange(timeoutDuration, connectTimeoutMin, connectTimeoutMax)
 	return err
 }
@@ -806,18 +828,8 @@ func ValidateMeshConfig(mesh *meshconfig.MeshConfig) (errs error) {
 		errs = multierror.Append(errs, multierror.Prefix(err, "invalid connect timeout:"))
 	}
 
-	switch mesh.AuthPolicy {
-	case meshconfig.MeshConfig_NONE, meshconfig.MeshConfig_MUTUAL_TLS:
-	default:
-		errs = multierror.Append(errs, fmt.Errorf("unrecognized auth policy %q", mesh.AuthPolicy))
-	}
-
 	if err := ValidateRefreshDelay(mesh.RdsRefreshDelay); err != nil {
 		errs = multierror.Append(errs, multierror.Prefix(err, "invalid rds refresh delay:"))
-	}
-
-	if err := ValidateRefreshDelay(mesh.SdsRefreshDelay); err != nil {
-		errs = multierror.Append(errs, multierror.Prefix(err, "invalid sds refresh delay:"))
 	}
 
 	if mesh.DefaultConfig == nil {
@@ -1165,9 +1177,6 @@ func ValidateServiceRole(name, namespace string, msg proto.Message) error {
 		if len(rule.Services) == 0 {
 			errs = appendErrors(errs, fmt.Errorf("at least 1 service must be specified for rule %d", i))
 		}
-		if len(rule.Methods) == 0 {
-			errs = appendErrors(errs, fmt.Errorf("at least 1 method must be specified for rule %d", i))
-		}
 		for j, constraint := range rule.Constraints {
 			if len(constraint.Key) == 0 {
 				errs = appendErrors(errs, fmt.Errorf("key cannot be empty for constraint %d in rule %d", j, i))
@@ -1340,7 +1349,7 @@ func ValidateVirtualService(name, namespace string, msg proto.Message) (errs err
 		errs = appendErrors(errs, validateHTTPRoute(httpRoute))
 	}
 	for _, tlsRoute := range virtualService.Tls {
-		errs = appendErrors(errs, validateTLSRoute(tlsRoute))
+		errs = appendErrors(errs, validateTLSRoute(tlsRoute, virtualService))
 	}
 	for _, tcpRoute := range virtualService.Tcp {
 		errs = appendErrors(errs, validateTCPRoute(tcpRoute))
@@ -1349,7 +1358,7 @@ func ValidateVirtualService(name, namespace string, msg proto.Message) (errs err
 	return
 }
 
-func validateTLSRoute(tls *networking.TLSRoute) (errs error) {
+func validateTLSRoute(tls *networking.TLSRoute, context *networking.VirtualService) (errs error) {
 	if tls == nil {
 		return nil
 	}
@@ -1358,7 +1367,7 @@ func validateTLSRoute(tls *networking.TLSRoute) (errs error) {
 		errs = appendErrors(errs, errors.New("TLS route must have at least one match condition"))
 	}
 	for _, match := range tls.Match {
-		errs = appendErrors(errs, validateTLSMatch(match))
+		errs = appendErrors(errs, validateTLSMatch(match, context))
 	}
 	if len(tls.Route) != 1 {
 		errs = appendErrors(errs, errors.New("TLS route must have exactly one destination"))
@@ -1367,10 +1376,18 @@ func validateTLSRoute(tls *networking.TLSRoute) (errs error) {
 	return
 }
 
-func validateTLSMatch(match *networking.TLSMatchAttributes) (errs error) {
+func validateTLSMatch(match *networking.TLSMatchAttributes, context *networking.VirtualService) (errs error) {
 	if len(match.SniHosts) == 0 {
 		errs = appendErrors(errs, fmt.Errorf("TLS match must have at least one SNI host"))
+	} else {
+		for _, sniHost := range match.SniHosts {
+			err := validateSniHost(sniHost, context)
+			if err != nil {
+				errs = appendErrors(errs, err)
+			}
+		}
 	}
+
 	for _, destinationSubnet := range match.DestinationSubnets {
 		errs = appendErrors(errs, ValidateIPv4Subnet(destinationSubnet))
 	}
@@ -1381,6 +1398,21 @@ func validateTLSMatch(match *networking.TLSMatchAttributes) (errs error) {
 	errs = appendErrors(errs, Labels(match.SourceLabels).Validate())
 	errs = appendErrors(errs, validateGatewayNames(match.Gateways))
 	return
+}
+
+func validateSniHost(sniHost string, context *networking.VirtualService) error {
+	err := ValidateWildcardDomain(sniHost)
+	if err != nil {
+		return err
+	}
+	sniHostname := Hostname(sniHost)
+	for _, host := range context.Hosts {
+		if sniHostname.SubsetOf(Hostname(host)) {
+			return nil
+		}
+	}
+	err = fmt.Errorf("SNI host is not a compatible subset of the virtual service hosts: %s", sniHost)
+	return err
 }
 
 func validateTCPRoute(tcp *networking.TCPRoute) (errs error) {
@@ -1436,6 +1468,9 @@ func validateHTTPRoute(http *networking.HTTPRoute) (errs error) {
 	}
 
 	for name := range http.AppendHeaders {
+		errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+	}
+	for _, name := range http.RemoveResponseHeaders {
 		errs = appendErrors(errs, ValidateHTTPHeaderName(name))
 	}
 	errs = appendErrors(errs, validateCORSPolicy(http.CorsPolicy))
@@ -1547,7 +1582,7 @@ func validateHTTPFaultInjectionAbort(abort *networking.HTTPFaultInjection_Abort)
 		return
 	}
 
-	errs = appendErrors(errs, ValidatePercent(abort.Percent))
+	errs = appendErrors(errs, validatePercentageOrDefault(abort.Percentage, abort.Percent))
 
 	switch abort.ErrorType.(type) {
 	case *networking.HTTPFaultInjection_Abort_GrpcStatus:
@@ -1575,7 +1610,8 @@ func validateHTTPFaultInjectionDelay(delay *networking.HTTPFaultInjection_Delay)
 		return
 	}
 
-	errs = appendErrors(errs, ValidatePercent(delay.Percent))
+	errs = appendErrors(errs, validatePercentageOrDefault(delay.Percentage, delay.Percent))
+
 	switch v := delay.HttpDelayType.(type) {
 	case *networking.HTTPFaultInjection_Delay_FixedDelay:
 		errs = appendErrors(errs, ValidateDurationGogo(v.FixedDelay))
@@ -1583,6 +1619,7 @@ func validateHTTPFaultInjectionDelay(delay *networking.HTTPFaultInjection_Delay)
 		errs = appendErrors(errs, ValidateDurationGogo(v.ExponentialDelay))
 		errs = multierror.Append(errs, fmt.Errorf("exponentialDelay not supported yet"))
 	}
+
 	return
 }
 
@@ -1607,7 +1644,7 @@ func validateSubsetName(name string) error {
 		return fmt.Errorf("subset name cannot be empty")
 	}
 	if !IsDNS1123Label(name) {
-		return fmt.Errorf("subnet name is invalid: %s", name)
+		return fmt.Errorf("subset name is invalid: %s", name)
 	}
 	return nil
 }
@@ -1780,6 +1817,28 @@ func ValidateServiceEntry(name, namespace string, config proto.Message) (errs er
 	default:
 		errs = appendErrors(errs, fmt.Errorf("unsupported resolution type %s",
 			networking.ServiceEntry_Resolution_name[int32(serviceEntry.Resolution)]))
+	}
+
+	// multiple hosts and TCP is invalid unless the resolution type is NONE.
+	// depending on the protocol, we can differentiate between hosts when proxying:
+	// - with HTTP, the authority header can be used
+	// - with HTTPS/TLS with SNI, the ServerName can be used
+	// however, for plain TCP there is no way to differentiate between the
+	// hosts so we consider it invalid, unless the resolution type is NONE
+	// (because the hosts are ignored).
+	if serviceEntry.Resolution != networking.ServiceEntry_NONE && len(serviceEntry.Hosts) > 1 {
+		canDifferentiate := true
+		for _, port := range serviceEntry.Ports {
+			protocol := ParseProtocol(port.Protocol)
+			if !protocol.IsHTTP() && !protocol.IsTLS() {
+				canDifferentiate = false
+				break
+			}
+		}
+
+		if !canDifferentiate {
+			errs = appendErrors(errs, fmt.Errorf("multiple hosts provided with non-HTTP, non-TLS ports"))
+		}
 	}
 
 	for _, port := range serviceEntry.Ports {

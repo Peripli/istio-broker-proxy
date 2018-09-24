@@ -19,9 +19,9 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
-	"github.com/golang/protobuf/proto"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/gogo/protobuf/proto"
 
 	authn "istio.io/api/authentication/v1alpha1"
 	mccpb "istio.io/api/mixer/v1/config/client"
@@ -83,7 +83,7 @@ type ConfigMeta struct {
 	ResourceVersion string `json:"resourceVersion,omitempty"`
 
 	// CreationTimestamp records the creation time
-	CreationTimestamp meta_v1.Time `json:"creationTimestamp,omitempty"`
+	CreationTimestamp time.Time `json:"creationTimestamp,omitempty"`
 }
 
 // Config is a configuration unit consisting of the type of configuration, the
@@ -130,7 +130,7 @@ type ConfigStore interface {
 	ConfigDescriptor() ConfigDescriptor
 
 	// Get retrieves a configuration element by a type and a key
-	Get(typ, name, namespace string) (config *Config, exists bool)
+	Get(typ, name, namespace string) *Config
 
 	// List returns objects by type and namespace.
 	// Use "" for the namespace to list across namespaces.
@@ -213,9 +213,6 @@ type ProtoSchema struct {
 
 	// MessageName refers to the protobuf message type name corresponding to the type
 	MessageName string
-
-	// Gogo is true for gogo protobuf messages
-	Gogo bool
 
 	// Validate configuration as a protobuf message assuming the object is an
 	// instance of the expected message type
@@ -334,7 +331,6 @@ var (
 		Group:       "networking",
 		Version:     "v1alpha3",
 		MessageName: "istio.networking.v1alpha3.VirtualService",
-		Gogo:        true,
 		Validate:    ValidateVirtualService,
 	}
 
@@ -345,7 +341,6 @@ var (
 		Group:       "networking",
 		Version:     "v1alpha3",
 		MessageName: "istio.networking.v1alpha3.Gateway",
-		Gogo:        true,
 		Validate:    ValidateGateway,
 	}
 
@@ -356,7 +351,6 @@ var (
 		Group:       "networking",
 		Version:     "v1alpha3",
 		MessageName: "istio.networking.v1alpha3.ServiceEntry",
-		Gogo:        true,
 		Validate:    ValidateServiceEntry,
 	}
 
@@ -579,7 +573,7 @@ func (store *istioConfigStore) ServiceEntries() []Config {
 // sortConfigByCreationTime sorts the list of config objects in ascending order by their creation time (if available).
 func sortConfigByCreationTime(configs []Config) []Config {
 	sort.SliceStable(configs, func(i, j int) bool {
-		return configs[i].CreationTimestamp.Before(&configs[j].CreationTimestamp)
+		return configs[i].CreationTimestamp.Before(configs[j].CreationTimestamp)
 	})
 	return configs
 }
@@ -629,6 +623,7 @@ func (store *istioConfigStore) EnvoyFilter(workloadLabels LabelsCollection) *Con
 				continue
 			}
 		}
+		mergedFilterConfig.WorkloadLabels = make(map[string]string)
 		mergedFilterConfig.Filters = append(mergedFilterConfig.Filters, filter.Filters...)
 	}
 

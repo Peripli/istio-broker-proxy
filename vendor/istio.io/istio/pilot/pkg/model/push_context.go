@@ -26,7 +26,7 @@ import (
 	networking "istio.io/api/networking/v1alpha3"
 )
 
-// PushContext tracks the status of a mush - metrics and errors.
+// PushContext tracks the status of a push - metrics and errors.
 // Metrics are reset after a push - at the beginning all
 // values are zero, and when push completes the status is reset.
 // The struct is exposed in a debug endpoint - fields public to allow
@@ -74,6 +74,10 @@ type PushContext struct {
 	destinationRuleByHosts map[Hostname]*combinedDestinationRule
 
 	//TODO: gateways              []*networking.Gateway
+
+	// AuthzPolicies stores the existing authorization policies in the cluster. Could be nil if there
+	// are no authorization policies in the cluster.
+	AuthzPolicies *AuthorizationPolicies
 
 	// Env has a pointer to the shared environment used to create the snapshot.
 	Env *Environment `json:"-,omitempty"`
@@ -271,7 +275,7 @@ func (ps *PushContext) VirtualServices(gateways map[string]bool) []Config {
 		} else {
 			for _, g := range rule.Gateways {
 				// note: Gateway names do _not_ use wildcard matching, so we do not use Hostname.Matches here
-				if gateways[ResolveShortnameToFQDN(g, config.ConfigMeta).String()] {
+				if gateways[string(ResolveShortnameToFQDN(g, config.ConfigMeta))] {
 					out = append(out, config)
 					break
 				} else if g == IstioMeshGateway && gateways[g] {
@@ -306,6 +310,11 @@ func (ps *PushContext) InitContext(env *Environment) error {
 	}
 
 	if err = ps.initDestinationRules(env); err != nil {
+		return err
+	}
+
+	if err = ps.initAuthorizationPolicies(env); err != nil {
+		rbacLog.Errorf("failed to initialize authorization policies: %v", err)
 		return err
 	}
 
@@ -352,12 +361,12 @@ func (ps *PushContext) initVirtualServices(env *Environment) error {
 		rule := r.Spec.(*networking.VirtualService)
 		// resolve top level hosts
 		for i, h := range rule.Hosts {
-			rule.Hosts[i] = ResolveShortnameToFQDN(h, r.ConfigMeta).String()
+			rule.Hosts[i] = string(ResolveShortnameToFQDN(h, r.ConfigMeta))
 		}
 		// resolve gateways to bind to
 		for i, g := range rule.Gateways {
 			if g != IstioMeshGateway {
-				rule.Gateways[i] = ResolveShortnameToFQDN(g, r.ConfigMeta).String()
+				rule.Gateways[i] = string(ResolveShortnameToFQDN(g, r.ConfigMeta))
 			}
 		}
 		// resolve host in http route.destination, route.mirror
@@ -365,15 +374,15 @@ func (ps *PushContext) initVirtualServices(env *Environment) error {
 			for _, m := range d.Match {
 				for i, g := range m.Gateways {
 					if g != IstioMeshGateway {
-						m.Gateways[i] = ResolveShortnameToFQDN(g, r.ConfigMeta).String()
+						m.Gateways[i] = string(ResolveShortnameToFQDN(g, r.ConfigMeta))
 					}
 				}
 			}
 			for _, w := range d.Route {
-				w.Destination.Host = ResolveShortnameToFQDN(w.Destination.Host, r.ConfigMeta).String()
+				w.Destination.Host = string(ResolveShortnameToFQDN(w.Destination.Host, r.ConfigMeta))
 			}
 			if d.Mirror != nil {
-				d.Mirror.Host = ResolveShortnameToFQDN(d.Mirror.Host, r.ConfigMeta).String()
+				d.Mirror.Host = string(ResolveShortnameToFQDN(d.Mirror.Host, r.ConfigMeta))
 			}
 		}
 		//resolve host in tcp route.destination
@@ -381,12 +390,12 @@ func (ps *PushContext) initVirtualServices(env *Environment) error {
 			for _, m := range d.Match {
 				for i, g := range m.Gateways {
 					if g != IstioMeshGateway {
-						m.Gateways[i] = ResolveShortnameToFQDN(g, r.ConfigMeta).String()
+						m.Gateways[i] = string(ResolveShortnameToFQDN(g, r.ConfigMeta))
 					}
 				}
 			}
 			for _, w := range d.Route {
-				w.Destination.Host = ResolveShortnameToFQDN(w.Destination.Host, r.ConfigMeta).String()
+				w.Destination.Host = string(ResolveShortnameToFQDN(w.Destination.Host, r.ConfigMeta))
 			}
 		}
 		//resolve host in tls route.destination
@@ -394,12 +403,12 @@ func (ps *PushContext) initVirtualServices(env *Environment) error {
 			for _, m := range tls.Match {
 				for i, g := range m.Gateways {
 					if g != IstioMeshGateway {
-						m.Gateways[i] = ResolveShortnameToFQDN(g, r.ConfigMeta).String()
+						m.Gateways[i] = string(ResolveShortnameToFQDN(g, r.ConfigMeta))
 					}
 				}
 			}
 			for _, w := range tls.Route {
-				w.Destination.Host = ResolveShortnameToFQDN(w.Destination.Host, r.ConfigMeta).String()
+				w.Destination.Host = string(ResolveShortnameToFQDN(w.Destination.Host, r.ConfigMeta))
 			}
 		}
 	}
@@ -495,5 +504,14 @@ func (ps *PushContext) SubsetToLabels(subsetName string, hostname Hostname) Labe
 		}
 	}
 
+	return nil
+}
+
+func (ps *PushContext) initAuthorizationPolicies(env *Environment) error {
+	var err error
+	if ps.AuthzPolicies, err = newAuthzPolicies(env); err != nil {
+		rbacLog.Errorf("failed to initialize authorization policies: %v", err)
+		return err
+	}
 	return nil
 }

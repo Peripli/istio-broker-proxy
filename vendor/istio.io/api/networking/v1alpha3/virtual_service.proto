@@ -1,4 +1,4 @@
-// Copyright 2017 Istio Authors
+// Copyright 2017-2018 Istio Authors
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/wrappers.proto";
 
 // $title: Traffic Routing
-// $description: Configuration affecting traffic routing
+// $description: Configuration affecting traffic routing.
 // $location: https://istio.io/docs/reference/config/istio.networking.v1alpha3.html
 // $aliases:
 // $  - /docs/reference/config/istio.routing.v1alpha1/
@@ -122,13 +122,9 @@ message VirtualService {
   // dots in the name). In such a scenario, the FQDN of the host would be
   // derived based on the underlying platform.
   //
-  // A single VirtualService can be used to describe all the traffic
-  // properties of the corresponding hosts, including those for multiple
-  // HTTP and TCP ports. Alternatively, the traffic properties of a host
-  // can be defined using more than one VirtualService, with certain
-  // caveats. Refer to the
-  // [Operations Guide](/help/ops/traffic-management/deploy-guidelines/#multiple-virtual-services-and-destination-rules-for-the-same-host)
-  // for details.
+  // **A host name can be defined by only one VirtualService**. A single
+  // VirtualService can be used to describe traffic properties for multiple
+  // HTTP and TCP ports.
   //
   // *Note for Kubernetes users*: When short names are used (e.g. "reviews"
   // instead of "reviews.default.svc.cluster.local"), Istio will interpret
@@ -393,8 +389,7 @@ message HTTPRoute {
   // destination service.
   map<string, string> append_headers = 11;
 
-  // Http headers to remove before returning the response to the caller
-  // $hide_from_docs
+  // Http headers to remove before returning the response to the caller.
   repeated string remove_response_headers = 12;
 }
 
@@ -654,9 +649,20 @@ message DestinationWeight {
 
   // REQUIRED. The proportion of traffic to be forwarded to the service
   // version. (0-100). Sum of weights across destinations SHOULD BE == 100.
-  // If there is only destination in a rule, the weight value is assumed to
+  // If there is only one destination in a rule, the weight value is assumed to
   // be 100.
   int32 weight = 2;
+
+  // Additional HTTP headers to add before forwarding a request to the
+  // destination service.
+  map<string, string> append_headers = 3;
+
+  // Http headers to remove before returning the response to the caller
+  repeated string remove_response_headers = 4;
+
+  // Additional HTTP headers to add before returning a response to the
+  // caller.
+  map<string, string> append_response_headers = 5;
 }
 
 // L4 connection match attributes. Note that L4 connection matching support
@@ -691,8 +697,9 @@ message L4MatchAttributes {
 // TLS connection match attributes.
 message TLSMatchAttributes {
   // REQUIRED. SNI (server name indicator) to match on. Wildcard prefixes
-  // can be used in the SNI value. E.g., *.com will match foo.example.com
-  // as well as example.com.
+  // can be used in the SNI value, e.g., *.com will match foo.example.com
+  // as well as example.com. An SNI value must be a subset (i.e., fall
+  // within the domain) of the corresponding virtual serivce's hosts.
   repeated string sni_hosts = 1;
 
   // IPv4 or IPv6 ip addresses of destination with optional subnet.  E.g.,
@@ -885,7 +892,7 @@ message CorsPolicy {
   repeated string allow_methods = 2;
 
   // List of HTTP headers that can be used when requesting the
-  // resource. Serialized to Access-Control-Allow-Methods header.
+  // resource. Serialized to Access-Control-Allow-Headers header.
   repeated string allow_headers = 3;
 
   // A white list of HTTP headers that the browsers are allowed to
@@ -921,7 +928,7 @@ message HTTPFaultInjection {
 
   // Delay specification is used to inject latency into the request
   // forwarding path. The following example will introduce a 5 second delay
-  // in 10% of the requests to the "v1" version of the "reviews"
+  // in 1 out of every 1000 requests to the "v1" version of the "reviews"
   // service from all pods with label env: prod
   //
   // ```yaml
@@ -942,17 +949,19 @@ message HTTPFaultInjection {
   //         subset: v1
   //     fault:
   //       delay:
-  //         percent: 10
+  //         percentage:
+  //           value: 0.001
   //         fixedDelay: 5s
   // ```
   //
-  // The _fixedDelay_ field is used to indicate the amount of delay in
-  // seconds. An optional _percent_ field, a value between 0 and 100, can
-  // be used to only delay a certain percentage of requests. If left
-  // unspecified, all request will be delayed.
+  // The _fixedDelay_ field is used to indicate the amount of delay in seconds.
+  // The optional _percentage_ field can be used to only delay a certain
+  // percentage of requests. If left unspecified, all request will be delayed.
   message Delay {
     // Percentage of requests on which the delay will be injected (0-100).
-    int32 percent = 1;
+    // Use of integer `percent` value is deprecated. Use the double `percentage`
+    // field instead.
+    int32 percent = 1 [deprecated=true];
 
     oneof http_delay_type {
       // REQUIRED. Add a fixed delay before forwarding the request. Format:
@@ -962,11 +971,14 @@ message HTTPFaultInjection {
       // $hide_from_docs
       google.protobuf.Duration exponential_delay = 3 ;
     }
+
+    // Percentage of requests on which the delay will be injected.
+    Percent percentage = 5;
   }
 
   // Abort specification is used to prematurely abort a request with a
-  // pre-specified error code. The following example will return an HTTP
-  // 400 error code for 10% of the requests to the "ratings" service "v1".
+  // pre-specified error code. The following example will return an HTTP 400
+  // error code for 1 out of every 1000 requests to the "ratings" service "v1".
   //
   // ```yaml
   // apiVersion: networking.istio.io/v1alpha3
@@ -983,17 +995,20 @@ message HTTPFaultInjection {
   //         subset: v1
   //     fault:
   //       abort:
-  //         percent: 10
+  //         percentage:
+  //           value: 0.001
   //         httpStatus: 400
   // ```
   //
   // The _httpStatus_ field is used to indicate the HTTP status code to
-  // return to the caller. The optional _percent_ field, a value between 0
-  // and 100, is used to only abort a certain percentage of requests. If
-  // not specified, all requests are aborted.
+  // return to the caller. The optional _percentage_ field can be used to only
+  // abort a certain percentage of requests. If not specified, all requests are
+  // aborted.
   message Abort {
     // Percentage of requests to be aborted with the error code provided (0-100).
-    int32 percent = 1;
+    // Use of integer `percent` value is deprecated. Use the double `percentage`
+    // field instead.
+    int32 percent = 1 [deprecated=true];
 
     oneof error_type {
       // REQUIRED. HTTP status code to use to abort the Http request.
@@ -1005,6 +1020,9 @@ message HTTPFaultInjection {
       // $hide_from_docs
       string http2_error = 4;
     }
+
+    // Percentage of requests to be aborted with the error code provided.
+    Percent percentage = 5;
   }
 }
 
@@ -1017,4 +1035,9 @@ message PortSelector {
     // $hide_from_docs
     string name = 2;
   }
+}
+
+// Percent specifies a percentage in the range of [0.0, 100.0].
+message Percent {
+  double value = 1;
 }
