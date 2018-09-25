@@ -90,11 +90,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1ba1d79f2810270045c328ae5d674321db34e3aae468eb4233883b473c5c0467"
+  digest = "1:171e9d8854a1c52863988c454e05ab46bd379f807f9fd127ded298afb491cc62"
   name = "github.com/golang/glog"
   packages = ["."]
   pruneopts = "UT"
-  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
+  revision = "2cc4b790554d1a0c48fcc3aeb891e3de70cf8de0"
+  source = "github.com/istio/glog"
 
 [[projects]]
   digest = "1:5d1b5a25486fc7d4e133646d834f6fca7ba1cef9903d40e7aa786c41b89e9e91"
@@ -207,17 +208,6 @@
   version = "v1.1.5"
 
 [[projects]]
-  digest = "1:0c2cd26c94dcf27009b4aa472b8448afc0a35abb17cf40bd00ab474e65e6f5b6"
-  name = "github.com/kubernetes-incubator/service-catalog"
-  packages = [
-    "pkg/apis/servicecatalog",
-    "pkg/apis/servicecatalog/v1beta1",
-  ]
-  pruneopts = "UT"
-  revision = "9c360198dd3960375725dfaa486762df17b6ca86"
-  version = "v0.1.4"
-
-[[projects]]
   digest = "1:dfe5159383dfcd370555c35374ac99022906f987b55cc65a830fb9ced970b4b1"
   name = "github.com/lyft/protoc-gen-validate"
   packages = ["validate"]
@@ -326,14 +316,6 @@
   ]
   pruneopts = "UT"
   revision = "05ee40e3a273f7245e8777337fc7b46e533a9a92"
-
-[[projects]]
-  digest = "1:274f67cb6fed9588ea2521ecdac05a6d62a8c51c074c1fccc6a49a40ba80e925"
-  name = "github.com/satori/go.uuid"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
-  version = "v1.2.0"
 
 [[projects]]
   digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
@@ -703,7 +685,8 @@
   version = "kubernetes-1.10.4"
 
 [[projects]]
-  digest = "1:afa98a8a31a0b815a507cdc14086ffb3008b6f162433da35d2f0dfe147447cd0"
+  branch = "release-7.0"
+  digest = "1:66f8563c6d312045d50eb9e9736b9181c75b61e46e99ed5430250c1195942e0b"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -829,8 +812,7 @@
     "util/retry",
   ]
   pruneopts = "UT"
-  revision = "23781f4d6632d88e869066eaebb743857aa1ef9b"
-  version = "v7.0.0"
+  revision = "745ca830039794f7b927b8a2c2a58dcc1e8a0a72"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -838,7 +820,6 @@
   input-imports = [
     "github.com/ghodss/yaml",
     "github.com/gin-gonic/gin",
-    "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1",
     "github.com/onsi/gomega",
     "github.com/onsi/gomega/types",
     "istio.io/api/networking/v1alpha3",
