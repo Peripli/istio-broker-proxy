@@ -10,5 +10,4 @@ export CGO_ENABLED=0
 cd ${SCRIPT_DIR}
 
 go get github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1
-#go get -tags integration -v -d ../...
 go test -tags integration -v
