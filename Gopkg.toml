@@ -30,17 +30,9 @@ ignored = ["github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecata
   name = "k8s.io/client-go"
   branch = "release-7.0"	# For K8s 1.10.x
 
-[[override]]
-  name = "github.com/golang/glog"
-  source = "github.com/istio/glog"
-
 [[constraint]]
   name = "github.com/onsi/gomega"
   version = "1.4.1"
-
-[[constraint]]
-  name = "k8s.io/api"
-  version = "kubernetes-1.10.4"
 
 [[constraint]]
   name = "istio.io/api"
