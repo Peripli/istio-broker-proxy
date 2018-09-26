@@ -275,7 +275,6 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 	proxyConfig.forwardURL = "http://xxxxx.xx"
 	proxyConfig.systemDomain = "services.cf.dev99.sc6.istio.sapcloud.io"
 	proxyConfig.providerId = "your-provider"
-	proxyConfig.istioDirectory = "/tmp"
 	proxyConfig.loadBalancerPort = 9000
 	g := NewGomegaWithT(t)
 	responseBody := []byte(`{
@@ -324,7 +323,11 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 	proxyConfig.forwardURL = "http://xxxxx.xx"
 	proxyConfig.systemDomain = "services.cf.dev99.sc6.istio.sapcloud.io"
 	proxyConfig.providerId = "your-provider"
+	oldIstioDirectory := proxyConfig.istioDirectory
 	proxyConfig.istioDirectory = "/non-existing-directory"
+
+	defer func() { proxyConfig.istioDirectory = oldIstioDirectory }()
+
 	proxyConfig.loadBalancerPort = 9000
 	g := NewGomegaWithT(t)
 	responseBody := []byte(`{
