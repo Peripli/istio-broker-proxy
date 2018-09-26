@@ -324,7 +324,7 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 	proxyConfig.forwardURL = "http://xxxxx.xx"
 	proxyConfig.systemDomain = "services.cf.dev99.sc6.istio.sapcloud.io"
 	proxyConfig.providerId = "your-provider"
-	proxyConfig.istioDirectory = "/tmp"
+	proxyConfig.istioDirectory = "/non-existing-directory"
 	proxyConfig.loadBalancerPort = 9000
 	g := NewGomegaWithT(t)
 	responseBody := []byte(`{
@@ -351,13 +351,6 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 					}`)
 	handlerStub := NewHandlerStub(http.StatusOK, responseBody)
 	server := injectClientStub(handlerStub)
-
-	fileName := path.Join(proxyConfig.istioDirectory, "error.yml")
-	os.Remove(fileName)
-	file, err := os.Create(fileName)
-	g.Expect(err).NotTo(HaveOccurred())
-	file.Close()
-	os.Chmod(fileName, 0400)
 
 	defer server.Close()
 
