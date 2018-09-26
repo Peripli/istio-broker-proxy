@@ -93,7 +93,10 @@ func writeIstioConfigFiles(istioDirectory string, fileName string, configuration
 	if nil != err {
 		return err
 	}
-	file.Write([]byte(fileContent))
+	_, err = file.Write([]byte(fileContent))
+	if nil != err {
+		return err
+	}
 	return nil
 }
 
@@ -194,7 +197,11 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 			}
 			profiles.AddIstioNetworkDataToResponse(providerId, bindingId, systemDomain, proxyConfig.loadBalancerPort, &bindResponse)
 
-			writeIstioFilesForProvider(proxyConfig.istioDirectory, bindingId, &bindRequest, &bindResponse)
+			err = writeIstioFilesForProvider(proxyConfig.istioDirectory, bindingId, &bindRequest, &bindResponse)
+			if err != nil {
+				httpError(writer, err)
+				return
+			}
 		}
 
 		responseBody, err = json.Marshal(bindResponse)

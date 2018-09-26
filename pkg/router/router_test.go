@@ -320,6 +320,54 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 	g.Expect(contentAsString).To(MatchRegexp("0.456.services.cf.dev99.sc6.istio.sapcloud.io"))
 }
 
+func TestIstioConfigFilesAreNotWritable(t *testing.T) {
+	proxyConfig.forwardURL = "http://xxxxx.xx"
+	proxyConfig.systemDomain = "services.cf.dev99.sc6.istio.sapcloud.io"
+	proxyConfig.providerId = "your-provider"
+	proxyConfig.istioDirectory = "/tmp"
+	proxyConfig.loadBalancerPort = 9000
+	g := NewGomegaWithT(t)
+	responseBody := []byte(`{
+					"credentials":
+					{
+ 						"hostname": "10.11.241.0",
+ 						"port": "47637",
+                        "end_points": [
+                        {
+                            "host": "10.11.241.0",
+                            "port": 47637
+                        }],
+						"uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
+ 					}
+					}`)
+	requestBody := []byte(`{
+					"network_data":
+					{
+                        "data":
+                        {
+                            "consumer_id": "147"
+                        }
+ 					}
+					}`)
+	handlerStub := NewHandlerStub(http.StatusOK, responseBody)
+	server := injectClientStub(handlerStub)
+
+	fileName := path.Join(proxyConfig.istioDirectory, "error.yml")
+	os.Remove(fileName)
+	file, err := os.Create(fileName)
+	g.Expect(err).NotTo(HaveOccurred())
+	file.Close()
+	os.Chmod(fileName, 0400)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/error", bytes.NewReader(requestBody))
+	response := httptest.NewRecorder()
+	router := SetupRouter()
+	router.ServeHTTP(response, request)
+	g.Expect(response.Code).To(Equal(500))
+}
+
 func TestHttpClientError(t *testing.T) {
 	proxyConfig.forwardURL = "http://xxxxx.xx"
 	proxyConfig.systemDomain = "istio.sapcloud.io"
