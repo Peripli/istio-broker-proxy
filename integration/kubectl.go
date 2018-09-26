@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"reflect"
 	"strings"
+	"time"
 )
 
 func NewKubeCtl(g *GomegaWithT) *kubectl {
@@ -26,11 +27,23 @@ type kubectl struct {
 }
 
 func (self kubectl) run(args ...string) []byte {
-	fmt.Println("kubectl ", strings.Join(args, " "))
-	out, err := exec.Command("kubectl", args...).CombinedOutput()
-	self.g.Expect(err).ShouldNot(HaveOccurred())
-	// fmt.Println(string(out))
-	return out
+	expiry := time.Now().Add(time.Duration(300) * time.Second)
+	for {
+		fmt.Println("kubectl ", strings.Join(args, " "))
+		out, err := exec.Command("kubectl", args...).CombinedOutput()
+		if err == nil {
+			return out
+		}
+		self.g.Expect(time.Now().Before(expiry)).To(BeTrue(),
+			fmt.Sprintf("Timeout expired: %s", string(out)))
+
+		if strings.Contains(string(out), "ServiceUnavailable") {
+			time.Sleep(10 * time.Second)
+		} else {
+			self.g.Expect(err).NotTo(HaveOccurred(),
+				fmt.Sprintf("Error running kubectl: %s", string(out)))
+		}
+	}
 }
 
 func (self kubectl) Delete(kind string, name string) {

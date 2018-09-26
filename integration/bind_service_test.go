@@ -57,11 +57,11 @@ func TestServiceBindingIsSuccessful(t *testing.T) {
 
 func waitForCompletion(g *GomegaWithT, test func() bool) {
 	valid := false
-	expiry := time.Now().Add(time.Duration(60) * time.Second)
+	expiry := time.Now().Add(time.Duration(300) * time.Second)
 	for !valid {
 		valid = test()
 		if !valid {
-			time.Sleep(time.Duration(5) * time.Second)
+			time.Sleep(time.Duration(10) * time.Second)
 			g.Expect(time.Now().Before(expiry)).To(BeTrue(), "Timeout expired")
 		}
 	}
