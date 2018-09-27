@@ -32,10 +32,10 @@ func NewHandlerStub(code int, responseBody []byte) *handlerStub {
 func injectClientStub(handler *handlerStub) *httptest.Server {
 	ts := httptest.NewServer(handler)
 	client := ts.Client()
-	proxyConfig.httpClientFactory = func(tr *http.Transport) *http.Client {
+	ProxyConfiguration.HttpClientFactory = func(tr *http.Transport) *http.Client {
 		return client
 	}
-	proxyConfig.httpRequestFactory = func(method string, url string, body io.Reader) (*http.Request, error) {
+	ProxyConfiguration.HttpRequestFactory = func(method string, url string, body io.Reader) (*http.Request, error) {
 		handler.spy.method = method
 		handler.spy.url = url
 		buf := new(bytes.Buffer)

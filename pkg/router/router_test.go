@@ -15,7 +15,7 @@ import (
 )
 
 func TestInvalidUpdateCredentials(t *testing.T) {
-	proxyConfig.providerId = "x"
+	ProxyConfiguration.ProviderId = "x"
 	g := NewGomegaWithT(t)
 	router := SetupRouter()
 
@@ -91,7 +91,7 @@ func TestCreateNewURL(t *testing.T) {
 }
 
 func TestRedirect(t *testing.T) {
-	proxyConfig.forwardURL = "https://httpbin.org"
+	ProxyConfiguration.ForwardURL = "https://httpbin.org"
 
 	t.Run("Check that headers are forwarded", func(t *testing.T) {
 		const testHeaderKey = "X-Broker-Api-Version"
@@ -151,7 +151,7 @@ func TestRedirect(t *testing.T) {
 func TestBadGateway(t *testing.T) {
 	g := NewGomegaWithT(t)
 	router := SetupRouter()
-	proxyConfig.forwardURL = "doesntexist.org"
+	ProxyConfiguration.ForwardURL = "doesntexist.org"
 
 	body := []byte{'{', '}'}
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/get", bytes.NewReader(body))
@@ -167,7 +167,7 @@ func TestBadGateway(t *testing.T) {
 func TestAdaptCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
 	router := SetupRouter()
-	proxyConfig.forwardURL = ""
+	ProxyConfiguration.ForwardURL = ""
 
 	body := []byte(`{
 "credentials": {
@@ -199,7 +199,7 @@ func TestAdaptCredentials(t *testing.T) {
 }
 
 func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
-	proxyConfig.forwardURL = "http://xxxxx.xx"
+	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
 	g := NewGomegaWithT(t)
 	body := []byte(`{
 					"credentials":
@@ -234,10 +234,10 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 }
 
 func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAndEndpointIndex(t *testing.T) {
-	proxyConfig.forwardURL = "http://xxxxx.xx"
-	proxyConfig.systemDomain = "istio.sapcloud.io"
-	proxyConfig.providerId = "your-provider"
-	proxyConfig.loadBalancerPort = 9000
+	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
+	ProxyConfiguration.SystemDomain = "istio.sapcloud.io"
+	ProxyConfiguration.ProviderId = "your-provider"
+	ProxyConfiguration.LoadBalancerPort = 9000
 	g := NewGomegaWithT(t)
 	body := []byte(`{
 					"credentials":
@@ -272,10 +272,10 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 }
 
 func TestIstioConfigFilesAreWritten(t *testing.T) {
-	proxyConfig.forwardURL = "http://xxxxx.xx"
-	proxyConfig.systemDomain = "services.cf.dev99.sc6.istio.sapcloud.io"
-	proxyConfig.providerId = "your-provider"
-	proxyConfig.loadBalancerPort = 9000
+	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
+	ProxyConfiguration.SystemDomain = "services.cf.dev99.sc6.istio.sapcloud.io"
+	ProxyConfiguration.ProviderId = "your-provider"
+	ProxyConfiguration.LoadBalancerPort = 9000
 	g := NewGomegaWithT(t)
 	responseBody := []byte(`{
 					"credentials":
@@ -309,7 +309,7 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 	router := SetupRouter()
 	router.ServeHTTP(response, request)
 
-	file, err := os.Open(path.Join(proxyConfig.istioDirectory, "456.yml"))
+	file, err := os.Open(path.Join(ProxyConfiguration.IstioDirectory, "456.yml"))
 	g.Expect(err).NotTo(HaveOccurred())
 	content, err := ioutil.ReadAll(file)
 	contentAsString := string(content)
@@ -320,15 +320,15 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 }
 
 func TestIstioConfigFilesAreNotWritable(t *testing.T) {
-	proxyConfig.forwardURL = "http://xxxxx.xx"
-	proxyConfig.systemDomain = "services.cf.dev99.sc6.istio.sapcloud.io"
-	proxyConfig.providerId = "your-provider"
-	oldIstioDirectory := proxyConfig.istioDirectory
-	proxyConfig.istioDirectory = "/non-existing-directory"
+	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
+	ProxyConfiguration.SystemDomain = "services.cf.dev99.sc6.istio.sapcloud.io"
+	ProxyConfiguration.ProviderId = "your-provider"
+	oldIstioDirectory := ProxyConfiguration.IstioDirectory
+	ProxyConfiguration.IstioDirectory = "/non-existing-directory"
 
-	defer func() { proxyConfig.istioDirectory = oldIstioDirectory }()
+	defer func() { ProxyConfiguration.IstioDirectory = oldIstioDirectory }()
 
-	proxyConfig.loadBalancerPort = 9000
+	ProxyConfiguration.LoadBalancerPort = 9000
 	g := NewGomegaWithT(t)
 	responseBody := []byte(`{
 					"credentials":
@@ -365,10 +365,10 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 }
 
 func TestHttpClientError(t *testing.T) {
-	proxyConfig.forwardURL = "http://xxxxx.xx"
-	proxyConfig.systemDomain = "istio.sapcloud.io"
-	proxyConfig.providerId = "your-provider"
-	proxyConfig.loadBalancerPort = 9000
+	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
+	ProxyConfiguration.SystemDomain = "istio.sapcloud.io"
+	ProxyConfiguration.ProviderId = "your-provider"
+	ProxyConfiguration.LoadBalancerPort = 9000
 	g := NewGomegaWithT(t)
 	body := []byte(`{
 					"credentials":
@@ -399,9 +399,9 @@ func TestHttpClientError(t *testing.T) {
 }
 
 func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
-	proxyConfig.providerId = ""
-	proxyConfig.consumerId = "your-consumer"
-	proxyConfig.forwardURL = "http://xxxxx.xx"
+	ProxyConfiguration.ProviderId = ""
+	ProxyConfiguration.ConsumerId = "your-consumer"
+	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
 
 	g := NewGomegaWithT(t)
 	body := []byte(`{
@@ -429,7 +429,7 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
 }
 
 func TestErrorCodeOfForwardIsReturned(t *testing.T) {
-	proxyConfig.forwardURL = "http://xxxxx.xx"
+	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
 	g := NewGomegaWithT(t)
 	handlerStub := NewHandlerStub(http.StatusServiceUnavailable, nil)
 	server := injectClientStub(handlerStub)
@@ -447,7 +447,7 @@ func TestErrorCodeOfForwardIsReturned(t *testing.T) {
 }
 
 func TestReturnCodeOfGet(t *testing.T) {
-	proxyConfig.forwardURL = "http://xxxxx.xx"
+	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
 	handlerStub := NewHandlerStub(http.StatusOK, body)
@@ -465,7 +465,7 @@ func TestReturnCodeOfGet(t *testing.T) {
 }
 
 func TestCorrectUrlForwarded(t *testing.T) {
-	proxyConfig.forwardURL = "http://xxxxx.xx"
+	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
 	handlerStub := NewHandlerStub(http.StatusOK, body)
@@ -483,7 +483,7 @@ func TestCorrectUrlForwarded(t *testing.T) {
 }
 
 func TestCorrectRequestParamForDelete(t *testing.T) {
-	proxyConfig.forwardURL = "http://xxxxx.xx/suffix"
+	ProxyConfiguration.ForwardURL = "http://xxxxx.xx/suffix"
 	g := NewGomegaWithT(t)
 	body := []byte(`{}`)
 	handlerStub := NewHandlerStub(http.StatusOK, body)
@@ -500,12 +500,12 @@ func TestCorrectRequestParamForDelete(t *testing.T) {
 }
 
 func TestDefaultConfigurationIsWritten(t *testing.T) {
-	proxyConfig.providerId = "your-provider"
-	proxyConfig.systemDomain = "services.domain"
+	ProxyConfiguration.ProviderId = "your-provider"
+	ProxyConfiguration.SystemDomain = "services.domain"
 	g := NewGomegaWithT(t)
-	proxyConfig.port = 147
+	ProxyConfiguration.Port = 147
 	SetupRouter()
-	file, err := os.Open(path.Join(proxyConfig.istioDirectory, "istio-broker.yml"))
+	file, err := os.Open(path.Join(ProxyConfiguration.IstioDirectory, "istio-broker.yml"))
 	g.Expect(err).NotTo(HaveOccurred())
 	content, err := ioutil.ReadAll(file)
 	contentAsString := string(content)
@@ -518,19 +518,19 @@ func TestDefaultConfigurationIsWritten(t *testing.T) {
 
 func TestYmlFileIsCorrectlyWritten(t *testing.T) {
 	///var/vcap/packages/istio-broker/bin/istio-broker --port 8000 --forwardUrl https://10.11.252.10:9293/cf
-	// --systemdomain services.cf.dev01.aws.istio.sapcloud.io --providerId pinger.services.cf.dev01.aws.istio.sapcloud.io
-	// --loadBalancerPort 9000 --istioDirectory /var/vcap/store/istio-config --ipAddress 10.0.81.0
-	proxyConfig.port = 8000
-	proxyConfig.forwardURL = "https://10.11.252.10:9293/cf"
-	proxyConfig.systemDomain = "services.cf.dev01.aws.istio.sapcloud.io"
-	proxyConfig.providerId = "pinger.services.cf.dev01.aws.istio.sapcloud.io"
-	proxyConfig.loadBalancerPort = 9000
-	//proxyConfig.istioDirectory = "/var/vcap/store/istio-config"
-	proxyConfig.ipAddress = "10.0.81.0"
+	// --systemdomain services.cf.dev01.aws.istio.sapcloud.io --ProviderId pinger.services.cf.dev01.aws.istio.sapcloud.io
+	// --LoadBalancerPort 9000 --istioDirectory /var/vcap/store/istio-config --ipAddress 10.0.81.0
+	ProxyConfiguration.Port = 8000
+	ProxyConfiguration.ForwardURL = "https://10.11.252.10:9293/cf"
+	ProxyConfiguration.SystemDomain = "services.cf.dev01.aws.istio.sapcloud.io"
+	ProxyConfiguration.ProviderId = "pinger.services.cf.dev01.aws.istio.sapcloud.io"
+	ProxyConfiguration.LoadBalancerPort = 9000
+	//ProxyConfiguration.istioDirectory = "/var/vcap/store/istio-config"
+	ProxyConfiguration.IpAddress = "10.0.81.0"
 
 	g := NewGomegaWithT(t)
 	SetupRouter()
-	file, err := os.Open(path.Join(proxyConfig.istioDirectory, "istio-broker.yml"))
+	file, err := os.Open(path.Join(ProxyConfiguration.IstioDirectory, "istio-broker.yml"))
 	g.Expect(err).NotTo(HaveOccurred())
 	content, err := ioutil.ReadAll(file)
 	contentAsString := string(content)

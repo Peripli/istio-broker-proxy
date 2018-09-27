@@ -42,10 +42,6 @@ ignored = ["github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecata
   name = "istio.io/istio"
   branch = "master"
 
-[[constraint]]
-  name = "k8s.io/apimachinery"
-  version = "kubernetes-1.10.4"
-
 [prune]
   go-tests = true
   unused-packages = true

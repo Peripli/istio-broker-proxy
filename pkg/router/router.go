@@ -4,13 +4,11 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/config"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 	"io"
 	"io/ioutil"
 	istioModel "istio.io/istio/pilot/pkg/model"
@@ -27,30 +25,31 @@ const (
 )
 
 type ProxyConfig struct {
-	forwardURL         string
-	port               int
-	httpClientFactory  func(tr *http.Transport) *http.Client
-	httpRequestFactory func(method string, url string, body io.Reader) (*http.Request, error)
-	systemDomain       string
-	providerId         string
-	consumerId         string
-	loadBalancerPort   int
-	istioDirectory     string
-	ipAddress          string
+	ForwardURL         string
+	Port               int
+	HttpClientFactory  func(tr *http.Transport) *http.Client
+	HttpRequestFactory func(method string, url string, body io.Reader) (*http.Request, error)
+	SystemDomain       string
+	ProviderId         string
+	ConsumerId         string
+	LoadBalancerPort   int
+	IstioDirectory     string
+	IpAddress          string
 }
 
 var (
-	proxyConfig = ProxyConfig{
-		httpClientFactory:  httpClientFactory,
-		httpRequestFactory: httpRequestFactory,
-		istioDirectory:     os.TempDir(),
-		port:               DefaultPort,
-		ipAddress:          "127.0.0.1",
+	ProxyConfiguration = ProxyConfig{
+		HttpClientFactory:  httpClientFactory,
+		HttpRequestFactory: httpRequestFactory,
+		IstioDirectory:     os.TempDir(),
+		Port:               DefaultPort,
+		IpAddress:          "127.0.0.1",
 	}
 )
 
 type osbProxy struct {
 	*http.Client
+	interceptor ServiceBrokerInterceptor
 }
 
 func (client osbProxy) updateCredentials(ctx *gin.Context) {
@@ -77,7 +76,7 @@ func (client osbProxy) updateCredentials(ctx *gin.Context) {
 }
 
 func writeIstioFilesForProvider(istioDirectory string, bindingId string, request *model.BindRequest, response *model.BindResponse) error {
-	return writeIstioConfigFiles(istioDirectory, bindingId, config.CreateIstioConfigForProvider(request, response, bindingId, proxyConfig.systemDomain))
+	return writeIstioConfigFiles(istioDirectory, bindingId, config.CreateIstioConfigForProvider(request, response, bindingId, ProxyConfiguration.SystemDomain))
 }
 
 func writeIstioConfigFiles(istioDirectory string, fileName string, configuration []istioModel.Config) error {
@@ -106,8 +105,8 @@ func (client osbProxy) forward(ctx *gin.Context) {
 
 	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
 
-	url := createNewUrl(proxyConfig.forwardURL, request)
-	proxyRequest, err := proxyConfig.httpRequestFactory(request.Method, url, request.Body)
+	url := createNewUrl(ProxyConfiguration.ForwardURL, request)
+	proxyRequest, err := ProxyConfiguration.HttpRequestFactory(request.Method, url, request.Body)
 	proxyRequest.Header = request.Header
 
 	response, err := client.Do(proxyRequest)
@@ -149,10 +148,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 		return
 	}
 
-	if proxyConfig.consumerId != "" {
-		bindRequest.NetworkData.Data.ConsumerId = proxyConfig.consumerId
-		bindRequest.NetworkData.NetworkProfileId = profiles.NetworkProfile
-	}
+	bindRequest = *client.interceptor.preBind(bindRequest)
 
 	requestBody, err = json.Marshal(bindRequest)
 	log.Printf("translatedRequestBody:\n %v", string(requestBody))
@@ -188,21 +184,13 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 			httpError(writer, err)
 			return
 		}
-		if proxyConfig.providerId != "" {
-			bindingId := ctx.Params.ByName("binding_id")
-			systemDomain := proxyConfig.systemDomain
-			providerId := proxyConfig.providerId
-			if len(bindResponse.Endpoints) == 0 {
-				bindResponse.Endpoints = bindResponse.Credentials.Endpoints
-			}
-			profiles.AddIstioNetworkDataToResponse(providerId, bindingId, systemDomain, proxyConfig.loadBalancerPort, &bindResponse)
-
-			err = writeIstioFilesForProvider(proxyConfig.istioDirectory, bindingId, &bindRequest, &bindResponse)
-			if err != nil {
-				httpError(writer, err)
-				return
-			}
+		bindingId := ctx.Params.ByName("binding_id")
+		modifiedBindResponse, err := client.interceptor.postBind(bindRequest, bindResponse, bindingId)
+		if err != nil {
+			httpError(writer, err)
+			return
 		}
+		bindResponse = *modifiedBindResponse
 
 		responseBody, err = json.Marshal(bindResponse)
 		log.Printf("translatedResponseBody:\n %v", string(responseBody))
@@ -251,8 +239,8 @@ func httpRequestFactory(method string, url string, body io.Reader) (*http.Reques
 }
 
 func createForwardingRequest(request *http.Request, err error, body []byte) *http.Request {
-	url := createNewUrl(proxyConfig.forwardURL, request)
-	proxyRequest, err := proxyConfig.httpRequestFactory(request.Method, url, bytes.NewReader(body))
+	url := createNewUrl(ProxyConfiguration.ForwardURL, request)
+	proxyRequest, err := ProxyConfiguration.HttpRequestFactory(request.Method, url, bytes.NewReader(body))
 	// We may want to filter some headers, otherwise we could just use a shallow copy
 	// proxyRequest.Header = request.Header
 	proxyRequest.Header = make(http.Header)
@@ -284,37 +272,22 @@ func SetupRouter() *gin.Engine {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-
-	client := osbProxy{proxyConfig.httpClientFactory(tr)}
-	if proxyConfig.providerId != "" {
-		writeIstioConfigFiles(proxyConfig.istioDirectory, "istio-broker",
-			config.CreateEntriesForExternalService("istio-broker", string(proxyConfig.ipAddress), uint32(proxyConfig.port), "istio-broker."+proxyConfig.systemDomain, "client.istio.sapcloud.io", 9000))
+	var interceptor ServiceBrokerInterceptor
+	if ProxyConfiguration.ConsumerId != "" {
+		interceptor = consumer_interceptor{}
+	} else if ProxyConfiguration.ProviderId != "" {
+		interceptor = producer_interceptor{}
+	} else {
+		interceptor = noOpInterceptor{}
+	}
+	client := osbProxy{ProxyConfiguration.HttpClientFactory(tr), interceptor}
+	if ProxyConfiguration.ProviderId != "" {
+		writeIstioConfigFiles(ProxyConfiguration.IstioDirectory, "istio-broker",
+			config.CreateEntriesForExternalService("istio-broker", string(ProxyConfiguration.IpAddress), uint32(ProxyConfiguration.Port), "istio-broker."+ProxyConfiguration.SystemDomain, "client.istio.sapcloud.io", 9000))
 		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
 	}
 	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardBindRequest)
 	mux.NoRoute(client.forward)
 
 	return mux
-}
-
-func Run() {
-	SetupConfiguration()
-	flag.Parse()
-
-	log.Printf("Running on port %d\n", proxyConfig.port)
-
-	router := SetupRouter()
-	router.Run(fmt.Sprintf(":%d", proxyConfig.port))
-
-}
-
-func SetupConfiguration() {
-	flag.StringVar(&proxyConfig.forwardURL, "forwardUrl", "", "url for forwarding incoming requests")
-	flag.StringVar(&proxyConfig.systemDomain, "systemdomain", "", "system domain of the landscape")
-	flag.StringVar(&proxyConfig.providerId, "providerId", "", "The subject alternative name of the provider for which the service has a certificate")
-	flag.StringVar(&proxyConfig.consumerId, "consumerId", "", "The subject alternative name of the consumer for which the service has a certificate")
-	flag.IntVar(&proxyConfig.loadBalancerPort, "loadBalancerPort", 0, "port of the load balancer of the landscape")
-	flag.StringVar(&proxyConfig.istioDirectory, "istioDirectory", os.TempDir(), "Directory to store the istio configuration files")
-	flag.StringVar(&proxyConfig.ipAddress, "ipAddress", "127.0.0.1", "IP address of ingress")
-	flag.IntVar(&proxyConfig.port, "port", DefaultPort, "Server listen port")
 }
