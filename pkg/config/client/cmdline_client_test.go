@@ -11,18 +11,18 @@ import (
 
 func TestCmdClientClientCallDiffers(t *testing.T) {
 	g := NewGomegaWithT(t)
-	stdoutClient := callClient(true, "myservice", "myhost", 1234, "1.2.3.4")
-	stdoutServer := callClient(false, "myservice", "myhost", 1234, "1.2.3.4")
+	stdoutClient := callClient(true, "myservice", "myhost", 1234, "1.2.3.4", "5.4.3.1")
+	stdoutServer := callClient(false, "myservice", "myhost", 1234, "1.2.3.4", "5.4.3.1")
 
 	g.Expect(stdoutClient).NotTo(Equal(stdoutServer))
 }
 
-func callClient(clientConfig bool, serviceName string, hostVirtualService string, portServiceEntry int, endpointServiceEntry string) string {
+func callClient(clientConfig bool, serviceName string, hostVirtualService string, portServiceEntry int, endpointServiceEntry string, serviceIp string) string {
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	createOutput(clientConfig, serviceName, hostVirtualService, portServiceEntry, endpointServiceEntry)
+	createOutput(clientConfig, serviceName, hostVirtualService, portServiceEntry, endpointServiceEntry, serviceIp)
 	outC := make(chan string)
 	go func() {
 		var buf bytes.Buffer
