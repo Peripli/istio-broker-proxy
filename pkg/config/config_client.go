@@ -9,20 +9,22 @@ import (
 func createEgressVirtualServiceForExternalService(hostName string, port uint32, serviceName string, gatewayPort uint32) model.Config {
 	gatewayName := fmt.Sprintf("egress-gateway-%s", serviceName)
 	gatewayHost := fmt.Sprintf("istio-egressgateway-%s", serviceName)
-	config := createGeneralVirtualServiceForExternalService(hostName, port, serviceName, gatewayName, gatewayHost, gatewayPort, hostName)
-	return config
-}
-
-func createMeshVirtualServiceForExternalService(hostName string, port uint32, serviceName string, gatewayPort uint32) model.Config {
-	gatewayName := fmt.Sprintf("direct-through-egress-mesh-%s", serviceName)
-	config := createGeneralVirtualServiceForExternalService(hostName, port, serviceName, gatewayName, "mesh", gatewayPort, "istio-egressgateway.istio-system.svc.cluster.local")
-	return config
-}
-
-func createGeneralVirtualServiceForExternalService(hostName string, port uint32, serviceName string, gatewayName string, gatewayHost string, gatewayPort uint32, destinationHost string) model.Config {
-	destination := v1alpha3.Destination{Host: destinationHost, Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: port}}, Subset: serviceName}
-	matchGateways := []string{fmt.Sprintf(gatewayHost)}
+	matchGateways := []string{gatewayHost}
 	match := v1alpha3.L4MatchAttributes{Gateways: matchGateways, Port: gatewayPort}
+	config := createGeneralVirtualServiceForExternalService(hostName, port, serviceName, gatewayName, gatewayHost, match, hostName)
+	return config
+}
+
+func createMeshVirtualServiceForExternalService(hostName string, port uint32, serviceName string, serviceIP string) model.Config {
+	gatewayName := fmt.Sprintf("direct-through-egress-mesh-%s", serviceName)
+	matchGateways := []string{"mesh"}
+	match := v1alpha3.L4MatchAttributes{Gateways: matchGateways, DestinationSubnets: []string{serviceIP}}
+	config := createGeneralVirtualServiceForExternalService(hostName, port, serviceName, gatewayName, "mesh", match, "istio-egressgateway.istio-system.svc.cluster.local")
+	return config
+}
+
+func createGeneralVirtualServiceForExternalService(hostName string, port uint32, serviceName string, gatewayName string, gatewayHost string, match v1alpha3.L4MatchAttributes, destinationHost string) model.Config {
+	destination := v1alpha3.Destination{Host: destinationHost, Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: port}}, Subset: serviceName}
 	route := v1alpha3.TCPRoute{Route: []*v1alpha3.DestinationWeight{{Destination: &destination}}, Match: []*v1alpha3.L4MatchAttributes{&match}}
 	tcpRoutes := []*v1alpha3.TCPRoute{&route}
 	hosts := []string{hostName}
@@ -47,7 +49,7 @@ func createEgressGatewayForExternalService(hostName string, portNumber uint32, s
 		SubjectAltNames:   []string{"spiffe://cluster.local/ns/default/sa/default"}}
 	selector := make(map[string]string)
 	selector["istio"] = "egressgateway"
-	gatewaySpec := v1alpha3.Gateway{Selector: selector, Servers: []*v1alpha3.Server{&v1alpha3.Server{Port: &port, Hosts: hosts, Tls: &tls}}}
+	gatewaySpec := v1alpha3.Gateway{Selector: selector, Servers: []*v1alpha3.Server{{Port: &port, Hosts: hosts, Tls: &tls}}}
 	config := model.Config{Spec: &gatewaySpec}
 	config.Type = gateway
 	config.Name = fmt.Sprintf("istio-egressgateway-%s", serviceName)
@@ -81,15 +83,6 @@ func createTlsSettings(hostName string) v1alpha3.TLSSettings {
 		Sni: sni, SubjectAltNames: subjectAltNames, Mode: mode}
 
 	return tls
-}
-
-func createEgressInternServiceEntryForExternalService(hostName string, portNumber uint32, serviceName string) model.Config {
-	portName := fmt.Sprintf("tcp-port-%d", portNumber)
-	name := fmt.Sprintf("internal-services-%s", serviceName)
-
-	config := createGeneralServiceEntryForExternalService(name, hostName, portNumber, portName, "TCP")
-
-	return config
 }
 
 func createEgressExternServiceEntryForExternalService(hostName string, portNumber uint32, serviceName string) model.Config {

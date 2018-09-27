@@ -62,16 +62,13 @@ func createValidIdentifer(identifer string) string {
 
 }
 
-func CreateEntriesForExternalServiceClient(serviceName string, hostName string, portNumber uint32) []istioModel.Config {
+func CreateEntriesForExternalServiceClient(serviceName string, hostName string, serviceIP string) []istioModel.Config {
 	var configs []istioModel.Config
 
-	serviceEntry := createEgressInternServiceEntryForExternalService(hostName, portNumber, serviceName)
+	serviceEntry := createEgressExternServiceEntryForExternalService(hostName, 9000, serviceName)
 	configs = append(configs, serviceEntry)
 
-	serviceEntry = createEgressExternServiceEntryForExternalService(hostName, 9000, serviceName)
-	configs = append(configs, serviceEntry)
-
-	virtualService := createMeshVirtualServiceForExternalService(hostName, 443, serviceName, portNumber)
+	virtualService := createMeshVirtualServiceForExternalService(hostName, 443, serviceName, serviceIP)
 	configs = append(configs, virtualService)
 	virtualService = createEgressVirtualServiceForExternalService(hostName, 9000, serviceName, 443)
 	configs = append(configs, virtualService)

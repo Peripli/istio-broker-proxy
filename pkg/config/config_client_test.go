@@ -21,21 +21,7 @@ spec:
     protocol: TLS
   resolution: DNS
 `
-	service_entry_intern_yml = `apiVersion: networking.istio.io/v1alpha3
-kind: ServiceEntry
-metadata:
-  creationTimestamp: null
-  name: internal-services-mypostgres
-  namespace: default
-spec:
-  hosts:
-  - mypostgres.services.cf.dev01.aws.istio.sapcloud.io
-  ports:
-  - name: tcp-port-5556
-    number: 5556
-    protocol: TCP
-  resolution: DNS
-`
+
 	destination_rule_sidecar_yml = `apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
@@ -89,9 +75,10 @@ spec:
   - mypostgres.services.cf.dev01.aws.istio.sapcloud.io
   tcp:
   - match:
-    - gateways:
+    - destinationSubnets:
+      - 100.66.152.30
+      gateways:
       - mesh
-      port: 5556
     route:
     - destination:
         host: istio-egressgateway.istio-system.svc.cluster.local
@@ -176,7 +163,7 @@ func TestClientMeshVirtualServiceFromGo(t *testing.T) {
 
 	virtualServiceSpec := createMeshVirtualServiceForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
 		443,
-		"mypostgres", 5556)
+		"mypostgres", "100.66.152.30")
 
 	text, err := toText(virtualServiceSpec)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -193,18 +180,6 @@ func TestClientEgressDestinationRuleFromGo(t *testing.T) {
 	text, err := toText(destinationRuleSpec)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(text).To(Equal(destination_rule_egress_yml))
-}
-
-func TestClientInternServiceEntryFromGo(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	serviceEntrySpec := createEgressInternServiceEntryForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
-		5556,
-		"mypostgres")
-
-	text, err := toText(serviceEntrySpec)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(text).To(Equal(service_entry_intern_yml))
 }
 
 func TestClientExternServiceEntryFromGo(t *testing.T) {

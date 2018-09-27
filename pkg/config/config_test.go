@@ -24,9 +24,9 @@ func TestCompleteEntryNotEmpty(t *testing.T) {
 func TestCompleteClientEntryNotEmpty(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 1111)
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1")
 
-	g.Expect(configObjects).To(HaveLen(7))
+	g.Expect(configObjects).To(HaveLen(6))
 }
 
 func TestCompleteEntryGateway(t *testing.T) {
@@ -81,7 +81,7 @@ func TestCompleteVirtualService(t *testing.T) {
 func TestCompleteEntryClientGateway(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 12345)
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1")
 
 	gatewaySpec, gatewayMetadata := getSpecAndMetadataFromConfig(g, configObjects, gateway)
 
@@ -96,7 +96,7 @@ func TestCompleteEntryClientGateway(t *testing.T) {
 func TestCompleteEntryClientEgressDestinationRule(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 12345)
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1")
 
 	ruleSpecs, ruleMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, destinationRule)
 	ruleSpec := ruleSpecs[0]
@@ -112,7 +112,7 @@ func TestCompleteEntryClientEgressDestinationRule(t *testing.T) {
 func TestCompleteEntryClientSidecarDestinationRule(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 12345)
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1")
 
 	ruleSpecs, ruleMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, destinationRule)
 	g.Expect(ruleSpecs).To(HaveLen(2))
@@ -129,10 +129,10 @@ func TestCompleteEntryClientSidecarDestinationRule(t *testing.T) {
 func TestCompleteEntryClientServiceEntry(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 12345)
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1")
 
 	serviceEntriesConfigs := lookupObjectsFromConfigs(configObjects, serviceEntry)
-	g.Expect(serviceEntriesConfigs).To(HaveLen(2))
+	g.Expect(serviceEntriesConfigs).To(HaveLen(1))
 
 	var ports []string
 	for _, serviceEntryConfig := range serviceEntriesConfigs {
@@ -143,14 +143,13 @@ func TestCompleteEntryClientServiceEntry(t *testing.T) {
 		port := r.FindStringSubmatch(string(entrySpec))[1]
 		ports = append(ports, port)
 	}
-	g.Expect(ports).To(ContainElement("12345"))
 	g.Expect(ports).To(ContainElement("9000"))
 }
 
 func TestCompleteEntryClientVirtualServices(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", 12345)
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1")
 	serviceSpecs, serviceMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, virtualService)
 	g.Expect(serviceSpecs).To(HaveLen(2))
 	g.Expect(serviceMetadatas).To(HaveLen(2))
