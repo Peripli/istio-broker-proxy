@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -11,6 +9,7 @@ import (
 )
 
 func TestAdaptCredentialsWithInvalidRequest(t *testing.T) {
+	skipWithoutKubeconfigSet(t)
 
 	g := NewGomegaWithT(t)
 	kubectl := NewKubeCtl(g)
@@ -38,6 +37,7 @@ func TestAdaptCredentialsWithInvalidRequest(t *testing.T) {
 }
 
 func TestAdaptCredentialsWithValidRequest(t *testing.T) {
+	skipWithoutKubeconfigSet(t)
 
 	g := NewGomegaWithT(t)
 	kubectl := NewKubeCtl(g)

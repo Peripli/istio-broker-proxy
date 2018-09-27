@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -17,7 +15,7 @@ import (
 
 func NewKubeCtl(g *GomegaWithT) *kubectl {
 	kubeconfig := os.Getenv("KUBECONFIG")
-	g.Expect(kubeconfig).NotTo(BeEmpty())
+	g.Expect(kubeconfig).NotTo(BeEmpty(), "KUBECONFIG not set")
 
 	return &kubectl{g}
 }

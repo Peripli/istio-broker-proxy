@@ -1,10 +1,9 @@
-// +build integration
-
 package integration
 
 import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	. "github.com/onsi/gomega"
+	"os"
 	"testing"
 	"time"
 )
@@ -25,7 +24,14 @@ spec:
   instanceRef:
     name: postgres-instance`
 
+func skipWithoutKubeconfigSet(t *testing.T) {
+	if os.Getenv("KUBECONFIG") == "" {
+		t.Skip("KUBECONFIG not set, skipping integration test.")
+	}
+}
+
 func TestServiceBindingIsSuccessful(t *testing.T) {
+	skipWithoutKubeconfigSet(t)
 
 	g := NewGomegaWithT(t)
 	kubectl := NewKubeCtl(g)
