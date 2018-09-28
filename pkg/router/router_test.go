@@ -16,7 +16,7 @@ import (
 
 func TestInvalidUpdateCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	router := SetupRouter(NewProducerInterceptor(ProducerConfig{ProviderId: "x"}, DefaultPort), RouterConfig{})
+	router := SetupRouter(ProducerInterceptor{ProviderId: "x"}, RouterConfig{})
 
 	emptyBody := bytes.NewReader([]byte("{}"))
 	request, _ := http.NewRequest(http.MethodPut, "https://blablub.org/v2/service_instances/134567/service_bindings/76543210/adapt_credentials", emptyBody)
@@ -45,7 +45,7 @@ const validUpdateCredentialsRequest = `{
 
 func TestValidUpdateCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	router := SetupRouter(NewProducerInterceptor(ProducerConfig{ProviderId: "x"}, DefaultPort), RouterConfig{})
+	router := SetupRouter(ProducerInterceptor{ProviderId: "x"}, RouterConfig{})
 
 	emptyBody := bytes.NewReader([]byte(validUpdateCredentialsRequest))
 	request, _ := http.NewRequest(http.MethodPut, "/v2/service_instances/1234-4567/service_bindings/7654-3210/adapt_credentials", emptyBody)
@@ -163,7 +163,7 @@ func TestBadGateway(t *testing.T) {
 
 func TestAdaptCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	router := SetupRouter(NewProducerInterceptor(ProducerConfig{ProviderId: "x"}, DefaultPort), RouterConfig{})
+	router := SetupRouter(ProducerInterceptor{ProviderId: "x"}, RouterConfig{})
 
 	body := []byte(`{
 "credentials": {
@@ -216,7 +216,7 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
 	response := httptest.NewRecorder()
-	router := SetupRouter(NewProducerInterceptor(ProducerConfig{}, DefaultPort), *routerConfig)
+	router := SetupRouter(ProducerInterceptor{IstioDirectory: os.TempDir()}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	var bodyData struct {
@@ -229,7 +229,11 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 }
 
 func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAndEndpointIndex(t *testing.T) {
-	producerConfig := ProducerConfig{SystemDomain: "istio.sapcloud.io", ProviderId: "your-provider"}
+	producerConfig := ProducerInterceptor{
+		SystemDomain:     "istio.sapcloud.io",
+		ProviderId:       "your-provider",
+		LoadBalancerPort: 9000,
+		IstioDirectory:   os.TempDir()}
 	g := NewGomegaWithT(t)
 	body := []byte(`{
 					"credentials":
@@ -251,7 +255,7 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
 	response := httptest.NewRecorder()
-	router := SetupRouter(NewProducerInterceptor(producerConfig, DefaultPort), *routerConfig)
+	router := SetupRouter(producerConfig, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	bodyString := response.Body.String()
@@ -264,7 +268,10 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 }
 
 func TestIstioConfigFilesAreWritten(t *testing.T) {
-	producerConfig := ProducerConfig{SystemDomain: "services.cf.dev99.sc6.istio.sapcloud.io", ProviderId: "your-provider"}
+	producerInterceptor := ProducerInterceptor{
+		SystemDomain:   "services.cf.dev99.sc6.istio.sapcloud.io",
+		ProviderId:     "your-provider",
+		IstioDirectory: os.TempDir()}
 	g := NewGomegaWithT(t)
 	responseBody := []byte(`{
 					"credentials":
@@ -295,10 +302,10 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(requestBody))
 	response := httptest.NewRecorder()
-	router := SetupRouter(NewProducerInterceptor(producerConfig, DefaultPort), *routerConfig)
+	router := SetupRouter(producerInterceptor, *routerConfig)
 	router.ServeHTTP(response, request)
 
-	file, err := os.Open(path.Join(os.TempDir(), "456.yml"))
+	file, err := os.Open(path.Join(producerInterceptor.IstioDirectory, "456.yml"))
 	g.Expect(err).NotTo(HaveOccurred())
 	content, err := ioutil.ReadAll(file)
 	contentAsString := string(content)
@@ -309,7 +316,7 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 }
 
 func TestIstioConfigFilesAreNotWritable(t *testing.T) {
-	producerConfig := ProducerConfig{
+	producerConfig := ProducerInterceptor{
 		SystemDomain:   "services.cf.dev99.sc6.istio.sapcloud.io",
 		ProviderId:     "your-provider",
 		IstioDirectory: "/non-existing-directory",
@@ -344,7 +351,7 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/error", bytes.NewReader(requestBody))
 	response := httptest.NewRecorder()
-	router := SetupRouter(NewProducerInterceptor(producerConfig, DefaultPort), *routerConfig)
+	router := SetupRouter(producerConfig, *routerConfig)
 	router.ServeHTTP(response, request)
 	g.Expect(response.Code).To(Equal(500))
 }
@@ -396,7 +403,7 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
 	response := httptest.NewRecorder()
-	router := SetupRouter(NewConsumerInterceptor(ConsumerConfig{ConsumerId: "your-consumer"}), *routerConfig)
+	router := SetupRouter(ConsumerInterceptor{ConsumerId: "your-consumer"}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	bodyString := handlerStub.spy.body

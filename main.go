@@ -8,8 +8,8 @@ import (
 	"os"
 )
 
-var producerConfig router.ProducerConfig
-var consumerConfig router.ConsumerConfig
+var producerInterceptor router.ProducerInterceptor
+var consumerInterceptor router.ConsumerInterceptor
 var routerConfig router.RouterConfig
 
 func main() {
@@ -18,10 +18,11 @@ func main() {
 
 	log.Printf("Running on port %d\n", routerConfig.Port)
 	var interceptor router.ServiceBrokerInterceptor
-	if consumerConfig.ConsumerId != "" {
-		interceptor = router.NewConsumerInterceptor(consumerConfig)
-	} else if producerConfig.ProviderId != "" {
-		interceptor = router.NewProducerInterceptor(producerConfig, routerConfig.Port)
+	if consumerInterceptor.ConsumerId != "" {
+		interceptor = consumerInterceptor
+	} else if producerInterceptor.ProviderId != "" {
+		producerInterceptor.WriteIstioConfigFiles(routerConfig.Port)
+		interceptor = producerInterceptor
 	} else {
 		interceptor = router.NoOpInterceptor{}
 	}
@@ -31,14 +32,14 @@ func main() {
 }
 
 func SetupConfiguration() {
-	flag.StringVar(&producerConfig.SystemDomain, "systemdomain", "", "system domain of the landscape")
-	flag.StringVar(&producerConfig.ProviderId, "providerId", "", "The subject alternative name of the provider for which the service has a certificate")
+	flag.StringVar(&producerInterceptor.SystemDomain, "systemdomain", "", "system domain of the landscape")
+	flag.StringVar(&producerInterceptor.ProviderId, "providerId", "", "The subject alternative name of the provider for which the service has a certificate")
 
-	flag.IntVar(&producerConfig.LoadBalancerPort, "loadBalancerPort", 0, "port of the load balancer of the landscape")
-	flag.StringVar(&producerConfig.IstioDirectory, "istioDirectory", os.TempDir(), "Directory to store the istio configuration files")
-	flag.StringVar(&producerConfig.IpAddress, "ipAddress", "127.0.0.1", "IP address of ingress")
+	flag.IntVar(&producerInterceptor.LoadBalancerPort, "loadBalancerPort", 9000, "port of the load balancer of the landscape")
+	flag.StringVar(&producerInterceptor.IstioDirectory, "istioDirectory", os.TempDir(), "Directory to store the istio configuration files")
+	flag.StringVar(&producerInterceptor.IpAddress, "ipAddress", "127.0.0.1", "IP address of ingress")
 
-	flag.StringVar(&consumerConfig.ConsumerId, "consumerId", "", "The subject alternative name of the consumer for which the service has a certificate")
+	flag.StringVar(&consumerInterceptor.ConsumerId, "consumerId", "", "The subject alternative name of the consumer for which the service has a certificate")
 
 	flag.StringVar(&routerConfig.ForwardURL, "forwardUrl", "", "url for forwarding incoming requests")
 	flag.IntVar(&routerConfig.Port, "port", router.DefaultPort, "Server listen port")

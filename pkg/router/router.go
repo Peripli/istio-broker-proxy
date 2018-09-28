@@ -240,7 +240,7 @@ func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig RouterConfig
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := osbProxy{routerConfig.HttpClientFactory(tr), interceptor, routerConfig}
-	_, ok := interceptor.(*producer_interceptor)
+	_, ok := interceptor.(ProducerInterceptor)
 	if ok {
 		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
 	}

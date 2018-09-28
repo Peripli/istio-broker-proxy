@@ -5,25 +5,17 @@ import (
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 )
 
-type ConsumerConfig struct {
+type ConsumerInterceptor struct {
 	ConsumerId string
 }
 
-type consumer_interceptor struct {
-	config ConsumerConfig
-}
-
-func NewConsumerInterceptor(cfg ConsumerConfig) ServiceBrokerInterceptor {
-	return &consumer_interceptor{cfg}
-}
-
-func (c consumer_interceptor) preBind(request model.BindRequest) *model.BindRequest {
-	request.NetworkData.Data.ConsumerId = c.config.ConsumerId
+func (c ConsumerInterceptor) preBind(request model.BindRequest) *model.BindRequest {
+	request.NetworkData.Data.ConsumerId = c.ConsumerId
 	request.NetworkData.NetworkProfileId = profiles.NetworkProfile
 	return &request
 }
 
-func (c consumer_interceptor) postBind(request model.BindRequest, response model.BindResponse, bindId string) (*model.BindResponse, error) {
+func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.BindResponse, bindId string) (*model.BindResponse, error) {
 	return &response, nil
 }
 

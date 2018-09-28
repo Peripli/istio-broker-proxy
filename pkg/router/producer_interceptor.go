@@ -10,7 +10,7 @@ import (
 	"path"
 )
 
-type ProducerConfig struct {
+type ProducerInterceptor struct {
 	LoadBalancerPort int
 	SystemDomain     string
 	ProviderId       string
@@ -18,37 +18,22 @@ type ProducerConfig struct {
 	IpAddress        string
 }
 
-type producer_interceptor struct {
-	config ProducerConfig
+func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) {
+	c.writeIstioConfigFiles("istio-broker",
+		config.CreateEntriesForExternalService("istio-broker", string(c.IpAddress), uint32(port), "istio-broker."+c.SystemDomain, "client.istio.sapcloud.io", 9000))
 }
 
-func NewProducerInterceptor(cfg ProducerConfig, port int) ServiceBrokerInterceptor {
-	if cfg.IpAddress == "" {
-		cfg.IpAddress = "127.0.0.1"
-	}
-	if cfg.IstioDirectory == "" {
-		cfg.IstioDirectory = os.TempDir()
-	}
-	if cfg.LoadBalancerPort == 0 {
-		cfg.LoadBalancerPort = 9000
-	}
-	interceptor := producer_interceptor{cfg}
-	interceptor.writeIstioConfigFiles("istio-broker",
-		config.CreateEntriesForExternalService("istio-broker", string(cfg.IpAddress), uint32(port), "istio-broker."+cfg.SystemDomain, "client.istio.sapcloud.io", 9000))
-	return &interceptor
-}
-
-func (c producer_interceptor) preBind(request model.BindRequest) *model.BindRequest {
+func (c ProducerInterceptor) preBind(request model.BindRequest) *model.BindRequest {
 	return &request
 }
 
-func (c producer_interceptor) postBind(request model.BindRequest, response model.BindResponse, bindingId string) (*model.BindResponse, error) {
-	systemDomain := c.config.SystemDomain
-	providerId := c.config.ProviderId
+func (c ProducerInterceptor) postBind(request model.BindRequest, response model.BindResponse, bindingId string) (*model.BindResponse, error) {
+	systemDomain := c.SystemDomain
+	providerId := c.ProviderId
 	if len(response.Endpoints) == 0 {
 		response.Endpoints = response.Credentials.Endpoints
 	}
-	profiles.AddIstioNetworkDataToResponse(providerId, bindingId, systemDomain, c.config.LoadBalancerPort, &response)
+	profiles.AddIstioNetworkDataToResponse(providerId, bindingId, systemDomain, c.LoadBalancerPort, &response)
 
 	err := c.writeIstioFilesForProvider(bindingId, &request, &response)
 	if err != nil {
@@ -57,12 +42,12 @@ func (c producer_interceptor) postBind(request model.BindRequest, response model
 	return &response, nil
 }
 
-func (c producer_interceptor) writeIstioFilesForProvider(bindingId string, request *model.BindRequest, response *model.BindResponse) error {
-	return c.writeIstioConfigFiles(bindingId, config.CreateIstioConfigForProvider(request, response, bindingId, c.config.SystemDomain))
+func (c ProducerInterceptor) writeIstioFilesForProvider(bindingId string, request *model.BindRequest, response *model.BindResponse) error {
+	return c.writeIstioConfigFiles(bindingId, config.CreateIstioConfigForProvider(request, response, bindingId, c.SystemDomain))
 }
 
-func (c producer_interceptor) writeIstioConfigFiles(fileName string, configuration []istioModel.Config) error {
-	ymlPath := path.Join(c.config.IstioDirectory, fileName) + ".yml"
+func (c ProducerInterceptor) writeIstioConfigFiles(fileName string, configuration []istioModel.Config) error {
+	ymlPath := path.Join(c.IstioDirectory, fileName) + ".yml"
 	log.Printf("PATH to istio config: %v\n", ymlPath)
 	file, err := os.Create(ymlPath)
 	if nil != err {

@@ -10,7 +10,7 @@ import (
 func TestConsumerPreBind(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	consumer := NewConsumerInterceptor(ConsumerConfig{ConsumerId: "consumer-id"})
+	consumer := ConsumerInterceptor{ConsumerId: "consumer-id"}
 	request := consumer.preBind(model.BindRequest{})
 	g.Expect(request.NetworkData.NetworkProfileId).To(Equal(profiles.NetworkProfile))
 	g.Expect(request.NetworkData.Data.ConsumerId).To(Equal("consumer-id"))

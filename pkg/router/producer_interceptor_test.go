@@ -10,8 +10,12 @@ import (
 
 func TestDefaultConfigurationIsWritten(t *testing.T) {
 	g := NewGomegaWithT(t)
-	NewProducerInterceptor(ProducerConfig{ProviderId: "your-provider", SystemDomain: "services.domain"}, 147)
-	file, err := os.Open(path.Join(os.TempDir(), "istio-broker.yml"))
+	interceptor := ProducerInterceptor{
+		ProviderId:     "your-provider",
+		SystemDomain:   "services.domain",
+		IstioDirectory: os.TempDir()}
+	interceptor.WriteIstioConfigFiles(147)
+	file, err := os.Open(path.Join(interceptor.IstioDirectory, "istio-broker.yml"))
 	g.Expect(err).NotTo(HaveOccurred())
 	content, err := ioutil.ReadAll(file)
 	contentAsString := string(content)
@@ -27,14 +31,16 @@ func TestYmlFileIsCorrectlyWritten(t *testing.T) {
 	///var/vcap/packages/istio-broker/bin/istio-broker --port 8000 --forwardUrl https://10.11.252.10:9293/cf
 	// --systemdomain services.cf.dev01.aws.istio.sapcloud.io --ProviderId pinger.services.cf.dev01.aws.istio.sapcloud.io
 	// --LoadBalancerPort 9000 --istioDirectory /var/vcap/store/istio-config --ipAddress 10.0.81.0
-	NewProducerInterceptor(ProducerConfig{
+	interceptor := ProducerInterceptor{
 		ProviderId:       "pinger.services.cf.dev01.aws.istio.sapcloud.io",
 		SystemDomain:     "services.cf.dev01.aws.istio.sapcloud.io",
 		LoadBalancerPort: 9000,
 		IpAddress:        "10.0.81.0",
-	}, 8000)
+		IstioDirectory:   os.TempDir(),
+	}
+	interceptor.WriteIstioConfigFiles(8000)
 
-	file, err := os.Open(path.Join(os.TempDir(), "istio-broker.yml"))
+	file, err := os.Open(path.Join(interceptor.IstioDirectory, "istio-broker.yml"))
 	g.Expect(err).NotTo(HaveOccurred())
 	content, err := ioutil.ReadAll(file)
 	contentAsString := string(content)
