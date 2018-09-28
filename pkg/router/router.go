@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
 	"io"
 	"io/ioutil"
@@ -45,7 +44,7 @@ func (client osbProxy) updateCredentials(ctx *gin.Context) {
 	}
 
 	log.Printf("Received body: %v\n", string(body))
-	response, err := credentials.Update(body)
+	response, err := client.interceptor.adaptCredentials(body)
 
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
@@ -240,10 +239,7 @@ func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig RouterConfig
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := osbProxy{routerConfig.HttpClientFactory(tr), interceptor, routerConfig}
-	_, ok := interceptor.(ProducerInterceptor)
-	if ok {
-		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
-	}
+	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
 	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardBindRequest)
 	mux.NoRoute(client.forward)
 
