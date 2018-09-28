@@ -19,10 +19,6 @@ func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.
 	return &response, nil
 }
 
-func (c ConsumerInterceptor) adaptCredentials(in []byte) ([]byte, error) {
-	return in, nil
-}
-
 //func inClusterServiceFactory() clientv1.ServiceInterface {
 //	config, err := rest.InClusterConfig()
 //	if err != nil {

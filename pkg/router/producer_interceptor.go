@@ -2,7 +2,6 @@ package router
 
 import (
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/config"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 	istioModel "istio.io/istio/pilot/pkg/model"
@@ -41,10 +40,6 @@ func (c ProducerInterceptor) postBind(request model.BindRequest, response model.
 		return nil, err
 	}
 	return &response, nil
-}
-
-func (c ProducerInterceptor) adaptCredentials(in []byte) ([]byte, error) {
-	return credentials.Update(in)
 }
 
 func (c ProducerInterceptor) writeIstioFilesForProvider(bindingId string, request *model.BindRequest, response *model.BindResponse) error {
