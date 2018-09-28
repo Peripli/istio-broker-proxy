@@ -20,9 +20,10 @@ func main() {
 	var interceptor router.ServiceBrokerInterceptor
 	if consumerInterceptor.ConsumerId != "" {
 		interceptor = consumerInterceptor
+		consumerInterceptor.Kubernetes = router.InClusterServiceFactory()
 	} else if producerInterceptor.ProviderId != "" {
-		producerInterceptor.WriteIstioConfigFiles(routerConfig.Port)
 		interceptor = producerInterceptor
+		producerInterceptor.WriteIstioConfigFiles(routerConfig.Port)
 	} else {
 		interceptor = router.NoOpInterceptor{}
 	}
