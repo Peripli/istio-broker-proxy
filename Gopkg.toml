@@ -27,6 +27,10 @@
 ignored = ["github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"]
 
 [[override]]
+  name = "github.com/golang/glog"
+  revision = "2cc4b790554d1a0c48fcc3aeb891e3de70cf8de0"
+
+[[override]]
   name = "k8s.io/client-go"
   branch = "release-7.0"	# For K8s 1.10.x
 
