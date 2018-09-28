@@ -34,7 +34,7 @@ func main() {
 func createOutput(clientConfig bool, serviceName string, hostVirtualService string, portServiceEntry int, endpointServiceEntry string, serviceIp string) {
 	var configs []model.Config
 	if clientConfig {
-		configs = config.CreateEntriesForExternalServiceClient(serviceName, hostVirtualService, serviceIp)
+		configs = config.CreateEntriesForExternalServiceClient(serviceName, hostVirtualService, serviceIp, 9000)
 	} else {
 		configs = config.CreateEntriesForExternalService(serviceName, endpointServiceEntry, uint32(portServiceEntry), hostVirtualService, "client.istio.sapcloud.io", 9000)
 	}

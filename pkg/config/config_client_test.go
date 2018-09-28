@@ -72,7 +72,7 @@ spec:
   gateways:
   - mesh
   hosts:
-  - mypostgres.services.cf.dev01.aws.istio.sapcloud.io
+  - mypostgres
   tcp:
   - match:
     - destinationSubnets:
@@ -96,7 +96,7 @@ spec:
   gateways:
   - istio-egressgateway-mypostgres
   hosts:
-  - mypostgres.services.cf.dev01.aws.istio.sapcloud.io
+  - mypostgres
   tcp:
   - match:
     - gateways:
