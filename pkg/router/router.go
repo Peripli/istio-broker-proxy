@@ -6,17 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/config"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
 	"io"
 	"io/ioutil"
-	istioModel "istio.io/istio/pilot/pkg/model"
 	"log"
 	"net/http"
 	"net/http/httputil"
-	"os"
-	"path"
 	"strings"
 )
 
@@ -24,32 +20,17 @@ const (
 	DefaultPort = 8080
 )
 
-type ProxyConfig struct {
+type RouterConfig struct {
 	ForwardURL         string
 	Port               int
 	HttpClientFactory  func(tr *http.Transport) *http.Client
 	HttpRequestFactory func(method string, url string, body io.Reader) (*http.Request, error)
-	SystemDomain       string
-	ProviderId         string
-	ConsumerId         string
-	LoadBalancerPort   int
-	IstioDirectory     string
-	IpAddress          string
 }
-
-var (
-	ProxyConfiguration = ProxyConfig{
-		HttpClientFactory:  httpClientFactory,
-		HttpRequestFactory: httpRequestFactory,
-		IstioDirectory:     os.TempDir(),
-		Port:               DefaultPort,
-		IpAddress:          "127.0.0.1",
-	}
-)
 
 type osbProxy struct {
 	*http.Client
 	interceptor ServiceBrokerInterceptor
+	config      RouterConfig
 }
 
 func (client osbProxy) updateCredentials(ctx *gin.Context) {
@@ -75,38 +56,14 @@ func (client osbProxy) updateCredentials(ctx *gin.Context) {
 	writer.Write(response)
 }
 
-func writeIstioFilesForProvider(istioDirectory string, bindingId string, request *model.BindRequest, response *model.BindResponse) error {
-	return writeIstioConfigFiles(istioDirectory, bindingId, config.CreateIstioConfigForProvider(request, response, bindingId, ProxyConfiguration.SystemDomain))
-}
-
-func writeIstioConfigFiles(istioDirectory string, fileName string, configuration []istioModel.Config) error {
-	ymlPath := path.Join(istioDirectory, fileName) + ".yml"
-	log.Printf("PATH to istio config: %v\n", ymlPath)
-	file, err := os.Create(ymlPath)
-	if nil != err {
-		return err
-	}
-	defer file.Close()
-
-	fileContent, err := config.ToYamlDocuments(configuration)
-	if nil != err {
-		return err
-	}
-	_, err = file.Write([]byte(fileContent))
-	if nil != err {
-		return err
-	}
-	return nil
-}
-
 func (client osbProxy) forward(ctx *gin.Context) {
 	writer := ctx.Writer
 	request := ctx.Request
 
 	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
 
-	url := createNewUrl(ProxyConfiguration.ForwardURL, request)
-	proxyRequest, err := ProxyConfiguration.HttpRequestFactory(request.Method, url, request.Body)
+	url := createNewUrl(client.config.ForwardURL, request)
+	proxyRequest, err := client.config.HttpRequestFactory(request.Method, url, request.Body)
 	proxyRequest.Header = request.Header
 
 	response, err := client.Do(proxyRequest)
@@ -156,7 +113,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 		httpError(writer, err)
 		return
 	}
-	proxyRequest := createForwardingRequest(request, err, requestBody)
+	proxyRequest := client.createForwardingRequest(request, err, requestBody)
 
 	response, err := client.Do(proxyRequest)
 	if err != nil {
@@ -238,9 +195,9 @@ func httpRequestFactory(method string, url string, body io.Reader) (*http.Reques
 	return http.NewRequest(method, url, body)
 }
 
-func createForwardingRequest(request *http.Request, err error, body []byte) *http.Request {
-	url := createNewUrl(ProxyConfiguration.ForwardURL, request)
-	proxyRequest, err := ProxyConfiguration.HttpRequestFactory(request.Method, url, bytes.NewReader(body))
+func (client osbProxy) createForwardingRequest(request *http.Request, err error, body []byte) *http.Request {
+	url := createNewUrl(client.config.ForwardURL, request)
+	proxyRequest, err := client.config.HttpRequestFactory(request.Method, url, bytes.NewReader(body))
 	// We may want to filter some headers, otherwise we could just use a shallow copy
 	// proxyRequest.Header = request.Header
 	proxyRequest.Header = make(http.Header)
@@ -267,23 +224,24 @@ func createNewUrl(newBaseUrl string, req *http.Request) string {
 	return url
 }
 
-func SetupRouter() *gin.Engine {
+func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig RouterConfig) *gin.Engine {
+	if routerConfig.HttpClientFactory == nil {
+		routerConfig.HttpClientFactory = httpClientFactory
+	}
+	if routerConfig.HttpRequestFactory == nil {
+		routerConfig.HttpRequestFactory = httpRequestFactory
+	}
+	if routerConfig.Port == 0 {
+		routerConfig.Port = DefaultPort
+	}
+
 	mux := gin.Default()
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	var interceptor ServiceBrokerInterceptor
-	if ProxyConfiguration.ConsumerId != "" {
-		interceptor = consumer_interceptor{}
-	} else if ProxyConfiguration.ProviderId != "" {
-		interceptor = producer_interceptor{}
-	} else {
-		interceptor = noOpInterceptor{}
-	}
-	client := osbProxy{ProxyConfiguration.HttpClientFactory(tr), interceptor}
-	if ProxyConfiguration.ProviderId != "" {
-		writeIstioConfigFiles(ProxyConfiguration.IstioDirectory, "istio-broker",
-			config.CreateEntriesForExternalService("istio-broker", string(ProxyConfiguration.IpAddress), uint32(ProxyConfiguration.Port), "istio-broker."+ProxyConfiguration.SystemDomain, "client.istio.sapcloud.io", 9000))
+	client := osbProxy{routerConfig.HttpClientFactory(tr), interceptor, routerConfig}
+	_, ok := interceptor.(*producer_interceptor)
+	if ok {
 		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
 	}
 	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardBindRequest)

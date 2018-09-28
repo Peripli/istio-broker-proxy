@@ -15,9 +15,8 @@ import (
 )
 
 func TestInvalidUpdateCredentials(t *testing.T) {
-	ProxyConfiguration.ProviderId = "x"
 	g := NewGomegaWithT(t)
-	router := SetupRouter()
+	router := SetupRouter(NewProducerInterceptor(ProducerConfig{ProviderId: "x"}, DefaultPort), RouterConfig{})
 
 	emptyBody := bytes.NewReader([]byte("{}"))
 	request, _ := http.NewRequest(http.MethodPut, "https://blablub.org/v2/service_instances/134567/service_bindings/76543210/adapt_credentials", emptyBody)
@@ -46,7 +45,7 @@ const validUpdateCredentialsRequest = `{
 
 func TestValidUpdateCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	router := SetupRouter()
+	router := SetupRouter(NewProducerInterceptor(ProducerConfig{ProviderId: "x"}, DefaultPort), RouterConfig{})
 
 	emptyBody := bytes.NewReader([]byte(validUpdateCredentialsRequest))
 	request, _ := http.NewRequest(http.MethodPut, "/v2/service_instances/1234-4567/service_bindings/7654-3210/adapt_credentials", emptyBody)
@@ -91,7 +90,6 @@ func TestCreateNewURL(t *testing.T) {
 }
 
 func TestRedirect(t *testing.T) {
-	ProxyConfiguration.ForwardURL = "https://httpbin.org"
 
 	t.Run("Check that headers are forwarded", func(t *testing.T) {
 		const testHeaderKey = "X-Broker-Api-Version"
@@ -105,7 +103,7 @@ func TestRedirect(t *testing.T) {
 		request.Header.Set(testHeaderKey, testHeaderValue)
 
 		response := httptest.NewRecorder()
-		router := SetupRouter()
+		router := SetupRouter(&NoOpInterceptor{}, RouterConfig{ForwardURL: "https://httpbin.org"})
 		router.ServeHTTP(response, request)
 
 		var bodyData struct {
@@ -130,7 +128,7 @@ func TestRedirect(t *testing.T) {
 		request.Header.Set("'Content-Type", "application/json")
 
 		response := httptest.NewRecorder()
-		router := SetupRouter()
+		router := SetupRouter(&NoOpInterceptor{}, RouterConfig{ForwardURL: "https://httpbin.org"})
 		router.ServeHTTP(response, request)
 
 		var bodyData struct {
@@ -150,8 +148,7 @@ func TestRedirect(t *testing.T) {
 
 func TestBadGateway(t *testing.T) {
 	g := NewGomegaWithT(t)
-	router := SetupRouter()
-	ProxyConfiguration.ForwardURL = "doesntexist.org"
+	router := SetupRouter(&NoOpInterceptor{}, RouterConfig{ForwardURL: "doesntexist.org"})
 
 	body := []byte{'{', '}'}
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/get", bytes.NewReader(body))
@@ -166,8 +163,7 @@ func TestBadGateway(t *testing.T) {
 
 func TestAdaptCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	router := SetupRouter()
-	ProxyConfiguration.ForwardURL = ""
+	router := SetupRouter(NewProducerInterceptor(ProducerConfig{ProviderId: "x"}, DefaultPort), RouterConfig{})
 
 	body := []byte(`{
 "credentials": {
@@ -199,7 +195,6 @@ func TestAdaptCredentials(t *testing.T) {
 }
 
 func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
-	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
 	g := NewGomegaWithT(t)
 	body := []byte(`{
 					"credentials":
@@ -215,13 +210,13 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
  					}
 					}`)
 	handlerStub := NewHandlerStub(http.StatusOK, body)
-	server := injectClientStub(handlerStub)
+	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
 	response := httptest.NewRecorder()
-	router := SetupRouter()
+	router := SetupRouter(NewProducerInterceptor(ProducerConfig{}, DefaultPort), *routerConfig)
 	router.ServeHTTP(response, request)
 
 	var bodyData struct {
@@ -234,10 +229,7 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 }
 
 func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAndEndpointIndex(t *testing.T) {
-	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
-	ProxyConfiguration.SystemDomain = "istio.sapcloud.io"
-	ProxyConfiguration.ProviderId = "your-provider"
-	ProxyConfiguration.LoadBalancerPort = 9000
+	producerConfig := ProducerConfig{SystemDomain: "istio.sapcloud.io", ProviderId: "your-provider"}
 	g := NewGomegaWithT(t)
 	body := []byte(`{
 					"credentials":
@@ -253,13 +245,13 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
  					}
 					}`)
 	handlerStub := NewHandlerStub(http.StatusOK, body)
-	server := injectClientStub(handlerStub)
+	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
 	response := httptest.NewRecorder()
-	router := SetupRouter()
+	router := SetupRouter(NewProducerInterceptor(producerConfig, DefaultPort), *routerConfig)
 	router.ServeHTTP(response, request)
 
 	bodyString := response.Body.String()
@@ -272,10 +264,7 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 }
 
 func TestIstioConfigFilesAreWritten(t *testing.T) {
-	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
-	ProxyConfiguration.SystemDomain = "services.cf.dev99.sc6.istio.sapcloud.io"
-	ProxyConfiguration.ProviderId = "your-provider"
-	ProxyConfiguration.LoadBalancerPort = 9000
+	producerConfig := ProducerConfig{SystemDomain: "services.cf.dev99.sc6.istio.sapcloud.io", ProviderId: "your-provider"}
 	g := NewGomegaWithT(t)
 	responseBody := []byte(`{
 					"credentials":
@@ -300,16 +289,16 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
  					}
 					}`)
 	handlerStub := NewHandlerStub(http.StatusOK, responseBody)
-	server := injectClientStub(handlerStub)
+	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(requestBody))
 	response := httptest.NewRecorder()
-	router := SetupRouter()
+	router := SetupRouter(NewProducerInterceptor(producerConfig, DefaultPort), *routerConfig)
 	router.ServeHTTP(response, request)
 
-	file, err := os.Open(path.Join(ProxyConfiguration.IstioDirectory, "456.yml"))
+	file, err := os.Open(path.Join(os.TempDir(), "456.yml"))
 	g.Expect(err).NotTo(HaveOccurred())
 	content, err := ioutil.ReadAll(file)
 	contentAsString := string(content)
@@ -320,15 +309,11 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 }
 
 func TestIstioConfigFilesAreNotWritable(t *testing.T) {
-	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
-	ProxyConfiguration.SystemDomain = "services.cf.dev99.sc6.istio.sapcloud.io"
-	ProxyConfiguration.ProviderId = "your-provider"
-	oldIstioDirectory := ProxyConfiguration.IstioDirectory
-	ProxyConfiguration.IstioDirectory = "/non-existing-directory"
-
-	defer func() { ProxyConfiguration.IstioDirectory = oldIstioDirectory }()
-
-	ProxyConfiguration.LoadBalancerPort = 9000
+	producerConfig := ProducerConfig{
+		SystemDomain:   "services.cf.dev99.sc6.istio.sapcloud.io",
+		ProviderId:     "your-provider",
+		IstioDirectory: "/non-existing-directory",
+	}
 	g := NewGomegaWithT(t)
 	responseBody := []byte(`{
 					"credentials":
@@ -353,22 +338,18 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
  					}
 					}`)
 	handlerStub := NewHandlerStub(http.StatusOK, responseBody)
-	server := injectClientStub(handlerStub)
+	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/error", bytes.NewReader(requestBody))
 	response := httptest.NewRecorder()
-	router := SetupRouter()
+	router := SetupRouter(NewProducerInterceptor(producerConfig, DefaultPort), *routerConfig)
 	router.ServeHTTP(response, request)
 	g.Expect(response.Code).To(Equal(500))
 }
 
 func TestHttpClientError(t *testing.T) {
-	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
-	ProxyConfiguration.SystemDomain = "istio.sapcloud.io"
-	ProxyConfiguration.ProviderId = "your-provider"
-	ProxyConfiguration.LoadBalancerPort = 9000
 	g := NewGomegaWithT(t)
 	body := []byte(`{
 					"credentials":
@@ -384,13 +365,13 @@ func TestHttpClientError(t *testing.T) {
                     }
                     }`)
 	handlerStub := NewHandlerStub(http.StatusNotFound, []byte{})
-	server := injectClientStub(handlerStub)
+	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
 	response := httptest.NewRecorder()
-	router := SetupRouter()
+	router := SetupRouter(&NoOpInterceptor{}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	bodyString := response.Body.String()
@@ -399,10 +380,6 @@ func TestHttpClientError(t *testing.T) {
 }
 
 func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
-	ProxyConfiguration.ProviderId = ""
-	ProxyConfiguration.ConsumerId = "your-consumer"
-	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
-
 	g := NewGomegaWithT(t)
 	body := []byte(`{
 					"credentials":
@@ -413,13 +390,13 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
  					}
 					}`)
 	handlerStub := NewHandlerStub(http.StatusOK, body)
-	server := injectClientStub(handlerStub)
+	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
 	response := httptest.NewRecorder()
-	router := SetupRouter()
+	router := SetupRouter(NewConsumerInterceptor(ConsumerConfig{ConsumerId: "your-consumer"}), *routerConfig)
 	router.ServeHTTP(response, request)
 
 	bodyString := handlerStub.spy.body
@@ -429,10 +406,9 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
 }
 
 func TestErrorCodeOfForwardIsReturned(t *testing.T) {
-	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
 	g := NewGomegaWithT(t)
 	handlerStub := NewHandlerStub(http.StatusServiceUnavailable, nil)
-	server := injectClientStub(handlerStub)
+	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
 
@@ -440,103 +416,58 @@ func TestErrorCodeOfForwardIsReturned(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/status/503", bytes.NewReader(body))
 
 	response := httptest.NewRecorder()
-	router := SetupRouter()
+	router := SetupRouter(&NoOpInterceptor{}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(503))
 }
 
 func TestReturnCodeOfGet(t *testing.T) {
-	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
 	handlerStub := NewHandlerStub(http.StatusOK, body)
-	server := injectClientStub(handlerStub)
+	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
 
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/xxx", bytes.NewReader(body))
 
 	response := httptest.NewRecorder()
-	router := SetupRouter()
+	router := SetupRouter(&NoOpInterceptor{}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(200))
 }
 
 func TestCorrectUrlForwarded(t *testing.T) {
-	ProxyConfiguration.ForwardURL = "http://xxxxx.xx"
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
 	handlerStub := NewHandlerStub(http.StatusOK, body)
-	server := injectClientStub(handlerStub)
+	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
 
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/somepath", bytes.NewReader(body))
 
 	response := httptest.NewRecorder()
-	router := SetupRouter()
+	router := SetupRouter(&NoOpInterceptor{}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	g.Expect(handlerStub.spy.url).To(Equal("http://xxxxx.xx/somepath"))
 }
 
 func TestCorrectRequestParamForDelete(t *testing.T) {
-	ProxyConfiguration.ForwardURL = "http://xxxxx.xx/suffix"
 	g := NewGomegaWithT(t)
 	body := []byte(`{}`)
 	handlerStub := NewHandlerStub(http.StatusOK, body)
-	server := injectClientStub(handlerStub)
+	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
 	request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/delete?plan_id=myplan", bytes.NewReader(body))
 
 	response := httptest.NewRecorder()
-	router := SetupRouter()
+	router := SetupRouter(&NoOpInterceptor{}, *routerConfig)
 	router.ServeHTTP(response, request)
 
-	g.Expect(handlerStub.spy.url).To(Equal("http://xxxxx.xx/suffix/delete?plan_id=myplan"))
-}
-
-func TestDefaultConfigurationIsWritten(t *testing.T) {
-	ProxyConfiguration.ProviderId = "your-provider"
-	ProxyConfiguration.SystemDomain = "services.domain"
-	g := NewGomegaWithT(t)
-	ProxyConfiguration.Port = 147
-	SetupRouter()
-	file, err := os.Open(path.Join(ProxyConfiguration.IstioDirectory, "istio-broker.yml"))
-	g.Expect(err).NotTo(HaveOccurred())
-	content, err := ioutil.ReadAll(file)
-	contentAsString := string(content)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(contentAsString).To(ContainSubstring("147"))
-	g.Expect(contentAsString).To(ContainSubstring("istio-broker.services.domain"))
-	g.Expect(contentAsString).To(MatchRegexp("number: 9000"))
-
-}
-
-func TestYmlFileIsCorrectlyWritten(t *testing.T) {
-	///var/vcap/packages/istio-broker/bin/istio-broker --port 8000 --forwardUrl https://10.11.252.10:9293/cf
-	// --systemdomain services.cf.dev01.aws.istio.sapcloud.io --ProviderId pinger.services.cf.dev01.aws.istio.sapcloud.io
-	// --LoadBalancerPort 9000 --istioDirectory /var/vcap/store/istio-config --ipAddress 10.0.81.0
-	ProxyConfiguration.Port = 8000
-	ProxyConfiguration.ForwardURL = "https://10.11.252.10:9293/cf"
-	ProxyConfiguration.SystemDomain = "services.cf.dev01.aws.istio.sapcloud.io"
-	ProxyConfiguration.ProviderId = "pinger.services.cf.dev01.aws.istio.sapcloud.io"
-	ProxyConfiguration.LoadBalancerPort = 9000
-	//ProxyConfiguration.istioDirectory = "/var/vcap/store/istio-config"
-	ProxyConfiguration.IpAddress = "10.0.81.0"
-
-	g := NewGomegaWithT(t)
-	SetupRouter()
-	file, err := os.Open(path.Join(ProxyConfiguration.IstioDirectory, "istio-broker.yml"))
-	g.Expect(err).NotTo(HaveOccurred())
-	content, err := ioutil.ReadAll(file)
-	contentAsString := string(content)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(contentAsString).To(ContainSubstring("8000"))
-	g.Expect(contentAsString).To(ContainSubstring("istio-broker.services.cf.dev01.aws.istio.sapcloud.io"))
-	g.Expect(contentAsString).To(MatchRegexp("number: 9000"))
-
+	g.Expect(handlerStub.spy.url).To(Equal("http://xxxxx.xx/delete?plan_id=myplan"))
 }

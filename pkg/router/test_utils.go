@@ -29,13 +29,16 @@ func NewHandlerStub(code int, responseBody []byte) *handlerStub {
 	return &stub
 }
 
-func injectClientStub(handler *handlerStub) *httptest.Server {
+func injectClientStub(handler *handlerStub) (*httptest.Server, *RouterConfig) {
+
+	routerConfig := RouterConfig{ForwardURL: "http://xxxxx.xx"}
+
 	ts := httptest.NewServer(handler)
 	client := ts.Client()
-	ProxyConfiguration.HttpClientFactory = func(tr *http.Transport) *http.Client {
+	routerConfig.HttpClientFactory = func(tr *http.Transport) *http.Client {
 		return client
 	}
-	ProxyConfiguration.HttpRequestFactory = func(method string, url string, body io.Reader) (*http.Request, error) {
+	routerConfig.HttpRequestFactory = func(method string, url string, body io.Reader) (*http.Request, error) {
 		handler.spy.method = method
 		handler.spy.url = url
 		buf := new(bytes.Buffer)
@@ -44,5 +47,5 @@ func injectClientStub(handler *handlerStub) *httptest.Server {
 		handler.spy.body = buf.String() // Does a complete copy of the bytes in the buffer.
 		return http.NewRequest(method, ts.URL, body)
 	}
-	return ts
+	return ts, &routerConfig
 }

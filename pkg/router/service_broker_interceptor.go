@@ -9,13 +9,13 @@ type ServiceBrokerInterceptor interface {
 	postBind(request model.BindRequest, response model.BindResponse, bindId string) (*model.BindResponse, error)
 }
 
-type noOpInterceptor struct {
+type NoOpInterceptor struct {
 }
 
-func (c noOpInterceptor) preBind(request model.BindRequest) *model.BindRequest {
+func (c NoOpInterceptor) preBind(request model.BindRequest) *model.BindRequest {
 	return &request
 }
 
-func (c noOpInterceptor) postBind(request model.BindRequest, response model.BindResponse, bindingId string) (*model.BindResponse, error) {
+func (c NoOpInterceptor) postBind(request model.BindRequest, response model.BindResponse, bindingId string) (*model.BindResponse, error) {
 	return &response, nil
 }
