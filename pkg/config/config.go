@@ -62,21 +62,21 @@ func createValidIdentifer(identifer string) string {
 
 }
 
-func CreateEntriesForExternalServiceClient(serviceName string, hostName string, serviceIP string, port int) []istioModel.Config {
+func CreateEntriesForExternalServiceClient(serviceName string, hostName string, serviceIP string) []istioModel.Config {
 	var configs []istioModel.Config
 
-	serviceEntry := createEgressExternServiceEntryForExternalService(hostName, uint32(port), serviceName)
+	serviceEntry := createEgressExternServiceEntryForExternalService(hostName, 9000, serviceName)
 	configs = append(configs, serviceEntry)
 
 	virtualService := createMeshVirtualServiceForExternalService(hostName, 443, serviceName, serviceIP)
 	configs = append(configs, virtualService)
-	virtualService = createEgressVirtualServiceForExternalService(hostName, uint32(port), serviceName, 443)
+	virtualService = createEgressVirtualServiceForExternalService(hostName, 9000, serviceName, 443)
 	configs = append(configs, virtualService)
 
 	gateway := createEgressGatewayForExternalService(hostName, 443, serviceName)
 	configs = append(configs, gateway)
 
-	destinationRule := createEgressDestinationRuleForExternalService(hostName, uint32(port), serviceName)
+	destinationRule := createEgressDestinationRuleForExternalService(hostName, 9000, serviceName)
 	configs = append(configs, destinationRule)
 
 	destinationRule = createSidecarDestinationRuleForExternalService(hostName, serviceName)
@@ -98,15 +98,11 @@ func ToYamlDocuments(entry []istioModel.Config) (string, error) {
 }
 
 func toText(config istioModel.Config) (string, error) {
-	kubernetesConf, err := ToRuntimeObject(config)
+	schema := schemas[config.Type]
+	kubernetesConf, err := crd.ConvertConfig(schema, config)
 	if err != nil {
 		return "", err
 	}
 	bytes, err := yaml.Marshal(kubernetesConf)
 	return string(bytes), err
-}
-
-func ToRuntimeObject(config istioModel.Config) (crd.IstioObject, error) {
-	schema := schemas[config.Type]
-	return crd.ConvertConfig(schema, config)
 }
