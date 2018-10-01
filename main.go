@@ -19,11 +19,11 @@ func main() {
 	log.Printf("Running on port %d\n", routerConfig.Port)
 	var interceptor router.ServiceBrokerInterceptor
 	if consumerInterceptor.ConsumerId != "" {
-		interceptor = consumerInterceptor
 		consumerInterceptor.ConfigStore = router.NewInClusterConfigStore()
+		interceptor = consumerInterceptor
 	} else if producerInterceptor.ProviderId != "" {
-		interceptor = producerInterceptor
 		producerInterceptor.WriteIstioConfigFiles(routerConfig.Port)
+		interceptor = producerInterceptor
 	} else {
 		interceptor = router.NoOpInterceptor{}
 	}
