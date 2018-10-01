@@ -57,6 +57,23 @@ func TestValidUpdateCredentials(t *testing.T) {
 	g.Expect(code).To(Equal(200))
 }
 
+func TestConsumerForwardsAdpotCredentials(t *testing.T) {
+	g := NewGomegaWithT(t)
+	handlerStub := NewHandlerStub(499, []byte{})
+	server, routerConfig := injectClientStub(handlerStub)
+	defer server.Close()
+	router := SetupRouter(ConsumerInterceptor{ConsumerId: "x"}, *routerConfig)
+
+	emptyBody := bytes.NewReader([]byte(validUpdateCredentialsRequest))
+	request, _ := http.NewRequest(http.MethodPut, "/v2/service_instances/1234-4567/service_bindings/7654-3210/adapt_credentials", emptyBody)
+	response := httptest.NewRecorder()
+
+	router.ServeHTTP(response, request)
+	code := response.Code
+
+	g.Expect(code).To(Equal(499))
+}
+
 func TestCreateNewURL(t *testing.T) {
 	const internalHost = "internal-name.test"
 	const externalURL = "https://external-name.test/cf"
@@ -192,6 +209,7 @@ func TestAdaptCredentials(t *testing.T) {
 
 	g.Expect(response.Code).To(Equal(200))
 	g.Expect(response.Body).To(ContainSubstring(`"endpoints":[{"host":"appnethost","port":9876}]`))
+	g.Expect(response.Body).To(ContainSubstring(`"hostname":"appnethost"`))
 }
 
 func TestCreateServiceBindingContainsEndpoints(t *testing.T) {

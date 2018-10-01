@@ -62,6 +62,6 @@ func (c ConsumerInterceptor) postBindExperiment(request model.BindRequest, respo
 	return &response, nil
 }
 
-func (c ConsumerInterceptor) adaptCredentials(in []byte) ([]byte, error) {
-	return in, nil
+func (c ConsumerInterceptor) hasAdaptCredentials() bool {
+	return false
 }
