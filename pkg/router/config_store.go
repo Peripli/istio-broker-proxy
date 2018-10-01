@@ -87,17 +87,17 @@ func (k kubeConfigStore) CreateIstioConfig(config model.Config) error {
 		return multierror.Prefix(err, "validation error:")
 	}
 
-	out, err := crd.ConvertConfig(schema, config)
+	_, err := crd.ConvertConfig(schema, config)
 	if err != nil {
 		return err
 	}
 
-	_, err = k.RESTClient().Post().
-		Namespace(out.GetObjectMeta().Namespace).
-		Resource(crd.ResourceName(schema.Plural)).
-		Body(out).
-		Do().
-		Get()
+	//_, err = k.RESTClient().Post().
+	//	Namespace(out.GetObjectMeta().Namespace).
+	//	Resource(crd.ResourceName(schema.Plural)).
+	//	Body(out).
+	//	Do().
+	//	Get()
 	return err
 }
 
