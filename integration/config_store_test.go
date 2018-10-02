@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"fmt"
 	. "github.com/onsi/gomega"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/router"
 	"istio.io/api/networking/v1alpha3"
@@ -27,8 +26,7 @@ func TestKubernetesCreateService(t *testing.T) {
 
 }
 
-func TestKubernetesCreateObject(t *testing.T) {
-	t.Skip("Not working")
+func TestKubernetesCreateIstioConfig(t *testing.T) {
 	skipWithoutKubeconfigSet(t)
 
 	g := NewGomegaWithT(t)
@@ -41,11 +39,8 @@ func TestKubernetesCreateObject(t *testing.T) {
 			Name:     "test-port",
 			Protocol: "TLS"}},
 		Resolution: v1alpha3.ServiceEntry_DNS}}
-	cfg.Type = "service-entry"
+	cfg.Type = "ServiceEntry"
 	cfg.Name = "test-service-entry"
-
-	fmt.Println(cfg.Group)
-	fmt.Println(cfg.Version)
 
 	kubectl.Delete("ServiceEntry", cfg.Name)
 

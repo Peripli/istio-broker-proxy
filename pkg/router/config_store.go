@@ -1,10 +1,8 @@
 package router
 
 import (
-	"fmt"
-	"github.com/hashicorp/go-multierror"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/config"
 	"io/ioutil"
-	"istio.io/istio/pilot/pkg/config/kube/crd"
 	"istio.io/istio/pilot/pkg/model"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -19,7 +17,7 @@ type ConfigStore interface {
 }
 
 func NewInClusterConfigStore() ConfigStore {
-	config, err := rest.InClusterConfig()
+	cfg, err := rest.InClusterConfig()
 	if err != nil {
 		panic(err.Error())
 	}
@@ -27,7 +25,7 @@ func NewInClusterConfigStore() ConfigStore {
 	if err != nil {
 		panic(err.Error())
 	}
-	return newKubeConfigStore(config, namespace)
+	return newKubeConfigStore(cfg, namespace)
 }
 
 func newKubeConfigStore(config *rest.Config, namespace string) ConfigStore {
@@ -76,21 +74,9 @@ func (k kubeConfigStore) CreateService(service *v1.Service) (*v1.Service, error)
 	return k.CoreV1().Services(k.namespace).Create(service)
 }
 
-func (k kubeConfigStore) CreateIstioConfig(config model.Config) error {
+func (k kubeConfigStore) CreateIstioConfig(cfg model.Config) error {
 
-	schema, exists := model.IstioConfigTypes.GetByType(config.Type)
-	if !exists {
-		return fmt.Errorf("unrecognized type %q", config.Type)
-	}
-
-	if err := schema.Validate(config.Name, config.Namespace, config.Spec); err != nil {
-		return multierror.Prefix(err, "validation error:")
-	}
-
-	_, err := crd.ConvertConfig(schema, config)
-	if err != nil {
-		return err
-	}
+	_, err := config.ToRuntimeObject(cfg)
 
 	//_, err = k.RESTClient().Post().
 	//	Namespace(out.GetObjectMeta().Namespace).
@@ -102,10 +88,10 @@ func (k kubeConfigStore) CreateIstioConfig(config model.Config) error {
 }
 
 func NewExternKubeConfigStore(namespace string) ConfigStore {
-	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("KUBECONFIG"))
+	cfg, err := clientcmd.BuildConfigFromFlags("", os.Getenv("KUBECONFIG"))
 	if err != nil {
 		panic(err.Error())
 	}
-	return newKubeConfigStore(config, namespace)
+	return newKubeConfigStore(cfg, namespace)
 
 }

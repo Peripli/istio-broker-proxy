@@ -43,25 +43,6 @@ func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.
 	return &response, nil
 }
 
-func (c ConsumerInterceptor) postBindExperiment(request model.BindRequest, response model.BindResponse, bindId string) (*model.BindResponse, error) {
-
-	for index, endpoint := range response.NetworkData.Data.Endpoints {
-		service := &v1.Service{Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Port: 5555, TargetPort: intstr.FromInt(5555)}}}}
-		service.Name = fmt.Sprintf("service-%d-%s", index, bindId)
-		service, err := c.ConfigStore.CreateService(service)
-		if err != nil {
-			return nil, err
-		}
-		hostname := endpoint.Host
-		configurations := config.CreateEntriesForExternalServiceClient(service.Name, hostname, service.Spec.ClusterIP, endpoint.Port)
-
-		for _, configuration := range configurations {
-			c.ConfigStore.CreateIstioConfig(configuration)
-		}
-	}
-	return &response, nil
-}
-
 func (c ConsumerInterceptor) hasAdaptCredentials() bool {
 	return false
 }
