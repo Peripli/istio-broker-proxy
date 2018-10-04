@@ -1,8 +1,8 @@
 package router
 
 import (
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/config"
 	"io/ioutil"
+	"istio.io/istio/pilot/pkg/config/kube/crd"
 	"istio.io/istio/pilot/pkg/model"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -29,23 +29,6 @@ func NewInClusterConfigStore() ConfigStore {
 }
 
 func newKubeConfigStore(config *rest.Config, namespace string) ConfigStore {
-
-	//config.GroupVersion = &schema.GroupVersion{
-	//	Group:   "config.istio.io",
-	//	Version: "v1alpha2",
-	//}
-	//config.APIPath = "/apis"
-	//config.ContentType = runtime.ContentTypeJSON
-	//
-	//types := runtime.NewScheme()
-	//schemeBuilder := runtime.NewSchemeBuilder(
-	//	func(scheme *runtime.Scheme) error {
-	//		metav1.AddToGroupVersion(scheme, *config.GroupVersion)
-	//		return nil
-	//	})
-	//err := schemeBuilder.AddToScheme(types)
-	//config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: serializer.NewCodecFactory(types)}
-	//
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		panic(err.Error())
@@ -76,7 +59,15 @@ func (k kubeConfigStore) CreateService(service *v1.Service) (*v1.Service, error)
 
 func (k kubeConfigStore) CreateIstioConfig(cfg model.Config) error {
 
-	_, err := config.ToRuntimeObject(cfg)
+	kubeCfgFile := os.Getenv("KUBECONFIG")
+	configClient, err := crd.NewClient(kubeCfgFile, "shoot--istio--dev", model.IstioConfigTypes, "cluster.local")
+	if err != nil {
+		return err
+	}
+
+	_, err = configClient.Create(cfg)
+
+	//_, err := config.ToRuntimeObject(cfg)
 
 	//_, err = k.RESTClient().Post().
 	//	Namespace(out.GetObjectMeta().Namespace).

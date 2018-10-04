@@ -91,6 +91,7 @@ func TestCompleteEntryClientGateway(t *testing.T) {
 	g.Expect(gatewaySpec).To(ContainSubstring("/etc/certs/cert-chain.pem"))
 
 	g.Expect(gatewayMetadata).To(ContainSubstring("name: istio-egressgateway-myservice"))
+	g.Expect(gatewayMetadata).To(ContainSubstring("service: myservice"))
 }
 
 func TestCompleteEntryClientEgressDestinationRule(t *testing.T) {

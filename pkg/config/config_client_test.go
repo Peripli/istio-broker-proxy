@@ -113,6 +113,8 @@ spec:
 kind: Gateway
 metadata:
   creationTimestamp: null
+  labels:
+    service: mypostgres
   name: istio-egressgateway-mypostgres
   namespace: default
 spec:

@@ -50,7 +50,7 @@ func createEgressGatewayForExternalService(hostName string, portNumber uint32, s
 	selector := make(map[string]string)
 	selector["istio"] = "egressgateway"
 	gatewaySpec := v1alpha3.Gateway{Selector: selector, Servers: []*v1alpha3.Server{{Port: &port, Hosts: hosts, Tls: &tls}}}
-	config := model.Config{Spec: &gatewaySpec}
+	config := model.Config{Spec: &gatewaySpec, ConfigMeta: model.ConfigMeta{Labels: map[string]string{"service": serviceName}}}
 	config.Type = gateway
 	config.Name = fmt.Sprintf("istio-egressgateway-%s", serviceName)
 
