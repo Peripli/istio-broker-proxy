@@ -56,7 +56,7 @@ func TestKubernetesCreateIstioConfig(t *testing.T) {
 	err := configStore.CreateIstioConfig(cfg)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	g.Expect(checkIfServiceExists(kubectl, "foo=bar")).To(BeFalse())
+	g.Expect(checkIfServiceExists(kubectl, "foo=bar")).To(BeTrue())
 
 	kubectl.Delete("ServiceEntry", cfg.Name)
 	g.Expect(checkIfServiceExists(kubectl, "foo=bar")).To(BeFalse())

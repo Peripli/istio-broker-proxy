@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	. "github.com/onsi/gomega"
 	"os"
@@ -53,10 +54,14 @@ func TestServiceBindingIsSuccessful(t *testing.T) {
 		return len(serviceInstance.Status.Conditions) > 0 && serviceInstance.Status.Conditions[0].Status == v1beta1.ConditionTrue
 	})
 	kubectl.Apply([]byte(service_binding))
-	var status v1beta1.ServiceBinding
+	var serviceBinding v1beta1.ServiceBinding
 	waitForCompletion(g, func() bool {
-		kubectl.Read(&status, "postgres-binding")
-		return len(status.Status.Conditions) > 0 && status.Status.Conditions[0].Status == v1beta1.ConditionTrue
+		kubectl.Read(&serviceBinding, "postgres-binding")
+		if len(serviceBinding.Status.Conditions) == 0 || serviceBinding.Status.Conditions[0].Status == v1beta1.ConditionUnknown {
+			return false
+		}
+		g.Expect(serviceBinding.Status.Conditions[0].Status).To(Equal(v1beta1.ConditionTrue))
+		return true
 	})
 
 }
@@ -67,6 +72,7 @@ func waitForCompletion(g *GomegaWithT, test func() bool) {
 	for !valid {
 		valid = test()
 		if !valid {
+			fmt.Println("Not ready - waiting 10s...")
 			time.Sleep(time.Duration(10) * time.Second)
 			g.Expect(time.Now().Before(expiry)).To(BeTrue(), "Timeout expired")
 		}

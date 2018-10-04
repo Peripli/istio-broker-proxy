@@ -32,10 +32,12 @@ func (self kubectl) run(args ...string) []byte {
 		if err == nil {
 			return out
 		}
+
 		self.g.Expect(time.Now().Before(expiry)).To(BeTrue(),
 			fmt.Sprintf("Timeout expired: %s", string(out)))
 
 		if strings.Contains(string(out), "ServiceUnavailable") {
+			fmt.Println("ServiceUnavailable: retry... ")
 			time.Sleep(10 * time.Second)
 		} else {
 			self.g.Expect(err).NotTo(HaveOccurred(),
