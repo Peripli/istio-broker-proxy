@@ -51,7 +51,11 @@ func TestServiceBindingIsSuccessful(t *testing.T) {
 	var serviceInstance v1beta1.ServiceInstance
 	waitForCompletion(g, func() bool {
 		kubectl.Read(&serviceInstance, "postgres-instance")
-		return len(serviceInstance.Status.Conditions) > 0 && serviceInstance.Status.Conditions[0].Status == v1beta1.ConditionTrue
+		if len(serviceInstance.Status.Conditions) == 0 || serviceInstance.Status.Conditions[0].Status == v1beta1.ConditionUnknown {
+			return false
+		}
+		g.Expect(serviceInstance.Status.Conditions[0].Status).To(Equal(v1beta1.ConditionTrue))
+		return true
 	})
 	kubectl.Apply([]byte(service_binding))
 	var serviceBinding v1beta1.ServiceBinding
