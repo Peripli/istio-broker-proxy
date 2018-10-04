@@ -22,7 +22,7 @@ func TestKubernetesCreateService(t *testing.T) {
 	service.Name = "test-config-store"
 	kubectl.Delete("Service", service.Name)
 
-	configStore := router.NewExternEricKubeConfigStore("default")
+	configStore := router.NewExternKubeConfigStore("default")
 	service, err := configStore.CreateService(service)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(service.Spec.ClusterIP).ToNot(BeEmpty())
