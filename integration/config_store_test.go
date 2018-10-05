@@ -73,12 +73,8 @@ func TestKubernetesCreateIstioObjects(t *testing.T) {
 
 	configurations := config.CreateEntriesForExternalServiceClient("myservice", "test.services.cf.dev01.aws.istio.sapcloud.io", "1.1.1.1", 1234)
 	g.Expect(configurations).To(HaveLen(6))
-	kubectl.Delete("ServiceEntry", configurations[0].Name)
-	kubectl.Delete("VirtualService", configurations[1].Name)
-	kubectl.Delete("VirtualService", configurations[2].Name)
-	kubectl.Delete("Gateway", configurations[3].Name)
-	kubectl.Delete("DestinationRule", configurations[4].Name)
-	kubectl.Delete("DestinationRule", configurations[5].Name)
+
+	deleteClientObjects(kubectl, configurations)
 
 	for _, configuration := range configurations {
 
@@ -86,6 +82,10 @@ func TestKubernetesCreateIstioObjects(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred(), "error creating %#v\n", configuration)
 	}
 
+	deleteClientObjects(kubectl, configurations)
+}
+
+func deleteClientObjects(kubectl *kubectl, configurations []model.Config) {
 	kubectl.Delete("ServiceEntry", configurations[0].Name)
 	kubectl.Delete("VirtualService", configurations[1].Name)
 	kubectl.Delete("VirtualService", configurations[2].Name)

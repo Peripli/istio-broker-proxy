@@ -93,16 +93,16 @@ func TestConsumerInterceptorCreatesIstioObjects(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 
 	g.Expect(len(configStore.calledWithObject)).To(Equal(6))
-	g.Expect(configStore.calledWithObject[0].Type).To(Equal("ServiceEntry"))
+	g.Expect(configStore.calledWithObject[0].Type).To(Equal("service-entry"))
 	text, _ := json.Marshal(configStore.calledWithObject[0])
 	g.Expect(text).To(ContainSubstring("0.678.services.cf.dev01.aws.istio.sapcloud.io"))
-	g.Expect(configStore.calledWithObject[1].Type).To(Equal("VirtualService"))
+	g.Expect(configStore.calledWithObject[1].Type).To(Equal("virtual-service"))
 	text, _ = json.Marshal(configStore.calledWithObject[1])
 	g.Expect(text).To(ContainSubstring("service-0-678"))
-	g.Expect(configStore.calledWithObject[2].Type).To(Equal("VirtualService"))
-	g.Expect(configStore.calledWithObject[3].Type).To(Equal("Gateway"))
-	g.Expect(configStore.calledWithObject[4].Type).To(Equal("DestinationRule"))
-	g.Expect(configStore.calledWithObject[5].Type).To(Equal("DestinationRule"))
+	g.Expect(configStore.calledWithObject[2].Type).To(Equal("virtual-service"))
+	g.Expect(configStore.calledWithObject[3].Type).To(Equal("gateway"))
+	g.Expect(configStore.calledWithObject[4].Type).To(Equal("destination-rule"))
+	g.Expect(configStore.calledWithObject[5].Type).To(Equal("destination-rule"))
 }
 
 func TestTwoEndpointsCreateTwelveObject(t *testing.T) {

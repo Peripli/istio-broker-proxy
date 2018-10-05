@@ -83,7 +83,7 @@ func TestCompleteEntryClientGateway(t *testing.T) {
 
 	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000)
 
-	gatewaySpec, gatewayMetadata := getSpecAndMetadataFromConfig(g, configObjects, gateway)
+	gatewaySpec, gatewayMetadata := getSpecAndMetadataFromConfig(g, configObjects, "gateway")
 
 	g.Expect(gatewaySpec).To(ContainSubstring("myservice.landscape"))
 	g.Expect(gatewaySpec).To(ContainSubstring("443"))
@@ -99,7 +99,7 @@ func TestCompleteEntryClientEgressDestinationRule(t *testing.T) {
 
 	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000)
 
-	ruleSpecs, ruleMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, destinationRule)
+	ruleSpecs, ruleMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, istio_destinationRule)
 	ruleSpec := ruleSpecs[0]
 	ruleMetadata := ruleMetadatas[0]
 
@@ -115,7 +115,7 @@ func TestCompleteEntryClientSidecarDestinationRule(t *testing.T) {
 
 	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000)
 
-	ruleSpecs, ruleMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, destinationRule)
+	ruleSpecs, ruleMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, istio_destinationRule)
 	g.Expect(ruleSpecs).To(HaveLen(2))
 
 	ruleSpec := ruleSpecs[1]
@@ -132,7 +132,7 @@ func TestCompleteEntryClientServiceEntry(t *testing.T) {
 
 	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000)
 
-	serviceEntriesConfigs := lookupObjectsFromConfigs(configObjects, serviceEntry)
+	serviceEntriesConfigs := lookupObjectsFromConfigs(configObjects, istio_serviceEntry)
 	g.Expect(serviceEntriesConfigs).To(HaveLen(1))
 
 	var ports []string
@@ -151,7 +151,7 @@ func TestCompleteEntryClientVirtualServices(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000)
-	serviceSpecs, serviceMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, virtualService)
+	serviceSpecs, serviceMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, istio_virtualService)
 	g.Expect(serviceSpecs).To(HaveLen(2))
 	g.Expect(serviceMetadatas).To(HaveLen(2))
 	g.Expect(serviceSpecs[0]).To(ContainSubstring("mesh"))
@@ -170,7 +170,7 @@ func TestCreatesYamlDocuments(t *testing.T) {
 func TestErrorInToText(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	_, err := toText(istioModel.Config{})
+	_, err := enrichAndtoText(istioModel.Config{})
 
 	g.Expect(err).Should(HaveOccurred())
 }
@@ -236,6 +236,8 @@ func TestValidIdentifier(t *testing.T) {
 }
 func getSpecAndMetadataFromConfig(g *GomegaWithT, configObjects []istioModel.Config, configType string) (string, string) {
 	specs, metadatas := getSpecsAndMetadatasFromConfig(g, configObjects, configType)
+
+	g.Expect(specs).NotTo(HaveLen(0), "object not found: %s", configType)
 	return specs[0], metadatas[0]
 }
 

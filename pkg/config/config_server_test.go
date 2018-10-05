@@ -73,7 +73,7 @@ func TestServerGatewayFromGo(t *testing.T) {
 		"postgres-server",
 		"client.istio.sapcloud.io")
 
-	text, err := toText(gatewaySpec)
+	text, err := enrichAndtoText(gatewaySpec)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(text).To(Equal(gateway_ingress_yml))
 }
@@ -85,7 +85,7 @@ func TestServerVirtualServiceFromGo(t *testing.T) {
 		47637,
 		"postgres-server")
 
-	text, err := toText(virtualServiceSpec)
+	text, err := enrichAndtoText(virtualServiceSpec)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(text).To(Equal(virtual_service_ingress_yml))
 }
@@ -95,7 +95,7 @@ func TestServiceEntryFromGo(t *testing.T) {
 
 	serviceEntrySpec := createServiceEntryForExternalService("10.11.241.0", 47637, "postgres-server")
 
-	text, err := toText(serviceEntrySpec)
+	text, err := enrichAndtoText(serviceEntrySpec)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(text).To(Equal(service_entry_yml))
 	g.Expect(serviceEntrySpec.Type).To(Equal(serviceEntry))

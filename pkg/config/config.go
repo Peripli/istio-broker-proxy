@@ -17,14 +17,24 @@ const (
 	virtualService  = "VirtualService"
 	destinationRule = "DestinationRule"
 )
+const (
+	istio_gateway         = "gateway"
+	istio_serviceEntry    = "service-entry"
+	istio_virtualService  = "virtual-service"
+	istio_destinationRule = "destination-rule"
+)
 
 var invalidIdentifiers = regexp.MustCompile(`[^0-9a-z-]`)
 
 var schemas = map[string]istioModel.ProtoSchema{
-	gateway:         istioModel.Gateway,
-	serviceEntry:    istioModel.ServiceEntry,
-	virtualService:  istioModel.VirtualService,
-	destinationRule: istioModel.DestinationRule,
+	gateway:               istioModel.Gateway,
+	serviceEntry:          istioModel.ServiceEntry,
+	virtualService:        istioModel.VirtualService,
+	destinationRule:       istioModel.DestinationRule,
+	istio_gateway:         istioModel.Gateway,
+	istio_serviceEntry:    istioModel.ServiceEntry,
+	istio_virtualService:  istioModel.VirtualService,
+	istio_destinationRule: istioModel.DestinationRule,
 }
 
 func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string, clientName string, ingressPort uint32) []istioModel.Config {
@@ -90,19 +100,19 @@ func ToYamlDocuments(entry []istioModel.Config) (string, error) {
 	var err error
 
 	for _, element := range entry {
-		text, err = toText(element)
+		text, err = enrichAndtoText(element)
 		result += "---\n" + text
 	}
 
 	return result, err
 }
 
-func toText(config istioModel.Config) (string, error) {
-	//kubernetesConf, err := ToRuntimeObject(config)
-	//if err != nil {
-	//	return "", err
-	//}
-	bytes, err := yaml.Marshal(config)
+func enrichAndtoText(config istioModel.Config) (string, error) {
+	kubernetesConf, err := ToRuntimeObject(config)
+	if err != nil {
+		return "", err
+	}
+	bytes, err := yaml.Marshal(kubernetesConf)
 	return string(bytes), err
 }
 
