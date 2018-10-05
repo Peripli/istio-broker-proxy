@@ -74,6 +74,20 @@ func TestBindIdIsPartOfServiceName(t *testing.T) {
 	g.Expect(configStore.calledWithService[0].Name).To(Equal("service-0-555"))
 }
 
+func TestMaximumLengthIsNotExceededWithRealBindId(t *testing.T) {
+	g := NewGomegaWithT(t)
+	configStore := mockConfigStore{}
+
+	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	_, err := consumer.postBind(model.BindRequest{}, bindResponseSingleEndpoint, "f1b32107-c8a5-11e8-b8be-02caceffa7f1")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	const maxLabelLength = 63
+	for _, object := range configStore.calledWithObject {
+		g.Expect(len(object.Name)).To(BeNumerically("<", maxLabelLength), "%s is too long", object.Name)
+	}
+}
+
 func TestEndpointIndexIsPartOfServiceName(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := mockConfigStore{}
