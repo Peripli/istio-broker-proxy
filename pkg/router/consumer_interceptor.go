@@ -7,6 +7,7 @@ import (
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"log"
 )
 
 const (
@@ -30,12 +31,14 @@ func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.
 		service.Name = fmt.Sprintf("service-%d-%s", index, bindId)
 		service, err := c.ConfigStore.CreateService(service)
 		if err != nil {
+			log.Println("error creating service")
 			return nil, err
 		}
 		configurations := config.CreateEntriesForExternalServiceClient(service.Name, endpoint.Host, service.Spec.ClusterIP, 0)
 		for _, configuration := range configurations {
 			err = c.ConfigStore.CreateIstioConfig(configuration)
 			if err != nil {
+				log.Printf("error creating %#v\n", configuration)
 				return nil, err
 			}
 		}
