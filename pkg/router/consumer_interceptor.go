@@ -34,7 +34,7 @@ func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.
 			log.Println("error creating service")
 			return nil, err
 		}
-		configurations := config.CreateEntriesForExternalServiceClient(service.Name, endpoint.Host, service.Spec.ClusterIP, 0)
+		configurations := config.CreateEntriesForExternalServiceClient(service.Name, endpoint.Host, service.Spec.ClusterIP, 17171)
 		for _, configuration := range configurations {
 			err = c.ConfigStore.CreateIstioConfig(configuration)
 			if err != nil {
