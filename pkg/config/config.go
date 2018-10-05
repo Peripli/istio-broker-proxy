@@ -98,11 +98,11 @@ func ToYamlDocuments(entry []istioModel.Config) (string, error) {
 }
 
 func toText(config istioModel.Config) (string, error) {
-	kubernetesConf, err := ToRuntimeObject(config)
-	if err != nil {
-		return "", err
-	}
-	bytes, err := yaml.Marshal(kubernetesConf)
+	//kubernetesConf, err := ToRuntimeObject(config)
+	//if err != nil {
+	//	return "", err
+	//}
+	bytes, err := yaml.Marshal(config)
 	return string(bytes), err
 }
 

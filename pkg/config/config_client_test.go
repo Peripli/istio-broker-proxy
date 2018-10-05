@@ -5,146 +5,15 @@ import (
 	"testing"
 )
 
-const (
-	service_entry_extern_yml = `apiVersion: networking.istio.io/v1alpha3
-kind: ServiceEntry
-metadata:
-  creationTimestamp: null
-  name: mypostgres-service
-  namespace: default
-spec:
-  hosts:
-  - mypostgres.services.cf.dev01.aws.istio.sapcloud.io
-  ports:
-  - name: mypostgres-port
-    number: 9000
-    protocol: TLS
-  resolution: DNS
-`
-
-	destination_rule_sidecar_yml = `apiVersion: networking.istio.io/v1alpha3
-kind: DestinationRule
-metadata:
-  creationTimestamp: null
-  name: sidecar-to-egress-mypostgres
-  namespace: default
-spec:
-  host: istio-egressgateway.istio-system.svc.cluster.local
-  subsets:
-  - name: mypostgres
-    trafficPolicy:
-      tls:
-        mode: ISTIO_MUTUAL
-        sni: mypostgres.services.cf.dev01.aws.istio.sapcloud.io
-`
-
-	destination_rule_egress_yml = `apiVersion: networking.istio.io/v1alpha3
-kind: DestinationRule
-metadata:
-  creationTimestamp: null
-  name: egressgateway-mypostgres
-  namespace: default
-spec:
-  host: mypostgres.services.cf.dev01.aws.istio.sapcloud.io
-  subsets:
-  - name: mypostgres
-    trafficPolicy:
-      portLevelSettings:
-      - port:
-          number: 9000
-        tls:
-          caCertificates: /etc/istio/egressgateway-certs/ca.crt
-          clientCertificate: /etc/istio/egressgateway-certs/client.crt
-          mode: MUTUAL
-          privateKey: /etc/istio/egressgateway-certs/client.key
-          sni: mypostgres.services.cf.dev01.aws.istio.sapcloud.io
-          subjectAltNames:
-          - mypostgres.services.cf.dev01.aws.istio.sapcloud.io
-`
-
-	virtual_service_mesh_yml = `apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
-metadata:
-  creationTimestamp: null
-  name: direct-through-egress-mesh-mypostgres
-  namespace: default
-spec:
-  gateways:
-  - mesh
-  hosts:
-  - mypostgres
-  tcp:
-  - match:
-    - destinationSubnets:
-      - 100.66.152.30
-      gateways:
-      - mesh
-    route:
-    - destination:
-        host: istio-egressgateway.istio-system.svc.cluster.local
-        port:
-          number: 443
-        subset: mypostgres
-`
-	virtual_service_egress_yml = `apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
-metadata:
-  creationTimestamp: null
-  name: egress-gateway-mypostgres
-  namespace: default
-spec:
-  gateways:
-  - istio-egressgateway-mypostgres
-  hosts:
-  - mypostgres
-  tcp:
-  - match:
-    - gateways:
-      - istio-egressgateway-mypostgres
-      port: 443
-    route:
-    - destination:
-        host: mypostgres.services.cf.dev01.aws.istio.sapcloud.io
-        port:
-          number: 9000
-        subset: mypostgres
-`
-	gateway_egress_yml = `apiVersion: networking.istio.io/v1alpha3
-kind: Gateway
-metadata:
-  creationTimestamp: null
-  labels:
-    service: mypostgres
-  name: istio-egressgateway-mypostgres
-  namespace: default
-spec:
-  selector:
-    istio: egressgateway
-  servers:
-  - hosts:
-    - mypostgres.services.cf.dev01.aws.istio.sapcloud.io
-    port:
-      name: tcp-port-443
-      number: 443
-      protocol: TLS
-    tls:
-      caCertificates: /etc/certs/root-cert.pem
-      mode: MUTUAL
-      privateKey: /etc/certs/key.pem
-      serverCertificate: /etc/certs/cert-chain.pem
-      subjectAltNames:
-      - spiffe://cluster.local/ns/default/sa/default
-`
-)
-
 func TestClientGatewayFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	gatewaySpec := createEgressGatewayForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io", 443, "mypostgres")
-
-	text, err := toText(gatewaySpec)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(text).To(Equal(gateway_egress_yml))
+	gatewayConfig := createEgressGatewayForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io", 443, "mypostgres")
+	g.Expect(gatewayConfig.Version).To(Equal("v1alpha3"))
+	g.Expect(gatewayConfig.Group).To(Equal("networking.istio.io"))
+	g.Expect(gatewayConfig.Type).To(Equal("gateway"))
+	g.Expect(gatewayConfig.Name).To(Equal("istio-egressgateway-mypostgres"))
+	g.Expect(gatewayConfig.Spec.String()).To(Equal(`servers:<port:<number:443 protocol:"TLS" name:"tcp-port-443" > hosts:"mypostgres.services.cf.dev01.aws.istio.sapcloud.io" tls:<mode:MUTUAL server_certificate:"/etc/certs/cert-chain.pem" private_key:"/etc/certs/key.pem" ca_certificates:"/etc/certs/root-cert.pem" subject_alt_names:"spiffe://cluster.local/ns/default/sa/default" > > selector:<key:"istio" value:"egressgateway" > `))
 }
 
 func TestClientVirtualServiceFromGo(t *testing.T) {
@@ -154,55 +23,65 @@ func TestClientVirtualServiceFromGo(t *testing.T) {
 		9000,
 		"mypostgres", 443)
 
-	text, err := toText(virtualServiceSpec)
-
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(text).To(Equal(virtual_service_egress_yml))
+	g.Expect(virtualServiceSpec.Version).To(Equal("v1alpha3"))
+	g.Expect(virtualServiceSpec.Group).To(Equal("networking.istio.io"))
+	g.Expect(virtualServiceSpec.Type).To(Equal("virtual-service"))
+	g.Expect(virtualServiceSpec.Name).To(Equal("egress-gateway-mypostgres"))
+	g.Expect(virtualServiceSpec.Spec.String()).To(Equal(`hosts:"mypostgres" gateways:"istio-egressgateway-mypostgres" tcp:<match:<port:443 gateways:"istio-egressgateway-mypostgres" > route:<destination:<host:"mypostgres.services.cf.dev01.aws.istio.sapcloud.io" subset:"mypostgres" port:<number:9000 > > > > `))
 }
 
 func TestClientMeshVirtualServiceFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	virtualServiceSpec := createMeshVirtualServiceForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
+	virtualServiceConfig := createMeshVirtualServiceForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
 		443,
 		"mypostgres", "100.66.152.30")
 
-	text, err := toText(virtualServiceSpec)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(text).To(Equal(virtual_service_mesh_yml))
+	g.Expect(virtualServiceConfig.Version).To(Equal("v1alpha3"))
+	g.Expect(virtualServiceConfig.Group).To(Equal("networking.istio.io"))
+	g.Expect(virtualServiceConfig.Type).To(Equal("virtual-service"))
+	g.Expect(virtualServiceConfig.Name).To(Equal("direct-through-egress-mesh-mypostgres"))
+	g.Expect(virtualServiceConfig.Spec.String()).To(Equal(`hosts:"mypostgres" gateways:"mesh" tcp:<match:<destination_subnets:"100.66.152.30" gateways:"mesh" > route:<destination:<host:"istio-egressgateway.istio-system.svc.cluster.local" subset:"mypostgres" port:<number:443 > > > > `))
 }
 
 func TestClientEgressDestinationRuleFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	destinationRuleSpec := createEgressDestinationRuleForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
+	destinationRuleConfig := createEgressDestinationRuleForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
 		9000,
 		"mypostgres")
 
-	text, err := toText(destinationRuleSpec)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(text).To(Equal(destination_rule_egress_yml))
+	g.Expect(destinationRuleConfig.Version).To(Equal("v1alpha3"))
+	g.Expect(destinationRuleConfig.Group).To(Equal("networking.istio.io"))
+	g.Expect(destinationRuleConfig.Type).To(Equal("destination-rule"))
+	g.Expect(destinationRuleConfig.Name).To(Equal("egressgateway-mypostgres"))
+	g.Expect(destinationRuleConfig.Spec.String()).To(Equal(`host:"mypostgres.services.cf.dev01.aws.istio.sapcloud.io" subsets:<name:"mypostgres" traffic_policy:<port_level_settings:<port:<number:9000 > tls:<mode:MUTUAL client_certificate:"/etc/istio/egressgateway-certs/client.crt" private_key:"/etc/istio/egressgateway-certs/client.key" ca_certificates:"/etc/istio/egressgateway-certs/ca.crt" subject_alt_names:"mypostgres.services.cf.dev01.aws.istio.sapcloud.io" sni:"mypostgres.services.cf.dev01.aws.istio.sapcloud.io" > > > > `))
 }
 
 func TestClientExternServiceEntryFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	serviceEntrySpec := createEgressExternServiceEntryForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
+	serviceEntryConfig := createEgressExternServiceEntryForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
 		9000,
 		"mypostgres")
 
-	text, err := toText(serviceEntrySpec)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(text).To(Equal(service_entry_extern_yml))
+	g.Expect(serviceEntryConfig.Version).To(Equal("v1alpha3"))
+	g.Expect(serviceEntryConfig.Group).To(Equal("networking.istio.io"))
+	g.Expect(serviceEntryConfig.Type).To(Equal("service-entry"))
+	g.Expect(serviceEntryConfig.Name).To(Equal("mypostgres-service"))
+	g.Expect(serviceEntryConfig.Spec.String()).To(Equal(`hosts:"mypostgres.services.cf.dev01.aws.istio.sapcloud.io" ports:<number:9000 protocol:"TLS" name:"mypostgres-port" > resolution:DNS `))
 }
 
 func TestClientSidecarDestinationRuleFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	destinationRuleSpec := createSidecarDestinationRuleForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
+	destinationRuleConfig := createSidecarDestinationRuleForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
 		"mypostgres")
 
-	text, err := toText(destinationRuleSpec)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(text).To(Equal(destination_rule_sidecar_yml))
+	g.Expect(destinationRuleConfig.Version).To(Equal("v1alpha3"))
+	g.Expect(destinationRuleConfig.Group).To(Equal("networking.istio.io"))
+	g.Expect(destinationRuleConfig.Type).To(Equal("destination-rule"))
+	g.Expect(destinationRuleConfig.Name).To(Equal("sidecar-to-egress-mypostgres"))
+	g.Expect(destinationRuleConfig.Spec.String()).To(Equal(`host:"istio-egressgateway.istio-system.svc.cluster.local" subsets:<name:"mypostgres" traffic_policy:<tls:<mode:ISTIO_MUTUAL sni:"mypostgres.services.cf.dev01.aws.istio.sapcloud.io" > > > `))
+
 }

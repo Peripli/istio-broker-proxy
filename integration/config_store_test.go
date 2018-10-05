@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/config"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
 	"k8s.io/client-go/tools/clientcmd"
 	"testing"
@@ -58,8 +59,39 @@ func TestKubernetesCreateIstioConfig(t *testing.T) {
 
 	g.Expect(checkIfServiceExists(kubectl, "foo=bar")).To(BeTrue())
 
-	//kubectl.Delete("ServiceEntry", cfg.Name)
-	//g.Expect(checkIfServiceExists(kubectl, "foo=bar")).To(BeFalse())
+	kubectl.Delete("ServiceEntry", cfg.Name)
+	g.Expect(checkIfServiceExists(kubectl, "foo=bar")).To(BeFalse())
+}
+
+func TestKubernetesCreateIstioObjects(t *testing.T) {
+	skipWithoutKubeconfigSet(t)
+
+	g := NewGomegaWithT(t)
+	kubectl := NewKubeCtl(g)
+	clientcmd.ClusterDefaults.Server = ""
+	configStore := router.NewExternKubeConfigStore("not-used")
+
+	configurations := config.CreateEntriesForExternalServiceClient("myservice", "test.services.cf.dev01.aws.istio.sapcloud.io", "1.1.1.1", 1234)
+	g.Expect(configurations).To(HaveLen(6))
+	kubectl.Delete("ServiceEntry", configurations[0].Name)
+	kubectl.Delete("VirtualService", configurations[1].Name)
+	kubectl.Delete("VirtualService", configurations[2].Name)
+	kubectl.Delete("Gateway", configurations[3].Name)
+	kubectl.Delete("DestinationRule", configurations[4].Name)
+	kubectl.Delete("DestinationRule", configurations[5].Name)
+
+	for _, configuration := range configurations {
+
+		err := configStore.CreateIstioConfig(configuration)
+		g.Expect(err).NotTo(HaveOccurred(), "error creating %#v\n", configuration)
+	}
+
+	kubectl.Delete("ServiceEntry", configurations[0].Name)
+	kubectl.Delete("VirtualService", configurations[1].Name)
+	kubectl.Delete("VirtualService", configurations[2].Name)
+	kubectl.Delete("Gateway", configurations[3].Name)
+	kubectl.Delete("DestinationRule", configurations[4].Name)
+	kubectl.Delete("DestinationRule", configurations[5].Name)
 }
 
 func checkIfServiceExists(kubectl *kubectl, label string) bool {
