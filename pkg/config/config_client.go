@@ -18,7 +18,7 @@ func createEgressVirtualServiceForExternalService(hostName string, port uint32, 
 }
 
 func createMeshVirtualServiceForExternalService(hostName string, port uint32, serviceName string, serviceIP string) model.Config {
-	gatewayName := fmt.Sprintf("direct-through-egress-mesh-%s", serviceName)
+	gatewayName := fmt.Sprintf("mesh-to-egress-%s", serviceName)
 	matchGateways := []string{"mesh"}
 	match := v1alpha3.L4MatchAttributes{Gateways: matchGateways, DestinationSubnets: []string{serviceIP}}
 	config := createGeneralVirtualServiceForExternalService(hostName, port, serviceName, gatewayName, "mesh", match, "istio-egressgateway.istio-system.svc.cluster.local")

@@ -49,7 +49,7 @@ func TestConsumerPostBind(t *testing.T) {
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &kubernetes}
 	_, err := consumer.postBind(model.BindRequest{}, bindResponseSingleEndpoint, "678")
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(kubernetes.calledWithService[0].Name).To(Equal("service-0-678"))
+	g.Expect(kubernetes.calledWithService[0].Name).To(Equal("svc-0-678"))
 	g.Expect(kubernetes.calledWithService[0].Spec.Ports[0].Port).To(Equal(int32(5555)))
 }
 
@@ -71,7 +71,7 @@ func TestBindIdIsPartOfServiceName(t *testing.T) {
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.postBind(model.BindRequest{}, bindResponseSingleEndpoint, "555")
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(configStore.calledWithService[0].Name).To(Equal("service-0-555"))
+	g.Expect(configStore.calledWithService[0].Name).To(Equal("svc-0-555"))
 }
 
 func TestMaximumLengthIsNotExceededWithRealBindId(t *testing.T) {
@@ -95,7 +95,7 @@ func TestEndpointIndexIsPartOfServiceName(t *testing.T) {
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.postBind(model.BindRequest{}, bindResponseTwoEndpoints, "adf123")
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(configStore.calledWithService[1].Name).To(Equal("service-1-adf123"))
+	g.Expect(configStore.calledWithService[1].Name).To(Equal("svc-1-adf123"))
 }
 
 func TestConsumerInterceptorCreatesIstioObjects(t *testing.T) {
@@ -112,7 +112,7 @@ func TestConsumerInterceptorCreatesIstioObjects(t *testing.T) {
 	g.Expect(text).To(ContainSubstring("0.678.services.cf.dev01.aws.istio.sapcloud.io"))
 	g.Expect(configStore.calledWithObject[1].Type).To(Equal("virtual-service"))
 	text, _ = json.Marshal(configStore.calledWithObject[1])
-	g.Expect(text).To(ContainSubstring("service-0-678"))
+	g.Expect(text).To(ContainSubstring("svc-0-678"))
 	g.Expect(configStore.calledWithObject[2].Type).To(Equal("virtual-service"))
 	g.Expect(configStore.calledWithObject[3].Type).To(Equal("gateway"))
 	g.Expect(configStore.calledWithObject[4].Type).To(Equal("destination-rule"))

@@ -40,7 +40,7 @@ func TestClientMeshVirtualServiceFromGo(t *testing.T) {
 	g.Expect(virtualServiceConfig.Version).To(Equal("v1alpha3"))
 	g.Expect(virtualServiceConfig.Group).To(Equal("networking.istio.io"))
 	g.Expect(virtualServiceConfig.Type).To(Equal("virtual-service"))
-	g.Expect(virtualServiceConfig.Name).To(Equal("direct-through-egress-mesh-mypostgres"))
+	g.Expect(virtualServiceConfig.Name).To(Equal("mesh-to-egress-mypostgres"))
 	g.Expect(virtualServiceConfig.Spec.String()).To(Equal(`hosts:"mypostgres" gateways:"mesh" tcp:<match:<destination_subnets:"100.66.152.30" gateways:"mesh" > route:<destination:<host:"istio-egressgateway.istio-system.svc.cluster.local" subset:"mypostgres" port:<number:443 > > > > `))
 }
 

@@ -71,7 +71,7 @@ func TestKubernetesCreateIstioObjects(t *testing.T) {
 	clientcmd.ClusterDefaults.Server = ""
 	configStore := router.NewExternKubeConfigStore("not-used")
 
-	configurations := config.CreateEntriesForExternalServiceClient("0-f1b32107-c8a5-11e8-b8be-02caceffa7f1", "test.services.cf.dev01.aws.istio.sapcloud.io", "1.1.1.1", 1234)
+	configurations := config.CreateEntriesForExternalServiceClient("svc-0-f1b32107-c8a5-11e8-b8be-02caceffa7f1", "test.services.cf.dev01.aws.istio.sapcloud.io", "1.1.1.1", 1234)
 
 	g.Expect(configurations).To(HaveLen(6))
 
