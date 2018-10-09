@@ -19,7 +19,7 @@ func TestInvalidUpdateCredentials(t *testing.T) {
 	router := SetupRouter(ProducerInterceptor{ProviderId: "x"}, RouterConfig{})
 
 	emptyBody := bytes.NewReader([]byte("{}"))
-	request, _ := http.NewRequest(http.MethodPut, "https://blablub.org/v2/service_instances/134567/service_bindings/76543210/adapt_credentials", emptyBody)
+	request, _ := http.NewRequest(http.MethodPost, "https://blablub.org/v2/service_instances/134567/service_bindings/76543210/adapt_credentials", emptyBody)
 	response := httptest.NewRecorder()
 
 	router.ServeHTTP(response, request)
@@ -48,7 +48,7 @@ func TestValidUpdateCredentials(t *testing.T) {
 	router := SetupRouter(ProducerInterceptor{ProviderId: "x"}, RouterConfig{})
 
 	emptyBody := bytes.NewReader([]byte(validUpdateCredentialsRequest))
-	request, _ := http.NewRequest(http.MethodPut, "/v2/service_instances/1234-4567/service_bindings/7654-3210/adapt_credentials", emptyBody)
+	request, _ := http.NewRequest(http.MethodPost, "/v2/service_instances/1234-4567/service_bindings/7654-3210/adapt_credentials", emptyBody)
 	response := httptest.NewRecorder()
 
 	router.ServeHTTP(response, request)
@@ -65,7 +65,7 @@ func TestConsumerForwardsAdpotCredentials(t *testing.T) {
 	router := SetupRouter(ConsumerInterceptor{ConsumerId: "x"}, *routerConfig)
 
 	emptyBody := bytes.NewReader([]byte(validUpdateCredentialsRequest))
-	request, _ := http.NewRequest(http.MethodPut, "/v2/service_instances/1234-4567/service_bindings/7654-3210/adapt_credentials", emptyBody)
+	request, _ := http.NewRequest(http.MethodPost, "/v2/service_instances/1234-4567/service_bindings/7654-3210/adapt_credentials", emptyBody)
 	response := httptest.NewRecorder()
 
 	router.ServeHTTP(response, request)
@@ -200,7 +200,7 @@ func TestAdaptCredentials(t *testing.T) {
 	}]
 }
 `)
-	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/1234-4567/service_bindings/7654-3210/adapt_credentials", bytes.NewReader(body))
+	request, _ := http.NewRequest(http.MethodPost, "https://blahblubs.org/v2/service_instances/1234-4567/service_bindings/7654-3210/adapt_credentials", bytes.NewReader(body))
 	request.Header = make(http.Header)
 	request.Header["accept"] = []string{"application/json"}
 

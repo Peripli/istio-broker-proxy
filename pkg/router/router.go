@@ -241,7 +241,7 @@ func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig RouterConfig
 	}
 	client := osbProxy{routerConfig.HttpClientFactory(tr), interceptor, routerConfig}
 	if interceptor.hasAdaptCredentials() {
-		mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
+		mux.POST("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
 	}
 	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardBindRequest)
 	mux.NoRoute(client.forward)

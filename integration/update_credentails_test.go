@@ -17,7 +17,7 @@ func TestAdaptCredentialsWithInvalidRequest(t *testing.T) {
 	kubeBaseUrl := getClusterServiceBrokerUrl(kubectl)
 	podName := kubectl.GetPod("-n", "catalog", "-l", "app=istiobroker")
 
-	result := put(g, kubectl, podName, kubeBaseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", `
+	result := post(g, kubectl, podName, kubeBaseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", `
 	                  {
 	                  "credentials": {
 	                   "dbname": "yLO2WoE0-mCcEppn",
@@ -46,7 +46,7 @@ func TestAdaptCredentialsWithValidRequest(t *testing.T) {
 
 	podName := kubectl.GetPod("-n", "catalog", "-l", "app=istiobroker")
 
-	result := put(g, kubectl, podName, kubeBaseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", `{
+	result := post(g, kubectl, podName, kubeBaseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", `{
 	                  "credentials": {
 	                   "dbname": "yLO2WoE0-mCcEppn",
 	                   "hostname": "10.11.241.0",
@@ -75,7 +75,7 @@ func getClusterServiceBrokerUrl(kubectl *kubectl) string {
 	return kubeBaseUrl
 }
 
-func put(g *GomegaWithT, kubectl *kubectl, podName string, url string, body string) string {
+func post(g *GomegaWithT, kubectl *kubectl, podName string, url string, body string) string {
 	const podFileName = "/tmp/post.json"
 	fileName := path.Join(os.TempDir(), "post.json")
 	file, err := os.Create(fileName)
@@ -85,7 +85,7 @@ func put(g *GomegaWithT, kubectl *kubectl, podName string, url string, body stri
 	kubectl.run("cp", fileName, "catalog/"+podName+":"+podFileName)
 	os.Remove(fileName)
 	result := kubectl.Exec(podName, "-n", "catalog", "-ti", "--", "curl",
-		"-X", "PUT", "-v",
+		"-X", "POST", "-v",
 		"-H", escape("X-Broker-Api-Version: 2.12"),
 		"-H", escape("Content-Type: application/json"),
 		"-d", "@"+podFileName, url)
