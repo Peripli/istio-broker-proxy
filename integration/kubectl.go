@@ -50,6 +50,10 @@ func (self kubectl) Delete(kind string, name string) {
 	self.run("delete", kind, name, "--ignore-not-found=true")
 }
 
+func (self kubectl) DeleteWithNamespace(kind string, name string, namespace string) {
+	self.run("delete", kind, name, "-n", namespace, "--ignore-not-found=true")
+}
+
 func (self kubectl) Apply(fileBody []byte) {
 
 	file, err := ioutil.TempFile("", "*")

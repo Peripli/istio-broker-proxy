@@ -87,12 +87,12 @@ func TestKubernetesCreateIstioObjects(t *testing.T) {
 }
 
 func deleteClientObjects(kubectl *kubectl, configurations []model.Config) {
-	kubectl.Delete("ServiceEntry", configurations[0].Name)
-	kubectl.Delete("VirtualService", configurations[1].Name)
-	kubectl.Delete("VirtualService", configurations[2].Name)
-	kubectl.Delete("Gateway", configurations[3].Name)
-	kubectl.Delete("DestinationRule", configurations[4].Name)
-	kubectl.Delete("DestinationRule", configurations[5].Name)
+	kubectl.DeleteWithNamespace("ServiceEntry", configurations[0].Name, "catalog")
+	kubectl.DeleteWithNamespace("VirtualService", configurations[1].Name, "catalog")
+	kubectl.DeleteWithNamespace("VirtualService", configurations[2].Name, "catalog")
+	kubectl.DeleteWithNamespace("Gateway", configurations[3].Name, "catalog")
+	kubectl.DeleteWithNamespace("DestinationRule", configurations[4].Name, "catalog")
+	kubectl.DeleteWithNamespace("DestinationRule", configurations[5].Name, "catalog")
 }
 
 func checkIfServiceExists(kubectl *kubectl, label string) bool {

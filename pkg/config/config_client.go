@@ -28,6 +28,7 @@ func createMeshVirtualServiceForExternalService(hostName string, port uint32, se
 
 func enrichWithIstioDefaults(config model.Config) model.Config {
 	schema := schemas[config.Type]
+	config.Namespace = "catalog"
 	istioObject, _ := crd.ConvertConfig(schema, config)
 	enrichedConfig, _ := crd.ConvertObject(schema, istioObject, "")
 	return *enrichedConfig

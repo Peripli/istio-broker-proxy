@@ -60,7 +60,7 @@ func (k kubeConfigStore) CreateService(service *v1.Service) (*v1.Service, error)
 func (k kubeConfigStore) CreateIstioConfig(cfg model.Config) error {
 
 	kubeCfgFile := os.Getenv("KUBECONFIG")
-	configClient, err := crd.NewClient(kubeCfgFile, "", model.IstioConfigTypes, "cluster.local")
+	configClient, err := crd.NewClient(kubeCfgFile, "shoot--istio--dev", model.IstioConfigTypes, "cluster.local")
 	if err != nil {
 		return err
 	}
