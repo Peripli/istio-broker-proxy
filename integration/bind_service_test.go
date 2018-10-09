@@ -128,6 +128,7 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 	for _, service := range services.Items {
 		if strings.Contains(service.Name, bindId) {
 			matchingServiceInstanceExists = true
+			kubectl.DeleteWithNamespace("Service", service.Name, "catalog")
 		}
 	}
 	g.Expect(matchingServiceInstanceExists).To(BeTrue())
@@ -146,7 +147,7 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 	for _, serviceEntry := range serviceEntries.Items {
 		if strings.Contains(serviceEntry.Metadata.Name, bindId) {
 			matchingServiceEntryExists = true
-			kubectl.Delete("ServiceEntry", serviceEntry.Metadata.Name)
+			kubectl.DeleteWithNamespace("ServiceEntry", serviceEntry.Metadata.Name, "catalog")
 		}
 	}
 	g.Expect(matchingServiceEntryExists).To(BeTrue())
@@ -159,7 +160,7 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 
 		if strings.Contains(virtualService.Metadata.Name, bindId) {
 			matchingIstioObjectCount += 1
-			kubectl.Delete("VirtualService", virtualService.Metadata.Name)
+			kubectl.DeleteWithNamespace("VirtualService", virtualService.Metadata.Name, "catalog")
 		}
 	}
 	g.Expect(matchingIstioObjectCount).To(Equal(2))
@@ -172,7 +173,7 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 
 		if strings.Contains(gateway.Metadata.Name, bindId) {
 			matchingIstioObjectCount += 1
-			kubectl.Delete("Gateway", gateway.Metadata.Name)
+			kubectl.DeleteWithNamespace("Gateway", gateway.Metadata.Name, "catalog")
 		}
 	}
 	g.Expect(matchingIstioObjectCount).To(Equal(1))
@@ -185,7 +186,7 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 
 		if strings.Contains(destinationRule.Metadata.Name, bindId) {
 			matchingIstioObjectCount += 1
-			kubectl.Delete("DestinationRule", destinationRule.Metadata.Name)
+			kubectl.DeleteWithNamespace("DestinationRule", destinationRule.Metadata.Name, "catalog")
 		}
 	}
 	g.Expect(matchingIstioObjectCount).To(Equal(2))
