@@ -22,7 +22,10 @@ func main() {
 		consumerInterceptor.ConfigStore = router.NewInClusterConfigStore()
 		interceptor = consumerInterceptor
 	} else if producerInterceptor.ProviderId != "" {
-		producerInterceptor.WriteIstioConfigFiles(routerConfig.Port)
+		err := producerInterceptor.WriteIstioConfigFiles(routerConfig.Port)
+		if err != nil {
+			panic(fmt.Sprintf("Unable to write istio-broker provider side configuration file: %v", err))
+		}
 		interceptor = producerInterceptor
 	} else {
 		interceptor = router.NoOpInterceptor{}

@@ -26,6 +26,16 @@ func TestDefaultConfigurationIsWritten(t *testing.T) {
 
 }
 
+func TestWriteIstioConfigFilesReturnsError(t *testing.T) {
+	g := NewGomegaWithT(t)
+	interceptor := ProducerInterceptor{
+		ProviderId:     "your-provider",
+		SystemDomain:   "services.domain",
+		IstioDirectory: "/not-existing"}
+	err := interceptor.WriteIstioConfigFiles(147)
+	g.Expect(err).To(HaveOccurred())
+}
+
 func TestYmlFileIsCorrectlyWritten(t *testing.T) {
 	g := NewGomegaWithT(t)
 	///var/vcap/packages/istio-broker/bin/istio-broker --port 8000 --forwardUrl https://10.11.252.10:9293/cf

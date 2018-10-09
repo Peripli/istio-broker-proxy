@@ -18,8 +18,8 @@ type ProducerInterceptor struct {
 	IpAddress        string
 }
 
-func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) {
-	c.writeIstioConfigFiles("istio-broker",
+func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) error {
+	return c.writeIstioConfigFiles("istio-broker",
 		config.CreateEntriesForExternalService("istio-broker", string(c.IpAddress), uint32(port), "istio-broker."+c.SystemDomain, "client.istio.sapcloud.io", 9000))
 }
 
