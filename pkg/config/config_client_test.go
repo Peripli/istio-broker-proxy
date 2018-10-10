@@ -27,7 +27,7 @@ func TestClientVirtualServiceFromGo(t *testing.T) {
 	g.Expect(virtualServiceSpec.Group).To(Equal("networking.istio.io"))
 	g.Expect(virtualServiceSpec.Type).To(Equal("virtual-service"))
 	g.Expect(virtualServiceSpec.Name).To(Equal("egress-gateway-mypostgres"))
-	g.Expect(virtualServiceSpec.Spec.String()).To(Equal(`hosts:"mypostgres.services.cf.dev01.aws.istio.sapcloud.io" gateways:"istio-egressgateway-mypostgres" tcp:<match:<port:443 gateways:"istio-egressgateway-mypostgres" > route:<destination:<host:"mypostgres.services.cf.dev01.aws.istio.sapcloud.io" subset:"mypostgres" port:<number:9000 > > > > `))
+	g.Expect(virtualServiceSpec.Spec.String()).To(Equal(`hosts:"mypostgres" gateways:"istio-egressgateway-mypostgres" tcp:<match:<port:443 gateways:"istio-egressgateway-mypostgres" > route:<destination:<host:"mypostgres.services.cf.dev01.aws.istio.sapcloud.io" subset:"mypostgres" port:<number:9000 > > > > `))
 }
 
 func TestClientMeshVirtualServiceFromGo(t *testing.T) {
