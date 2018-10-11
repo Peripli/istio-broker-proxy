@@ -104,20 +104,34 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 	var serviceInstance v1beta1.ServiceInstance
 	waitForCompletion(g, func() bool {
 		kubectl.Read(&serviceInstance, "postgres-instance")
-		if len(serviceInstance.Status.Conditions) == 0 || serviceInstance.Status.Conditions[0].Status == v1beta1.ConditionUnknown {
+		statusLen := len(serviceInstance.Status.Conditions)
+		if statusLen == 0 {
 			return false
 		}
-		g.Expect(serviceInstance.Status.Conditions[0].Status).To(Equal(v1beta1.ConditionTrue))
+
+		if serviceInstance.Status.Conditions[statusLen-1].Status != v1beta1.ConditionTrue {
+			return false
+		}
+
+		g.Expect(serviceInstance.Status.Conditions[statusLen-1].Type).To(Equal(v1beta1.ServiceInstanceConditionReady))
+		g.Expect(serviceInstance.Status.Conditions[statusLen-1].Status).To(Equal(v1beta1.ConditionTrue))
 		return true
 	})
 	kubectl.Apply([]byte(service_binding))
 	var serviceBinding v1beta1.ServiceBinding
 	waitForCompletion(g, func() bool {
 		kubectl.Read(&serviceBinding, "postgres-binding")
-		if len(serviceBinding.Status.Conditions) == 0 || serviceBinding.Status.Conditions[0].Status == v1beta1.ConditionUnknown {
+		statusLen := len(serviceBinding.Status.Conditions)
+		if statusLen == 0 {
 			return false
 		}
-		g.Expect(serviceBinding.Status.Conditions[0].Status).To(Equal(v1beta1.ConditionTrue))
+
+		if serviceBinding.Status.Conditions[statusLen-1].Status != v1beta1.ConditionTrue {
+			return false
+		}
+
+		g.Expect(serviceBinding.Status.Conditions[statusLen-1].Type).To(Equal(v1beta1.ServiceBindingConditionReady))
+		g.Expect(serviceBinding.Status.Conditions[statusLen-1].Status).To(Equal(v1beta1.ConditionTrue))
 		return true
 	})
 	bindId := serviceBinding.Spec.ExternalID
