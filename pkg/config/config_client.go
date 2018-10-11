@@ -121,7 +121,8 @@ func createGeneralServiceEntryForExternalService(serviceEntryName string, hostNa
 func createSidecarDestinationRuleForExternalService(hostName string, serviceName string) model.Config {
 	sni := hostName
 	mode := v1alpha3.TLSSettings_ISTIO_MUTUAL
-	tls := v1alpha3.TLSSettings{Sni: sni, Mode: mode}
+	subjectAltNames := []string{"pinger.services.cf.dev01.aws.istio.sapcloud.io"}
+	tls := v1alpha3.TLSSettings{Sni: sni, Mode: mode, SubjectAltNames: subjectAltNames}
 
 	trafficPolicy := v1alpha3.TrafficPolicy{Tls: &tls}
 	subsets := []*v1alpha3.Subset{{Name: serviceName, TrafficPolicy: &trafficPolicy}}
