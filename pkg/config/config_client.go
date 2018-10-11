@@ -89,7 +89,7 @@ func createTlsSettings(hostName string) v1alpha3.TLSSettings {
 	clientCertificate := certPath + "client.crt"
 	privateKey := certPath + "client.key"
 	sni := hostName
-	subjectAltNames := []string{hostName}
+	subjectAltNames := []string{"pinger.services.cf.dev01.aws.istio.sapcloud.io"}
 	mode := v1alpha3.TLSSettings_MUTUAL
 	tls := v1alpha3.TLSSettings{CaCertificates: caCertificate, ClientCertificate: clientCertificate, PrivateKey: privateKey,
 		Sni: sni, SubjectAltNames: subjectAltNames, Mode: mode}
@@ -121,9 +121,8 @@ func createGeneralServiceEntryForExternalService(serviceEntryName string, hostNa
 func createSidecarDestinationRuleForExternalService(hostName string, serviceName string) model.Config {
 	sni := hostName
 	mode := v1alpha3.TLSSettings_ISTIO_MUTUAL
-	subjectAltNames := []string{"pinger.services.cf.dev01.aws.istio.sapcloud.io"}
-	tls := v1alpha3.TLSSettings{Sni: sni, Mode: mode, SubjectAltNames: subjectAltNames}
 
+	tls := v1alpha3.TLSSettings{Sni: sni, Mode: mode}
 	trafficPolicy := v1alpha3.TrafficPolicy{Tls: &tls}
 	subsets := []*v1alpha3.Subset{{Name: serviceName, TrafficPolicy: &trafficPolicy}}
 	destinationRuleSpec := v1alpha3.DestinationRule{Host: "istio-egressgateway.istio-system.svc.cluster.local", Subsets: subsets}
