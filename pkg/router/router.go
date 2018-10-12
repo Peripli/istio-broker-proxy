@@ -5,15 +5,15 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/credentials"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
 )
 
 const (
@@ -34,26 +34,22 @@ type osbProxy struct {
 }
 
 func (client osbProxy) updateCredentials(ctx *gin.Context) {
-	writer := ctx.Writer
-	request := ctx.Request
-	log.Printf("Update credentials request: %v %v", request.Method, request.URL.Path)
-
-	body, err := ioutil.ReadAll(request.Body)
+	var request model.AdpotCredentialsRequest
+	err := ctx.ShouldBindJSON(&request)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		ctx.JSON(http.StatusBadRequest, model.HttpErrorFromError(err))
 		return
 	}
-
-	log.Printf("Received body: %v\n", string(body))
-	response, err := credentials.Update(body)
-
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
+	if len(request.EndpointMappings) == 0 {
+		ctx.JSON(http.StatusBadRequest, model.HttpError{Message: "No endpoint mappings available"})
 		return
 	}
-
-	writer.WriteHeader(http.StatusOK)
-	writer.Write(response)
+	response, err := model.Adopt(request)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, model.HttpErrorFromError(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, response)
 }
 
 func (client osbProxy) forward(ctx *gin.Context) {

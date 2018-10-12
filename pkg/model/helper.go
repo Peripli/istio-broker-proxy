@@ -26,6 +26,16 @@ func removeProperty(additionalProperties map[string]json.RawMessage, key string,
 	return nil
 }
 
+func removeProperties(additionalProperties map[string]json.RawMessage, values map[string]interface{}) error {
+	for key, value := range values {
+		err := removeProperty(additionalProperties, key, value)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func clone(original map[string]json.RawMessage) map[string]json.RawMessage {
 	copied := make(map[string]json.RawMessage)
 
