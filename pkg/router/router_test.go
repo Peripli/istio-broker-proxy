@@ -3,8 +3,6 @@ package router
 import (
 	"bytes"
 	"encoding/json"
-	. "github.com/onsi/gomega"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +10,9 @@ import (
 	"path"
 	"strconv"
 	"testing"
+
+	. "github.com/onsi/gomega"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 )
 
 func TestInvalidUpdateCredentials(t *testing.T) {
@@ -128,7 +129,7 @@ func TestRedirect(t *testing.T) {
 		}
 
 		err := json.NewDecoder(response.Body).Decode(&bodyData)
-		g.Expect(err).NotTo(HaveOccurred(), "error while decoding body: %v ", response.Body)
+		g.Expect(err).NotTo(HaveOccurred(), "error while decoding")
 
 		got := bodyData.Headers[testHeaderKey]
 
