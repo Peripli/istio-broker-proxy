@@ -29,6 +29,31 @@ spec:
   instanceRef:
     name: postgres-instance`
 
+const client_config = `---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: client
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: client
+    spec:
+      volumes:
+      - name: postgres-binding
+        secret:
+          secretName: postgres-binding
+      containers:
+      - name: client
+        image: gcr.io/sap-se-gcp-istio-dev/client:latest
+        command: ["/bin/sleep","infinity"]
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /etc/bindings/postgres
+          name: postgres-binding`
+
 func skipWithoutKubeconfigSet(t *testing.T) {
 	if os.Getenv("KUBECONFIG") == "" {
 		t.Skip("KUBECONFIG not set, skipping integration test.")
@@ -204,6 +229,17 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 		}
 	}
 	g.Expect(matchingIstioObjectCount).To(Equal(2))
+
+	clientConfigBody := []byte(client_config)
+	kubectl.Apply(clientConfigBody)
+
+	podName := kubectl.GetPod("-l", "app=client", "--field-selector=status.phase=Running")
+	g.Expect(podName).To(ContainSubstring("client"))
+
+	//kubectl.Exec(podName, "-c", "client", "-ti")
+
+	//ToDo try to establsh psql connection - should look like:
+	//kubectl exec -ti client-845b478b6d-97bzc -c client -- psql -h svc-0-afaac8fa-cd5d-11e8-b9dc-4e067380dba4.catalog.svc.cluster.local  -p 5555 -U hElJ2D7bduoSFCDX MUki8tkT4eiuzFJA
 
 }
 
