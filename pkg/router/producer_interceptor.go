@@ -47,6 +47,10 @@ func (c ProducerInterceptor) hasAdaptCredentials() bool {
 	return true
 }
 
+func (c ProducerInterceptor) postDelete(bindId string) error {
+	return nil
+}
+
 func (c ProducerInterceptor) writeIstioFilesForProvider(bindingId string, request *model.BindRequest, response *model.BindResponse) error {
 	return c.writeIstioConfigFiles(bindingId, config.CreateIstioConfigForProvider(request, response, bindingId, c.SystemDomain))
 }

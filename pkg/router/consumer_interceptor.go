@@ -33,7 +33,7 @@ func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.
 
 	for index, endpoint := range response.Credentials.Endpoints {
 		service := &v1.Service{Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Port: service_port, TargetPort: intstr.FromInt(service_port)}}}}
-		name := fmt.Sprintf("svc-%d-%s", index, bindId)
+		name := c.serviceName(index, bindId)
 		service.Name = name
 		service, err := c.ConfigStore.CreateService(service)
 		if err != nil {
@@ -60,6 +60,21 @@ func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.
 	binding.NetworkData = response.NetworkData
 	binding.AdditionalProperties = response.AdditionalProperties
 	return binding, nil
+}
+
+func (c ConsumerInterceptor) serviceName(index int, bindId string) string {
+	name := fmt.Sprintf("svc-%d-%s", index, bindId)
+	return name
+}
+
+func (c ConsumerInterceptor) postDelete(bindId string) error {
+
+	serviceName := c.serviceName(0, bindId)
+	for _, id := range config.DeleteEntriesForExternalServiceClient(serviceName) {
+		_ = c.ConfigStore.DeleteIstioConfig(id.Type, id.Name)
+	}
+	_ = c.ConfigStore.DeleteService(serviceName)
+	return nil
 }
 
 func (c ConsumerInterceptor) hasAdaptCredentials() bool {

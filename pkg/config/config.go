@@ -37,6 +37,11 @@ var schemas = map[string]istioModel.ProtoSchema{
 	istio_destinationRule: istioModel.DestinationRule,
 }
 
+type ServiceId struct {
+	Type string
+	Name string
+}
+
 func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string, clientName string, ingressPort uint32) []istioModel.Config {
 	var configs []istioModel.Config
 
@@ -72,6 +77,17 @@ func createValidIdentifer(identifer string) string {
 
 }
 
+func DeleteEntriesForExternalServiceClient(serviceName string) []ServiceId {
+	result := make([]ServiceId, 0)
+	result = append(result, sidecarDestinationRuleForExternalService(serviceName))
+	result = append(result, egressDestinationRuleForExternalService(serviceName))
+	result = append(result, egressGatewayForExternalService(serviceName))
+	result = append(result, egressVirtualServiceForExternalService(serviceName))
+	result = append(result, meshVirtualServiceForExternalService(serviceName))
+	result = append(result, egressExternServiceEntryForExternalService(serviceName))
+	return result
+}
+
 func CreateEntriesForExternalServiceClient(serviceName string, hostName string, serviceIP string, port int) []istioModel.Config {
 	var configs []istioModel.Config
 
@@ -80,6 +96,7 @@ func CreateEntriesForExternalServiceClient(serviceName string, hostName string, 
 
 	virtualService := createMeshVirtualServiceForExternalService(hostName, 443, serviceName, serviceIP)
 	configs = append(configs, virtualService)
+
 	virtualService = createEgressVirtualServiceForExternalService(hostName, uint32(port), serviceName, 443)
 	configs = append(configs, virtualService)
 

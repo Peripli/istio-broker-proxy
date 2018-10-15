@@ -8,7 +8,7 @@ import (
 )
 
 func createEgressVirtualServiceForExternalService(hostName string, port uint32, serviceName string, gatewayPort uint32) model.Config {
-	gatewayName := fmt.Sprintf("egress-gateway-%s", serviceName)
+	gatewayName := egressVirtualServiceForExternalService(serviceName).Name
 	gatewayHost := fmt.Sprintf("istio-egressgateway-%s", serviceName)
 	matchGateways := []string{gatewayHost}
 	match := v1alpha3.L4MatchAttributes{Gateways: matchGateways, Port: gatewayPort}
@@ -17,13 +17,21 @@ func createEgressVirtualServiceForExternalService(hostName string, port uint32, 
 	return enrichWithIstioDefaults(config)
 }
 
+func egressVirtualServiceForExternalService(serviceName string) ServiceId {
+	return ServiceId{"VirtualService", fmt.Sprintf("egress-gateway-%s", serviceName)}
+}
+
 func createMeshVirtualServiceForExternalService(hostName string, port uint32, serviceName string, serviceIP string) model.Config {
-	gatewayName := fmt.Sprintf("mesh-to-egress-%s", serviceName)
+	gatewayName := meshVirtualServiceForExternalService(serviceName).Name
 	matchGateways := []string{"mesh"}
 	match := v1alpha3.L4MatchAttributes{Gateways: matchGateways, DestinationSubnets: []string{serviceIP}}
 	config := createGeneralVirtualServiceForExternalService(serviceName, port, serviceName, gatewayName, "mesh", match, "istio-egressgateway.istio-system.svc.cluster.local")
 
 	return enrichWithIstioDefaults(config)
+}
+
+func meshVirtualServiceForExternalService(serviceName string) ServiceId {
+	return ServiceId{"VirtualService", fmt.Sprintf("mesh-to-egress-%s", serviceName)}
 }
 
 func enrichWithIstioDefaults(config model.Config) model.Config {
@@ -64,9 +72,13 @@ func createEgressGatewayForExternalService(hostName string, portNumber uint32, s
 	config := model.Config{Spec: &gatewaySpec, ConfigMeta: model.ConfigMeta{Labels: map[string]string{"service": serviceName}}}
 
 	config.Type = gateway
-	config.Name = fmt.Sprintf("istio-egressgateway-%s", serviceName)
+	config.Name = egressGatewayForExternalService(serviceName).Name
 
 	return enrichWithIstioDefaults(config)
+}
+
+func egressGatewayForExternalService(serviceName string) ServiceId {
+	return ServiceId{"Gateway", fmt.Sprintf("istio-egressgateway-%s", serviceName)}
 }
 
 func createEgressDestinationRuleForExternalService(hostName string, portNumber uint32, serviceName string) model.Config {
@@ -78,9 +90,13 @@ func createEgressDestinationRuleForExternalService(hostName string, portNumber u
 	destinationRuleSpec := v1alpha3.DestinationRule{Host: hostName, Subsets: subsets}
 	config := model.Config{Spec: &destinationRuleSpec}
 	config.Type = destinationRule
-	config.Name = fmt.Sprintf("egressgateway-%s", serviceName)
+	config.Name = egressDestinationRuleForExternalService(serviceName).Name
 
 	return enrichWithIstioDefaults(config)
+}
+
+func egressDestinationRuleForExternalService(serviceName string) ServiceId {
+	return ServiceId{"DestinationRule", fmt.Sprintf("egressgateway-%s", serviceName)}
 }
 
 func createTlsSettings(hostName string) v1alpha3.TLSSettings {
@@ -99,11 +115,15 @@ func createTlsSettings(hostName string) v1alpha3.TLSSettings {
 
 func createEgressExternServiceEntryForExternalService(hostName string, portNumber uint32, serviceName string) model.Config {
 	portName := fmt.Sprintf("%s-port", serviceName)
-	name := fmt.Sprintf("%s-service", serviceName)
+	name := egressExternServiceEntryForExternalService(serviceName).Name
 
 	config := createGeneralServiceEntryForExternalService(name, hostName, portNumber, portName, "TLS")
 
 	return enrichWithIstioDefaults(config)
+}
+
+func egressExternServiceEntryForExternalService(serviceName string) ServiceId {
+	return ServiceId{"ServiceEntry", fmt.Sprintf("%s-service", serviceName)}
 }
 
 func createGeneralServiceEntryForExternalService(serviceEntryName string, hostName string, portNumber uint32, portName string, protocol string) model.Config {
@@ -128,6 +148,10 @@ func createSidecarDestinationRuleForExternalService(hostName string, serviceName
 	destinationRuleSpec := v1alpha3.DestinationRule{Host: "istio-egressgateway.istio-system.svc.cluster.local", Subsets: subsets}
 	config := model.Config{Spec: &destinationRuleSpec}
 	config.Type = destinationRule
-	config.Name = fmt.Sprintf("sidecar-to-egress-%s", serviceName)
+	config.Name = sidecarDestinationRuleForExternalService(serviceName).Name
 	return enrichWithIstioDefaults(config)
+}
+
+func sidecarDestinationRuleForExternalService(serviceName string) ServiceId {
+	return ServiceId{"DestinationRule", fmt.Sprintf("sidecar-to-egress-%s", serviceName)}
 }

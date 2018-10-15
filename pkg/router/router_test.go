@@ -485,6 +485,27 @@ func TestCorrectUrlForwarded(t *testing.T) {
 	g.Expect(handlerStub.spy.url).To(Equal("http://xxxxx.xx/somepath"))
 }
 
+func TestDeleteBinding(t *testing.T) {
+	g := NewGomegaWithT(t)
+	body := []byte{'{', '}'}
+	handlerStub := NewHandlerStub(http.StatusOK, body)
+	server, routerConfig := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
+
+	response := httptest.NewRecorder()
+	var bindId = ""
+	router := SetupRouter(&DeleteInterceptor{deleteCallback: func(innerBindId string) error {
+		bindId = innerBindId
+		return nil
+	}}, *routerConfig)
+	router.ServeHTTP(response, request)
+
+	g.Expect(bindId).To(Equal("456"))
+}
+
 func TestCorrectRequestParamForDelete(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte(`{}`)
@@ -545,4 +566,13 @@ func TestAdaptCredentialsWithProxy(t *testing.T) {
 	g.Expect(postgresCredentials.Hostname).To(Equal("postgres.catalog.svc.cluster.local"))
 	g.Expect(postgresCredentials.Uri).To(Equal("postgres://mma4G8N0isoxe17v:redacted@postgres.catalog.svc.cluster.local:5555/yLO2WoE0-mCcEppn"))
 
+}
+
+type DeleteInterceptor struct {
+	NoOpInterceptor
+	deleteCallback func(bindId string) error
+}
+
+func (c DeleteInterceptor) postDelete(bindId string) error {
+	return c.deleteCallback(bindId)
 }

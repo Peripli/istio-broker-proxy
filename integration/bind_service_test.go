@@ -97,7 +97,7 @@ type GatewayList struct {
 }
 
 type Metadata struct {
-	CreationTimestamp string `json:"creationTimestamp""`
+	CreationTimestamp string `json:"creationTimestamp"`
 	Generation        int    `json:"generation"`
 	Name              string `json:"name"`
 	Namespace         string `json:"namespace"`
@@ -161,8 +161,6 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 		return true
 	})
 
-	toBeDeleted := make(map[string][]string)
-
 	bindId := serviceBinding.Spec.ExternalID
 	var services v1.ServiceList
 	kubectl.List(&services, "-n", "catalog")
@@ -171,7 +169,6 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 	for _, service := range services.Items {
 		if strings.Contains(service.Name, bindId) {
 			matchingServiceInstanceExists = true
-			toBeDeleted["Service"] = append(toBeDeleted["Service"], service.Name)
 		}
 	}
 	g.Expect(matchingServiceInstanceExists).To(BeTrue())
@@ -190,7 +187,6 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 	for _, serviceEntry := range serviceEntries.Items {
 		if strings.Contains(serviceEntry.Metadata.Name, bindId) {
 			matchingServiceEntryExists = true
-			toBeDeleted["ServiceEntry"] = append(toBeDeleted["ServiceEntry"], serviceEntry.Metadata.Name)
 		}
 	}
 	g.Expect(matchingServiceEntryExists).To(BeTrue())
@@ -203,7 +199,6 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 
 		if strings.Contains(virtualService.Metadata.Name, bindId) {
 			matchingIstioObjectCount += 1
-			toBeDeleted["VirtualService"] = append(toBeDeleted["VirtualService"], virtualService.Metadata.Name)
 		}
 	}
 	g.Expect(matchingIstioObjectCount).To(Equal(2))
@@ -216,7 +211,6 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 
 		if strings.Contains(gateway.Metadata.Name, bindId) {
 			matchingIstioObjectCount += 1
-			toBeDeleted["Gateway"] = append(toBeDeleted["Gateway"], gateway.Metadata.Name)
 		}
 	}
 	g.Expect(matchingIstioObjectCount).To(Equal(1))
@@ -229,18 +223,10 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 
 		if strings.Contains(destinationRule.Metadata.Name, bindId) {
 			matchingIstioObjectCount += 1
-			toBeDeleted["DestinationRule"] = append(toBeDeleted["DestinationRule"], destinationRule.Metadata.Name)
 		}
 	}
 	g.Expect(matchingIstioObjectCount).To(Equal(2))
 
-	defer func() {
-		for key, nameList := range toBeDeleted {
-			for _, toBeDeletedName := range nameList {
-				kubectl.DeleteWithNamespace(key, toBeDeletedName, "catalog")
-			}
-		}
-	}()
 	clientConfigBody := []byte(client_config)
 	kubectl.Apply(clientConfigBody)
 
@@ -254,7 +240,7 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 	file.Close()
 	kubectl.run("cp", fileName, "default/"+podName+":test.sh")
 
-	//kubectl.Exec(podName, "-c", "client", "-ti", "--", "bash", "test.sh")
+	// kubectl.Exec(podName, "-c", "client", "-ti", "--", "bash", "test.sh")
 
 }
 

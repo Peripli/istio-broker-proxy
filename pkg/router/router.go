@@ -89,6 +89,18 @@ func (client osbProxy) adaptCredentials(credentials model.Credentials, mapping [
 }
 
 func (client osbProxy) forward(ctx *gin.Context) {
+	client.forwardWithCallback(ctx, func(ctx *gin.Context) error {
+		return nil
+	})
+}
+
+func (client osbProxy) deleteBinding(ctx *gin.Context) {
+	client.forwardWithCallback(ctx, func(ctx *gin.Context) error {
+		return client.interceptor.postDelete(ctx.Params.ByName("binding_id"))
+	})
+}
+
+func (client osbProxy) forwardWithCallback(ctx *gin.Context, postCallback func(ctx *gin.Context) error) {
 	writer := ctx.Writer
 	request := ctx.Request
 
@@ -107,6 +119,15 @@ func (client osbProxy) forward(ctx *gin.Context) {
 	log.Printf("Request forwarded: %s\n", response.Status)
 
 	defer response.Body.Close()
+
+	if (response.StatusCode / 100) == 2 {
+		err = postCallback(ctx)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadGateway)
+			log.Printf("ERROR: %s\n", err.Error())
+			return
+		}
+	}
 
 	for name, values := range response.Header {
 		writer.Header()[name] = values
@@ -280,6 +301,7 @@ func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig RouterConfig
 		mux.POST("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
 	}
 	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardBindRequest)
+	mux.DELETE("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.deleteBinding)
 	mux.NoRoute(client.forward)
 
 	return mux
