@@ -15,10 +15,8 @@ const (
 )
 
 type ConsumerInterceptor struct {
-	ConsumerId   string
-	SystemDomain string
-	Namespace    string
-	ConfigStore  ConfigStore
+	ConsumerId  string
+	ConfigStore ConfigStore
 }
 
 func (c ConsumerInterceptor) preBind(request model.BindRequest) *model.BindRequest {
@@ -51,7 +49,7 @@ func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.
 		endpointMapping = append(endpointMapping,
 			model.EndpointMapping{
 				Source: endpoint,
-				Target: model.Endpoint{Host: service.Name + "." + c.Namespace + ".svc." + c.SystemDomain, Port: service_port}})
+				Target: model.Endpoint{Host: service.Spec.ClusterIP, Port: service_port}})
 	}
 	binding, err := adapt(response.Credentials, endpointMapping)
 	if err != nil {

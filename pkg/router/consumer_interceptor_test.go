@@ -69,8 +69,8 @@ func TestNoEndpointsPresent(t *testing.T) {
 func TestEndpointsMappingWorks(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := mockConfigStore{}
-
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore, SystemDomain: "cluster.local", Namespace: "catalog"}
+	configStore.clusterIp = "1.2.3.5"
+	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	endpoints := []model.Endpoint{
 		{
 			Host: "10.10.10.11",
@@ -92,7 +92,7 @@ func TestEndpointsMappingWorks(t *testing.T) {
 
 	g.Expect(binding.Endpoints).NotTo(BeNil())
 	g.Expect(len(binding.Endpoints)).To(Equal(1))
-	g.Expect(binding.Endpoints[0].Host).To(Equal("svc-0-678.catalog.svc.cluster.local"))
+	g.Expect(binding.Endpoints[0].Host).To(Equal("1.2.3.5"))
 	g.Expect(binding.Endpoints[0].Port).To(Equal(service_port))
 	g.Expect(binding.NetworkData.NetworkProfileId).To(Equal("testprofile"))
 	g.Expect(len(binding.NetworkData.Data.Endpoints)).To(Equal(1))
@@ -100,9 +100,9 @@ func TestEndpointsMappingWorks(t *testing.T) {
 
 	postgresCredentials, err := model.PostgresCredentialsFromCredentials(binding.Credentials)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(postgresCredentials.Hostname).To(Equal("svc-0-678.catalog.svc.cluster.local"))
+	g.Expect(postgresCredentials.Hostname).To(Equal("1.2.3.5"))
 	g.Expect(postgresCredentials.Port).To(Equal(service_port))
-	g.Expect(postgresCredentials.Uri).To(Equal("postgres://user:password@svc-0-678.catalog.svc.cluster.local:5555/test"))
+	g.Expect(postgresCredentials.Uri).To(Equal("postgres://user:password@1.2.3.5:5555/test"))
 
 }
 
