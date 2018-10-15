@@ -27,23 +27,21 @@ func TestConsumerPreBind(t *testing.T) {
 
 var (
 	bindResponseSingleEndpoint = model.BindResponse{
-		NetworkData: model.NetworkDataResponse{
-			Data: model.DataResponse{
-				Endpoints: []model.Endpoint{
-					{
-						Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
-						Port: 9001}}}}}
+		Credentials: model.Credentials{
+			Endpoints: []model.Endpoint{
+				{
+					Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
+					Port: 9001}}}}
 	bindResponseTwoEndpoints = model.BindResponse{
-		NetworkData: model.NetworkDataResponse{
-			Data: model.DataResponse{
-				Endpoints: []model.Endpoint{
-					{
-						Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
-						Port: 9001},
-					{
-						Host: "1.678.services.cf.dev01.aws.istio.sapcloud.io",
-						Port: 9001},
-				}}}}
+		Credentials: model.Credentials{
+			Endpoints: []model.Endpoint{
+				{
+					Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
+					Port: 9001},
+				{
+					Host: "1.678.services.cf.dev01.aws.istio.sapcloud.io",
+					Port: 9001},
+			}}}
 )
 
 func TestConsumerPostBind(t *testing.T) {
@@ -81,11 +79,13 @@ func TestEndpointsMappingWorks(t *testing.T) {
 	}
 	binding, err := consumer.postBind(model.BindRequest{},
 		model.BindResponse{Credentials: model.PostgresCredentials{
+			Credentials: model.Credentials{
+				Endpoints: endpoints,
+			},
 			Hostname: "10.10.10.11",
 			Port:     5432,
 			Uri:      "postgres://user:password@10.10.10.11:5432/test",
 		}.ToCredentials(),
-			Endpoints:   endpoints,
 			NetworkData: model.NetworkDataResponse{NetworkProfileId: "testprofile", Data: model.DataResponse{Endpoints: endpoints}}},
 		"678", model.Adapt)
 	g.Expect(err).NotTo(HaveOccurred())

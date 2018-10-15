@@ -8,6 +8,7 @@ import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
+	"path"
 	"strings"
 	"testing"
 	"time"
@@ -159,6 +160,9 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 		g.Expect(serviceBinding.Status.Conditions[statusLen-1].Status).To(Equal(v1beta1.ConditionTrue))
 		return true
 	})
+
+	toBeDeleted := make(map[string][]string)
+
 	bindId := serviceBinding.Spec.ExternalID
 	var services v1.ServiceList
 	kubectl.List(&services, "-n", "catalog")
@@ -167,7 +171,7 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 	for _, service := range services.Items {
 		if strings.Contains(service.Name, bindId) {
 			matchingServiceInstanceExists = true
-			kubectl.DeleteWithNamespace("Service", service.Name, "catalog")
+			toBeDeleted["Service"] = append(toBeDeleted["Service"], service.Name)
 		}
 	}
 	g.Expect(matchingServiceInstanceExists).To(BeTrue())
@@ -186,7 +190,7 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 	for _, serviceEntry := range serviceEntries.Items {
 		if strings.Contains(serviceEntry.Metadata.Name, bindId) {
 			matchingServiceEntryExists = true
-			kubectl.DeleteWithNamespace("ServiceEntry", serviceEntry.Metadata.Name, "catalog")
+			toBeDeleted["ServiceEntry"] = append(toBeDeleted["ServiceEntry"], serviceEntry.Metadata.Name)
 		}
 	}
 	g.Expect(matchingServiceEntryExists).To(BeTrue())
@@ -199,7 +203,7 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 
 		if strings.Contains(virtualService.Metadata.Name, bindId) {
 			matchingIstioObjectCount += 1
-			kubectl.DeleteWithNamespace("VirtualService", virtualService.Metadata.Name, "catalog")
+			toBeDeleted["VirtualService"] = append(toBeDeleted["VirtualService"], virtualService.Metadata.Name)
 		}
 	}
 	g.Expect(matchingIstioObjectCount).To(Equal(2))
@@ -212,7 +216,7 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 
 		if strings.Contains(gateway.Metadata.Name, bindId) {
 			matchingIstioObjectCount += 1
-			kubectl.DeleteWithNamespace("Gateway", gateway.Metadata.Name, "catalog")
+			toBeDeleted["Gateway"] = append(toBeDeleted["Gateway"], gateway.Metadata.Name)
 		}
 	}
 	g.Expect(matchingIstioObjectCount).To(Equal(1))
@@ -225,21 +229,32 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 
 		if strings.Contains(destinationRule.Metadata.Name, bindId) {
 			matchingIstioObjectCount += 1
-			kubectl.DeleteWithNamespace("DestinationRule", destinationRule.Metadata.Name, "catalog")
+			toBeDeleted["DestinationRule"] = append(toBeDeleted["DestinationRule"], destinationRule.Metadata.Name)
 		}
 	}
 	g.Expect(matchingIstioObjectCount).To(Equal(2))
 
+	defer func() {
+		for key, nameList := range toBeDeleted {
+			for _, toBeDeletedName := range nameList {
+				kubectl.DeleteWithNamespace(key, toBeDeletedName, "catalog")
+			}
+		}
+	}()
 	clientConfigBody := []byte(client_config)
 	kubectl.Apply(clientConfigBody)
 
 	podName := kubectl.GetPod("-l", "app=client", "--field-selector=status.phase=Running")
 	g.Expect(podName).To(ContainSubstring("client"))
 
-	//kubectl.Exec(podName, "-c", "client", "-ti")
+	fileName := path.Join(os.TempDir(), "test.sh")
+	file, err := os.Create(fileName)
+	g.Expect(err).NotTo(HaveOccurred())
+	file.Write([]byte("PGPASSWORD=`cat /etc/bindings/postgres/password`  psql -h `cat /etc/bindings/postgres/hostname`  -p `cat /etc/bindings/postgres/port`  `cat /etc/bindings/postgres/dbname`  `cat /etc/bindings/postgres/username` "))
+	file.Close()
+	kubectl.run("cp", fileName, "default/"+podName+":test.sh")
 
-	//ToDo try to establsh psql connection - should look like:
-	//kubectl exec -ti client-845b478b6d-97bzc -c client -- psql -h svc-0-afaac8fa-cd5d-11e8-b9dc-4e067380dba4.catalog.svc.cluster.local  -p 5555 -U hElJ2D7bduoSFCDX MUki8tkT4eiuzFJA
+	//kubectl.Exec(podName, "-c", "client", "-ti", "--", "bash", "test.sh")
 
 }
 

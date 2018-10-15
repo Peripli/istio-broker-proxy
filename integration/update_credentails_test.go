@@ -33,7 +33,7 @@ func TestAdaptCredentialsWithInvalidRequest(t *testing.T) {
 	                  }`)
 
 	g.Expect(result).To(ContainSubstring(`HTTP/1.1 400 Bad Request`))
-	g.Expect(result).To(ContainSubstring(`Invalid request`))
+	g.Expect(result).To(ContainSubstring(`No endpoint mappings available`))
 }
 
 func TestAdaptCredentialsWithValidRequest(t *testing.T) {

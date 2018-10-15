@@ -30,7 +30,8 @@ func (c ConsumerInterceptor) preBind(request model.BindRequest) *model.BindReque
 func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.BindResponse, bindId string,
 	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
 	var endpointMapping []model.EndpointMapping
-	for index, endpoint := range response.NetworkData.Data.Endpoints {
+
+	for index, endpoint := range response.Credentials.Endpoints {
 		service := &v1.Service{Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Port: service_port, TargetPort: intstr.FromInt(service_port)}}}}
 		name := fmt.Sprintf("svc-%d-%s", index, bindId)
 		service.Name = name
