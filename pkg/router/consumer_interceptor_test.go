@@ -11,6 +11,10 @@ import (
 	"testing"
 )
 
+func adapt(credentials model.Credentials, endpointMappings []model.EndpointMapping) (*model.BindResponse, error) {
+	return &model.BindResponse{Credentials: credentials}, nil
+}
+
 func TestConsumerPreBind(t *testing.T) {
 	g := NewGomegaWithT(t)
 
@@ -47,7 +51,7 @@ func TestConsumerPostBind(t *testing.T) {
 	kubernetes := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &kubernetes}
-	_, err := consumer.postBind(model.BindRequest{}, bindResponseSingleEndpoint, "678")
+	_, err := consumer.postBind(model.BindRequest{}, bindResponseSingleEndpoint, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(kubernetes.calledWithService[0].Name).To(Equal("svc-0-678"))
 	g.Expect(kubernetes.calledWithService[0].Spec.Ports[0].Port).To(Equal(int32(5555)))
@@ -58,10 +62,48 @@ func TestNoEndpointsPresent(t *testing.T) {
 	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
-	_, err := consumer.postBind(model.BindRequest{}, model.BindResponse{}, "678")
+	_, err := consumer.postBind(model.BindRequest{}, model.BindResponse{}, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(configStore.calledWithService).To(BeNil())
 	g.Expect(configStore.calledWithObject).To(BeNil())
+}
+
+func TestEndpointsMappingWorks(t *testing.T) {
+	g := NewGomegaWithT(t)
+	configStore := mockConfigStore{}
+
+	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore, SystemDomain: "cluster.local", Namespace: "catalog"}
+	endpoints := []model.Endpoint{
+		{
+			Host: "10.10.10.11",
+			Port: 5432,
+		},
+	}
+	binding, err := consumer.postBind(model.BindRequest{},
+		model.BindResponse{Credentials: model.PostgresCredentials{
+			Hostname: "10.10.10.11",
+			Port:     5432,
+			Uri:      "postgres://user:password@10.10.10.11:5432/test",
+		}.ToCredentials(),
+			Endpoints:   endpoints,
+			NetworkData: model.NetworkDataResponse{NetworkProfileId: "testprofile", Data: model.DataResponse{Endpoints: endpoints}}},
+		"678", model.Adapt)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	g.Expect(binding.Endpoints).NotTo(BeNil())
+	g.Expect(len(binding.Endpoints)).To(Equal(1))
+	g.Expect(binding.Endpoints[0].Host).To(Equal("svc-0-678.catalog.svc.cluster.local"))
+	g.Expect(binding.Endpoints[0].Port).To(Equal(service_port))
+	g.Expect(binding.NetworkData.NetworkProfileId).To(Equal("testprofile"))
+	g.Expect(len(binding.NetworkData.Data.Endpoints)).To(Equal(1))
+	g.Expect(binding.NetworkData.Data.Endpoints[0]).To(Equal(endpoints[0]))
+
+	postgresCredentials, err := model.PostgresCredentialsFromCredentials(binding.Credentials)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(postgresCredentials.Hostname).To(Equal("svc-0-678.catalog.svc.cluster.local"))
+	g.Expect(postgresCredentials.Port).To(Equal(service_port))
+	g.Expect(postgresCredentials.Uri).To(Equal("postgres://user:password@svc-0-678.catalog.svc.cluster.local:5555/test"))
+
 }
 
 func TestBindIdIsPartOfServiceName(t *testing.T) {
@@ -69,7 +111,7 @@ func TestBindIdIsPartOfServiceName(t *testing.T) {
 	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
-	_, err := consumer.postBind(model.BindRequest{}, bindResponseSingleEndpoint, "555")
+	_, err := consumer.postBind(model.BindRequest{}, bindResponseSingleEndpoint, "555", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(configStore.calledWithService[0].Name).To(Equal("svc-0-555"))
 }
@@ -79,7 +121,7 @@ func TestMaximumLengthIsNotExceededWithRealBindId(t *testing.T) {
 	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
-	_, err := consumer.postBind(model.BindRequest{}, bindResponseSingleEndpoint, "f1b32107-c8a5-11e8-b8be-02caceffa7f1")
+	_, err := consumer.postBind(model.BindRequest{}, bindResponseSingleEndpoint, "f1b32107-c8a5-11e8-b8be-02caceffa7f1", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	const maxLabelLength = 63
@@ -93,7 +135,7 @@ func TestEndpointIndexIsPartOfServiceName(t *testing.T) {
 	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
-	_, err := consumer.postBind(model.BindRequest{}, bindResponseTwoEndpoints, "adf123")
+	_, err := consumer.postBind(model.BindRequest{}, bindResponseTwoEndpoints, "adf123", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(configStore.calledWithService[1].Name).To(Equal("svc-1-adf123"))
 }
@@ -103,7 +145,7 @@ func TestConsumerInterceptorCreatesIstioObjects(t *testing.T) {
 	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
-	_, err := consumer.postBind(model.BindRequest{}, bindResponseSingleEndpoint, "678")
+	_, err := consumer.postBind(model.BindRequest{}, bindResponseSingleEndpoint, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	g.Expect(len(configStore.calledWithObject)).To(Equal(6))
@@ -124,7 +166,7 @@ func TestTwoEndpointsCreateTwelveObject(t *testing.T) {
 	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
-	_, err := consumer.postBind(model.BindRequest{}, bindResponseTwoEndpoints, "678")
+	_, err := consumer.postBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	g.Expect(len(configStore.calledWithObject)).To(Equal(12))
@@ -137,7 +179,7 @@ func TestClusterIpIsUsed(t *testing.T) {
 	configStore := mockConfigStore{clusterIp: "9.8.7.6"}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
-	_, err := consumer.postBind(model.BindRequest{}, bindResponseTwoEndpoints, "678")
+	_, err := consumer.postBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	text, err := json.Marshal(configStore.calledWithObject[1])
@@ -149,7 +191,7 @@ func TestCreateServiceErrorIsHandled(t *testing.T) {
 	configStore := mockConfigStore{createServiceErr: fmt.Errorf("Test service error")}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
-	_, err := consumer.postBind(model.BindRequest{}, bindResponseTwoEndpoints, "678")
+	_, err := consumer.postBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 	g.Expect(err.Error()).To(Equal("Test service error"))
 }
 
@@ -158,7 +200,7 @@ func TestCreateObjectErrorIsHandled(t *testing.T) {
 	configStore := mockConfigStore{createObjectErr: fmt.Errorf("Test object error")}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
-	_, err := consumer.postBind(model.BindRequest{}, bindResponseTwoEndpoints, "678")
+	_, err := consumer.postBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 	g.Expect(err.Error()).To(Equal("Test object error"))
 }
 

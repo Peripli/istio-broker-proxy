@@ -2,7 +2,9 @@ package router
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
+	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -425,7 +427,8 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
 	router := SetupRouter(ConsumerInterceptor{ConsumerId: "your-consumer"}, *routerConfig)
 	router.ServeHTTP(response, request)
 
-	bodyString := handlerStub.spy.body
+	g.Expect(len(handlerStub.spy.body)).To(Equal(2))
+	bodyString := handlerStub.spy.body[0]
 	g.Expect(bodyString).To(ContainSubstring("network_data"))
 	g.Expect(bodyString).To(ContainSubstring(profiles.NetworkProfile))
 	g.Expect(bodyString).To(ContainSubstring("consumer_id"))
@@ -496,4 +499,50 @@ func TestCorrectRequestParamForDelete(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(handlerStub.spy.url).To(Equal("http://xxxxx.xx/delete?plan_id=myplan"))
+}
+
+func TestAdaptCredentialsWithProxy(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	handlerStub := NewHandlerStubWithFunc(http.StatusOK, func(body []byte) []byte {
+		var request model.AdaptCredentialsRequest
+		err := json.Unmarshal(body, &request)
+		g.Expect(err).NotTo(HaveOccurred())
+		response, err := model.Adapt(request.Credentials, request.EndpointMappings)
+		g.Expect(err).NotTo(HaveOccurred())
+		responseBody, err := json.Marshal(response)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		return responseBody
+	})
+	server, routerConfig := injectClientStub(handlerStub)
+	defer server.Close()
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := osbProxy{routerConfig.HttpClientFactory(tr), NoOpInterceptor{}, *routerConfig}
+	binding, err := client.adaptCredentials(
+		model.PostgresCredentials{
+			Port:     47637,
+			Hostname: "10.11.241.0",
+			Uri:      "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn",
+		}.ToCredentials(),
+		[]model.EndpointMapping{
+			{
+				Source: model.Endpoint{"10.11.241.0", 47637},
+				Target: model.Endpoint{"postgres.catalog.svc.cluster.local", 5555},
+			},
+		}, "1234-4567", "7654-3210", make(map[string][]string))
+
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(binding).NotTo(BeNil())
+	credentials := binding.Credentials
+
+	postgresCredentials, err := model.PostgresCredentialsFromCredentials(credentials)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	g.Expect(postgresCredentials.Port).To(Equal(5555))
+	g.Expect(postgresCredentials.Hostname).To(Equal("postgres.catalog.svc.cluster.local"))
+	g.Expect(postgresCredentials.Uri).To(Equal("postgres://mma4G8N0isoxe17v:redacted@postgres.catalog.svc.cluster.local:5555/yLO2WoE0-mCcEppn"))
+
 }

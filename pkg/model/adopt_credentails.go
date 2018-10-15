@@ -1,25 +1,25 @@
 package model
 
-type AdpotCredentialsRequest struct {
+type AdaptCredentialsRequest struct {
 	Credentials      Credentials       `json:"credentials"`
 	EndpointMappings []EndpointMapping `json:"endpoint_mappings"`
 }
 
-func Adopt(request AdpotCredentialsRequest) (*BindResponse, error) {
+func Adapt(credentials Credentials, endpointMappings []EndpointMapping) (*BindResponse, error) {
 
-	postgresCredentials, err := PostgresCredentialsFromCredentials(request.Credentials)
+	postgresCredentials, err := PostgresCredentialsFromCredentials(credentials)
 	if err != nil {
 		return nil, err
 	}
 	result := BindResponse{}
 	if postgresCredentials == nil {
-		result.Credentials = request.Credentials
+		result.Credentials = credentials
 	} else {
-		postgresCredentials.Adopt(request.EndpointMappings)
+		postgresCredentials.Adapt(endpointMappings)
 		result.Credentials = postgresCredentials.ToCredentials()
 	}
 
-	for _, endpointMapping := range request.EndpointMappings {
+	for _, endpointMapping := range endpointMappings {
 		result.Endpoints = append(result.Endpoints, endpointMapping.Target)
 	}
 	return &result, nil

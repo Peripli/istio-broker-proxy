@@ -34,7 +34,7 @@ type osbProxy struct {
 }
 
 func (client osbProxy) updateCredentials(ctx *gin.Context) {
-	var request model.AdpotCredentialsRequest
+	var request model.AdaptCredentialsRequest
 	err := ctx.ShouldBindJSON(&request)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, model.HttpErrorFromError(err))
@@ -44,12 +44,48 @@ func (client osbProxy) updateCredentials(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, model.HttpError{Message: "No endpoint mappings available"})
 		return
 	}
-	response, err := model.Adopt(request)
+	response, err := model.Adapt(request.Credentials, request.EndpointMappings)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, model.HttpErrorFromError(err))
 		return
 	}
 	ctx.JSON(http.StatusOK, response)
+}
+
+func (client osbProxy) adaptCredentials(credentials model.Credentials, mapping []model.EndpointMapping, instanceId string, bindId string, header http.Header) (*model.BindResponse, error) {
+
+	request := model.AdaptCredentialsRequest{Credentials: credentials, EndpointMappings: mapping}
+	requestBody, err := json.Marshal(request)
+
+	if nil != err {
+		return nil, err
+	}
+
+	url := fmt.Sprintf("%s/v2/service_instances/%s/service_bindings/%s/adapt_credentials", client.config.ForwardURL, instanceId, bindId)
+	proxyRequest, err := client.config.HttpRequestFactory(http.MethodPost, url, bytes.NewReader(requestBody))
+	proxyRequest.Header = header
+
+	response, err := client.Do(proxyRequest)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err.Error())
+		return nil, err
+	}
+	log.Printf("Request forwarded: %s\n", response.Status)
+
+	defer response.Body.Close()
+
+	var bindResponse model.BindResponse
+	bodyAsBytes, err := ioutil.ReadAll(response.Body)
+	if nil != err {
+		return nil, err
+	}
+	err = json.Unmarshal(bodyAsBytes, &bindResponse)
+
+	if nil != err {
+		return nil, err
+	}
+
+	return &bindResponse, nil
 }
 
 func (client osbProxy) forward(ctx *gin.Context) {
@@ -138,7 +174,11 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 			return
 		}
 		bindingId := ctx.Params.ByName("binding_id")
-		modifiedBindResponse, err := client.interceptor.postBind(bindRequest, bindResponse, bindingId)
+		instanceId := ctx.Params.ByName("instance_id")
+		modifiedBindResponse, err := client.interceptor.postBind(bindRequest, bindResponse, bindingId,
+			func(credentials model.Credentials, mappings []model.EndpointMapping) (*model.BindResponse, error) {
+				return client.adaptCredentials(credentials, mappings, instanceId, bindingId, request.Header)
+			})
 		if err != nil {
 			httpError(writer, err)
 			return

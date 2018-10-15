@@ -79,7 +79,7 @@ func (credentials PostgresCredentials) ToCredentials() Credentials {
 	return result
 }
 
-func (credentials *PostgresCredentials) Adopt(endpointMappings []EndpointMapping) {
+func (credentials *PostgresCredentials) Adapt(endpointMappings []EndpointMapping) {
 	for _, endpointMapping := range endpointMappings {
 		if credentials.Hostname == endpointMapping.Source.Host && credentials.Port == endpointMapping.Source.Port {
 			credentials.Hostname = endpointMapping.Target.Host

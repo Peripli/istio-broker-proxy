@@ -27,7 +27,8 @@ func (c ProducerInterceptor) preBind(request model.BindRequest) *model.BindReque
 	return &request
 }
 
-func (c ProducerInterceptor) postBind(request model.BindRequest, response model.BindResponse, bindingId string) (*model.BindResponse, error) {
+func (c ProducerInterceptor) postBind(request model.BindRequest, response model.BindResponse, bindingId string,
+	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
 	systemDomain := c.SystemDomain
 	providerId := c.ProviderId
 	if len(response.Endpoints) == 0 {

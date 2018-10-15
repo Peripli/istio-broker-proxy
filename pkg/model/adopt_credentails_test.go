@@ -63,7 +63,7 @@ const (
 func TestExampleRequestFromBacklogItem(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	var example AdpotCredentialsRequest
+	var example AdaptCredentialsRequest
 	var expected Credentials
 	json.Unmarshal([]byte(exampleRequest), &example)
 	json.Unmarshal([]byte(`{
@@ -76,17 +76,17 @@ func TestExampleRequestFromBacklogItem(t *testing.T) {
 	 "username": "mma4G8N0isoxe17v"
 	  }`), &expected)
 
-	adopted, _ := Adopt(example)
+	adopted, _ := Adapt(example.Credentials, example.EndpointMappings)
 	g.Expect(adopted.Credentials).To(Equal(expected))
 	g.Expect(adopted.Endpoints).To(Equal([]Endpoint{{"appnethost", 9876}}))
 }
 
 func TestEndpointIsAddedAfterApplying(t *testing.T) {
 	g := NewGomegaWithT(t)
-	var example AdpotCredentialsRequest
+	var example AdaptCredentialsRequest
 	json.Unmarshal([]byte(exampleRequest), &example)
 
-	translatedRequest, _ := Adopt(example)
+	translatedRequest, _ := Adapt(example.Credentials, example.EndpointMappings)
 
 	g.Expect(len(example.Credentials.Endpoints)).To(Equal(0))
 	g.Expect(len(translatedRequest.Endpoints)).To(Equal(1))

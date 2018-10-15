@@ -15,8 +15,10 @@ const (
 )
 
 type ConsumerInterceptor struct {
-	ConsumerId  string
-	ConfigStore ConfigStore
+	ConsumerId   string
+	SystemDomain string
+	Namespace    string
+	ConfigStore  ConfigStore
 }
 
 func (c ConsumerInterceptor) preBind(request model.BindRequest) *model.BindRequest {
@@ -25,7 +27,9 @@ func (c ConsumerInterceptor) preBind(request model.BindRequest) *model.BindReque
 	return &request
 }
 
-func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.BindResponse, bindId string) (*model.BindResponse, error) {
+func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.BindResponse, bindId string,
+	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
+	var endpointMapping []model.EndpointMapping
 	for index, endpoint := range response.NetworkData.Data.Endpoints {
 		service := &v1.Service{Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Port: service_port, TargetPort: intstr.FromInt(service_port)}}}}
 		name := fmt.Sprintf("svc-%d-%s", index, bindId)
@@ -43,8 +47,18 @@ func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.
 				return nil, err
 			}
 		}
+		endpointMapping = append(endpointMapping,
+			model.EndpointMapping{
+				Source: endpoint,
+				Target: model.Endpoint{Host: service.Name + "." + c.Namespace + ".svc." + c.SystemDomain, Port: service_port}})
 	}
-	return &response, nil
+	binding, err := adapt(response.Credentials, endpointMapping)
+	if err != nil {
+		return nil, err
+	}
+	binding.NetworkData = response.NetworkData
+	binding.AdditionalProperties = response.AdditionalProperties
+	return binding, nil
 }
 
 func (c ConsumerInterceptor) hasAdaptCredentials() bool {
