@@ -29,7 +29,7 @@ func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.
 	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
 	var endpointMapping []model.EndpointMapping
 
-	for index, endpoint := range response.Credentials.Endpoints {
+	for index, endpoint := range response.Endpoints {
 		service := &v1.Service{Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Port: service_port, TargetPort: intstr.FromInt(service_port)}}}}
 		name := c.serviceName(index, bindId)
 		service.Name = name

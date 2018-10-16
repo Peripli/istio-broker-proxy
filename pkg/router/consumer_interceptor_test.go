@@ -27,21 +27,21 @@ func TestConsumerPreBind(t *testing.T) {
 
 var (
 	bindResponseSingleEndpoint = model.BindResponse{
-		Credentials: model.Credentials{
-			Endpoints: []model.Endpoint{
-				{
-					Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
-					Port: 9001}}}}
+		Credentials: model.Credentials{},
+		Endpoints: []model.Endpoint{
+			{
+				Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
+				Port: 9001}}}
 	bindResponseTwoEndpoints = model.BindResponse{
-		Credentials: model.Credentials{
-			Endpoints: []model.Endpoint{
-				{
-					Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
-					Port: 9001},
-				{
-					Host: "1.678.services.cf.dev01.aws.istio.sapcloud.io",
-					Port: 9001},
-			}}}
+		Credentials: model.Credentials{},
+		Endpoints: []model.Endpoint{
+			{
+				Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
+				Port: 9001},
+			{
+				Host: "1.678.services.cf.dev01.aws.istio.sapcloud.io",
+				Port: 9001},
+		}}
 )
 
 func TestConsumerPostBind(t *testing.T) {
@@ -79,13 +79,12 @@ func TestEndpointsMappingWorks(t *testing.T) {
 	}
 	binding, err := consumer.postBind(model.BindRequest{},
 		model.BindResponse{Credentials: model.PostgresCredentials{
-			Credentials: model.Credentials{
-				Endpoints: endpoints,
-			},
-			Hostname: "10.10.10.11",
-			Port:     5432,
-			Uri:      "postgres://user:password@10.10.10.11:5432/test",
+			Credentials: model.Credentials{},
+			Hostname:    "10.10.10.11",
+			Port:        5432,
+			Uri:         "postgres://user:password@10.10.10.11:5432/test",
 		}.ToCredentials(),
+			Endpoints:   endpoints,
 			NetworkData: model.NetworkDataResponse{NetworkProfileId: "testprofile", Data: model.DataResponse{Endpoints: endpoints}}},
 		"678", model.Adapt)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -213,12 +212,12 @@ func TestConsumerPostDelete(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(len(configStore.deletedServices)).To(Equal(1))
 	g.Expect(len(configStore.deletedIstioConfigs)).To(Equal(6))
-	g.Expect(configStore.deletedIstioConfigs[0]).To(Equal("DestinationRule:sidecar-to-egress-svc-0-678"))
-	g.Expect(configStore.deletedIstioConfigs[1]).To(Equal("DestinationRule:egressgateway-svc-0-678"))
-	g.Expect(configStore.deletedIstioConfigs[2]).To(Equal("Gateway:istio-egressgateway-svc-0-678"))
-	g.Expect(configStore.deletedIstioConfigs[3]).To(Equal("VirtualService:egress-gateway-svc-0-678"))
-	g.Expect(configStore.deletedIstioConfigs[4]).To(Equal("VirtualService:mesh-to-egress-svc-0-678"))
-	g.Expect(configStore.deletedIstioConfigs[5]).To(Equal("ServiceEntry:svc-0-678-service"))
+	g.Expect(configStore.deletedIstioConfigs[0]).To(Equal("destination-rule:sidecar-to-egress-svc-0-678"))
+	g.Expect(configStore.deletedIstioConfigs[1]).To(Equal("destination-rule:egressgateway-svc-0-678"))
+	g.Expect(configStore.deletedIstioConfigs[2]).To(Equal("gateway:istio-egressgateway-svc-0-678"))
+	g.Expect(configStore.deletedIstioConfigs[3]).To(Equal("virtual-service:egress-gateway-svc-0-678"))
+	g.Expect(configStore.deletedIstioConfigs[4]).To(Equal("virtual-service:mesh-to-egress-svc-0-678"))
+	g.Expect(configStore.deletedIstioConfigs[5]).To(Equal("service-entry:svc-0-678-service"))
 }
 
 type mockConfigStore struct {

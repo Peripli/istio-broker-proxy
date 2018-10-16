@@ -34,6 +34,7 @@ func (c ProducerInterceptor) postBind(request model.BindRequest, response model.
 	if len(response.Endpoints) == 0 {
 		response.Endpoints = response.Credentials.Endpoints
 	}
+	response.Credentials.Endpoints = nil
 	profiles.AddIstioNetworkDataToResponse(providerId, bindingId, systemDomain, c.LoadBalancerPort, &response)
 
 	err := c.writeIstioFilesForProvider(bindingId, &request, &response)

@@ -240,7 +240,7 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 	file.Close()
 	kubectl.run("cp", fileName, "default/"+podName+":test.sh")
 
-	// kubectl.Exec(podName, "-c", "client", "-ti", "--", "bash", "test.sh")
+	//	kubectl.Exec(podName, "-c", "client", "-ti", "--", "bash", "test.sh")
 
 }
 
