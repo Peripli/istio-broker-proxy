@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/config"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
@@ -49,6 +50,11 @@ func (c ProducerInterceptor) hasAdaptCredentials() bool {
 }
 
 func (c ProducerInterceptor) postDelete(bindId string) error {
+	fileName := path.Join(c.IstioDirectory, bindId) + ".yml"
+	err := os.Remove(fileName)
+	if err != nil {
+		fmt.Printf("Ignoring error during removal of file %s: %v\n", fileName, err)
+	}
 	return nil
 }
 

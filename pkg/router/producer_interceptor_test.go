@@ -81,3 +81,36 @@ func TestEndpointsAreTransferedFromCredentials(t *testing.T) {
 	g.Expect(bindResponse.Endpoints).To(Equal(endpoints))
 	g.Expect(len(bindResponse.Credentials.Endpoints)).To(Equal(0))
 }
+
+func TestConfigFilesAreWrittenAndDeleted(t *testing.T) {
+	g := NewGomegaWithT(t)
+	interceptor := ProducerInterceptor{
+		ProviderId:       "pinger.services.cf.dev01.aws.istio.sapcloud.io",
+		SystemDomain:     "services.cf.dev01.aws.istio.sapcloud.io",
+		LoadBalancerPort: 9000,
+		IpAddress:        "10.0.81.0",
+		IstioDirectory:   os.TempDir(),
+	}
+	endpoints := []model.Endpoint{{"test.local", 5757}}
+	_, err := interceptor.postBind(model.BindRequest{}, model.BindResponse{
+		Credentials: model.Credentials{
+			Endpoints: endpoints,
+		},
+	}, "123", adapt)
+	g.Expect(err).NotTo(HaveOccurred())
+	fileName := path.Join(interceptor.IstioDirectory, "123.yml")
+	file, err := os.Open(fileName)
+	g.Expect(err).NotTo(HaveOccurred())
+	content, err := ioutil.ReadAll(file)
+	g.Expect(err).NotTo(HaveOccurred())
+	contentAsString := string(content)
+	g.Expect(contentAsString).To(ContainSubstring("9000"))
+
+	err = interceptor.postDelete("123")
+	g.Expect(err).NotTo(HaveOccurred())
+	_, err = os.Stat(fileName)
+	g.Expect(err).To(HaveOccurred())
+
+	err = interceptor.postDelete("123")
+	g.Expect(err).NotTo(HaveOccurred())
+}
