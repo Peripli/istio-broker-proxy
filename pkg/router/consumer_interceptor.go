@@ -29,7 +29,11 @@ func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.
 	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
 	var endpointMapping []model.EndpointMapping
 
-	for index, endpoint := range response.Endpoints {
+	if len(response.NetworkData.Data.Endpoints) != len(response.Endpoints) {
+		return nil, fmt.Errorf("Number of endpoints in NetworkData.Data (%d) doesn't match number of endpoints in root (%d)",
+			len(response.NetworkData.Data.Endpoints), len(response.Endpoints))
+	}
+	for index, endpoint := range response.NetworkData.Data.Endpoints {
 		service := &v1.Service{Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Port: service_port, TargetPort: intstr.FromInt(service_port)}}}}
 		name := c.serviceName(index, bindId)
 		service.Name = name
@@ -48,7 +52,7 @@ func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.
 		}
 		endpointMapping = append(endpointMapping,
 			model.EndpointMapping{
-				Source: endpoint,
+				Source: response.Endpoints[index],
 				Target: model.Endpoint{Host: service.Spec.ClusterIP, Port: service_port}})
 	}
 	binding, err := adapt(response.Credentials, endpointMapping)

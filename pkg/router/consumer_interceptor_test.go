@@ -30,18 +30,34 @@ var (
 		Credentials: model.Credentials{},
 		Endpoints: []model.Endpoint{
 			{
-				Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
-				Port: 9001}}}
+				Host: "10.11.12.13",
+				Port: 5432},
+		},
+		NetworkData: model.NetworkDataResponse{Data: model.DataResponse{
+			Endpoints: []model.Endpoint{
+				{
+					Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
+					Port: 9001}}}}}
 	bindResponseTwoEndpoints = model.BindResponse{
 		Credentials: model.Credentials{},
 		Endpoints: []model.Endpoint{
 			{
-				Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
-				Port: 9001},
+				Host: "10.11.12.13",
+				Port: 5432},
 			{
-				Host: "1.678.services.cf.dev01.aws.istio.sapcloud.io",
-				Port: 9001},
-		}}
+				Host: "10.11.12.13",
+				Port: 5432},
+		},
+		NetworkData: model.NetworkDataResponse{Data: model.DataResponse{
+			Endpoints: []model.Endpoint{
+				{
+					Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
+					Port: 9001},
+				{
+					Host: "1.678.services.cf.dev01.aws.istio.sapcloud.io",
+					Port: 9001},
+			},
+		}}}
 )
 
 func TestConsumerPostBind(t *testing.T) {
@@ -171,6 +187,24 @@ func TestTwoEndpointsCreateTwelveObject(t *testing.T) {
 	g.Expect(len(configStore.createdIstioConfigs)).To(Equal(12))
 	text, err := json.Marshal(configStore.createdIstioConfigs[6])
 	g.Expect(text).To(ContainSubstring("1.678.services.cf.dev01.aws.istio.sapcloud.io"))
+}
+
+func TestTwoEndpointsHasTheCorrcetCount(t *testing.T) {
+	g := NewGomegaWithT(t)
+	configStore := mockConfigStore{}
+	bindResponse := model.BindResponse{
+		Credentials: model.Credentials{},
+		Endpoints:   []model.Endpoint{},
+		NetworkData: model.NetworkDataResponse{Data: model.DataResponse{
+			Endpoints: []model.Endpoint{
+				{
+					Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
+					Port: 9001}}}}}
+
+	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	_, err := consumer.postBind(model.BindRequest{}, bindResponse, "678", adapt)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("Number of endpoints"))
 }
 
 func TestClusterIpIsUsed(t *testing.T) {
