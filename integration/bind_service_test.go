@@ -236,11 +236,30 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 	fileName := path.Join(os.TempDir(), "test.sh")
 	file, err := os.Create(fileName)
 	g.Expect(err).NotTo(HaveOccurred())
-	file.Write([]byte("PGPASSWORD=`cat /etc/bindings/postgres/password`  psql -h `cat /etc/bindings/postgres/hostname`  -p `cat /etc/bindings/postgres/port`  `cat /etc/bindings/postgres/dbname`  `cat /etc/bindings/postgres/username` "))
+	file.Write([]byte(`  
+while true; do
+  export PGPASSWORD=$(cat /etc/bindings/postgres/password)
+  HOSTNAME=$(cat /etc/bindings/postgres/hostname)
+  PORT=$(cat /etc/bindings/postgres/port)
+  DBNAME=$(cat /etc/bindings/postgres/dbname)
+  USER=$(cat /etc/bindings/postgres/username)
+  OUTPUT=$(psql -h $HOSTNAME  -p $PORT -c 'SELECT 1'  $DBNAME $USER 2>&1)
+  echo $OUTPUT >> /tmp/psql.txt
+  if [[ $OUTPUT == *"server closed the connection unexpectedly"* ]]; then
+    echo "Try again!"
+    sleep 10
+  elif [[ $OUTPUT == *"(1 row)"* ]]; then
+    break
+  else
+    echo $OUTPUT
+    exit 1
+  fi
+done
+`))
 	file.Close()
 	kubectl.run("cp", fileName, "default/"+podName+":test.sh")
 
-	//	kubectl.Exec(podName, "-c", "client", "-ti", "--", "bash", "test.sh")
+	kubectl.Exec(podName, "-c", "client", "-ti", "--", "bash", "test.sh")
 
 }
 
