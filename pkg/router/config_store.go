@@ -75,12 +75,20 @@ func (k kubeConfigStore) CreateIstioConfig(cfg model.Config) error {
 
 func (k kubeConfigStore) DeleteService(serviceName string) error {
 	fmt.Printf("kubectl -n %s delete services %s\n", k.namespace, serviceName)
-	return k.CoreV1().Services(k.namespace).Delete(serviceName, &meta_v1.DeleteOptions{})
+	err := k.CoreV1().Services(k.namespace).Delete(serviceName, &meta_v1.DeleteOptions{})
+	if err != nil {
+		fmt.Printf("error %s\n", err.Error())
+	}
+	return err
 }
 
 func (k kubeConfigStore) DeleteIstioConfig(configType string, configName string) error {
 	fmt.Printf("kubectl -n %s delete %s %s\n", k.namespace, configType, configName)
-	return k.configClient.Delete(configType, configName, k.namespace)
+	err := k.configClient.Delete(configType, configName, k.namespace)
+	if err != nil {
+		fmt.Printf("error %s\n", err.Error())
+	}
+	return err
 }
 
 func NewExternKubeConfigStore(namespace string) ConfigStore {
