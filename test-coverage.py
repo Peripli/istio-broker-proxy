@@ -2,6 +2,7 @@ import subprocess
 import csv
 import sys
 from argparse import ArgumentParser
+import re
 
 def write_coverage(coverage_map, filename):
     with open(filename, "w") as csvfile:
@@ -39,8 +40,8 @@ coverage_map = {}
 
 test_lines = test_output.split("\n")
 for test_line in test_lines:
-    if test_line is not "":
-        test_result = test_line.split()
+    if len(test_line) > 0:
+        test_result = re.split(r'\s+', test_line)
         coverage = test_result[-3]
         if "%" not in coverage:
             coverage = test_result[-7]
@@ -49,17 +50,16 @@ for test_line in test_lines:
         coverage_map[path] = coverage
 
 if args.write_new_ref:
+        print("Writing a new reference.")
         write_coverage(coverage_map, filename)
         exit (0)
 
 coverage_better = False
 coverage_worse = False
 
-
 for key in coverage_map.keys():
         try:
                 if coverage_map[key] < reference_coverage_map[key]:
-                        #print (key + " : " +
                         print ("{}: {}% < {}%".format(key, coverage_map[key], reference_coverage_map[key]))
                         coverage_worse = True
                 elif coverage_map[key] > reference_coverage_map[key]:
