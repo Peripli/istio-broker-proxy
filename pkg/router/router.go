@@ -58,6 +58,7 @@ func (client osbProxy) adaptCredentials(credentials model.Credentials, mapping [
 	requestBody, err := json.Marshal(request)
 
 	if nil != err {
+		log.Printf("ERROR: %s\n", err.Error())
 		return nil, err
 	}
 
@@ -70,18 +71,21 @@ func (client osbProxy) adaptCredentials(credentials model.Credentials, mapping [
 		log.Printf("ERROR: %s\n", err.Error())
 		return nil, err
 	}
-	log.Printf("Request forwarded: %s\n", response.Status)
+	log.Printf("Response status from adapt credentials: %s\n", response.Status)
 
 	defer response.Body.Close()
 
 	var bindResponse model.BindResponse
 	bodyAsBytes, err := ioutil.ReadAll(response.Body)
 	if nil != err {
+		log.Printf("ERROR: %s\n", err.Error())
 		return nil, err
 	}
 	err = json.Unmarshal(bodyAsBytes, &bindResponse)
 
+	log.Printf("Response from adapt credentials: %#v\n", bindResponse)
 	if nil != err {
+		log.Printf("ERROR: %s\n", err.Error())
 		return nil, err
 	}
 
