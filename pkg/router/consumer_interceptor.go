@@ -34,26 +34,14 @@ func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.
 			len(response.NetworkData.Data.Endpoints), len(response.Endpoints))
 	}
 	for index, endpoint := range response.NetworkData.Data.Endpoints {
-		service := &v1.Service{Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Port: service_port, TargetPort: intstr.FromInt(service_port)}}}}
-		name := c.serviceName(index, bindId)
-		service.Name = name
-		service, err := c.ConfigStore.CreateService(service)
+		clusterIp, err := CreateIstioObjectsInK8S(c.ConfigStore, serviceName(index, bindId), endpoint)
 		if err != nil {
-			log.Println("error creating service")
 			return nil, err
-		}
-		configurations := config.CreateEntriesForExternalServiceClient(service.Name, endpoint.Host, service.Spec.ClusterIP, 9000)
-		for _, configuration := range configurations {
-			err = c.ConfigStore.CreateIstioConfig(configuration)
-			if err != nil {
-				log.Printf("error creating %#v\n", configuration)
-				return nil, err
-			}
 		}
 		endpointMapping = append(endpointMapping,
 			model.EndpointMapping{
 				Source: response.Endpoints[index],
-				Target: model.Endpoint{Host: service.Spec.ClusterIP, Port: service_port}})
+				Target: model.Endpoint{Host: clusterIp, Port: service_port}})
 	}
 	binding, err := adapt(response.Credentials, endpointMapping)
 	if err != nil {
@@ -64,14 +52,33 @@ func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.
 	return binding, nil
 }
 
-func (c ConsumerInterceptor) serviceName(index int, bindId string) string {
+func CreateIstioObjectsInK8S(configStore ConfigStore, name string, endpoint model.Endpoint) (string, error) {
+	service := &v1.Service{Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Port: service_port, TargetPort: intstr.FromInt(service_port)}}}}
+	service.Name = name
+	service, err := configStore.CreateService(service)
+	if err != nil {
+		log.Println("error creating service")
+		return "", err
+	}
+	configurations := config.CreateEntriesForExternalServiceClient(service.Name, endpoint.Host, service.Spec.ClusterIP, 9000)
+	for _, configuration := range configurations {
+		err = configStore.CreateIstioConfig(configuration)
+		if err != nil {
+			log.Printf("error creating %#v: %s\n", configuration, err)
+			return "", err
+		}
+	}
+	return service.Spec.ClusterIP, nil
+}
+
+func serviceName(index int, bindId string) string {
 	name := fmt.Sprintf("svc-%d-%s", index, bindId)
 	return name
 }
 
 func (c ConsumerInterceptor) postDelete(bindId string) error {
 
-	serviceName := c.serviceName(0, bindId)
+	serviceName := serviceName(0, bindId)
 	for _, id := range config.DeleteEntriesForExternalServiceClient(serviceName) {
 		_ = c.ConfigStore.DeleteIstioConfig(id.Type, id.Name)
 	}

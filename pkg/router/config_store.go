@@ -92,6 +92,7 @@ func (k kubeConfigStore) DeleteIstioConfig(configType string, configName string)
 }
 
 func NewExternKubeConfigStore(namespace string) ConfigStore {
+	clientcmd.ClusterDefaults.Server = ""
 	cfg, err := clientcmd.BuildConfigFromFlags("", os.Getenv("KUBECONFIG"))
 	if err != nil {
 		panic(err.Error())
