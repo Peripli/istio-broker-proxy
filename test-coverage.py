@@ -3,6 +3,7 @@ import csv
 import sys
 from argparse import ArgumentParser
 import re
+import os
 
 def write_coverage(coverage_map, filename):
     with open(filename, "w") as csvfile:
@@ -19,17 +20,21 @@ def read_coverage(filename):
     return coverage_map
 
 
+scriptdir = os.path.dirname(os.path.realpath(__file__))
+
 parser = ArgumentParser()
 parser.add_argument("-w", "--write-new-ref", dest="write_new_ref", default=False,
                     help="write new reference file")
 
+
 args = parser.parse_args()
-
-filename = "coverage.csv"
-
+filename = os.path.join(scriptdir,"coverage.csv")
 reference_coverage_map = read_coverage(filename)
+package = "github.infra.hana.ondemand.com/istio/istio-broker"
+command = "go test -cover %s/..." % package
+print(command)
 
-test = subprocess.Popen("go test -cover ./...", shell=True, stdout=subprocess.PIPE).stdout.read()
+test = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE).stdout.read()
 test_output = test.decode("utf-8")
 print( test_output)
 #should look like this:
