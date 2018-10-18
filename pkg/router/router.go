@@ -83,7 +83,7 @@ func (client osbProxy) adaptCredentials(credentials model.Credentials, mapping [
 	}
 	err = json.Unmarshal(bodyAsBytes, &bindResponse)
 
-	log.Printf("Response from adapt credentials: %#v\n", bindResponse)
+	log.Printf("Response from adapt credentials: %s\n", string(bodyAsBytes))
 	if nil != err {
 		log.Printf("ERROR: %s\n", err.Error())
 		return nil, err
