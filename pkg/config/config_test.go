@@ -48,8 +48,8 @@ func TestCompleteEntryGateway(t *testing.T) {
 	g.Expect(gatewaySpec).To(ContainSubstring("myservice.landscape"))
 	g.Expect(gatewaySpec).To(ContainSubstring("9000"))
 	g.Expect(gatewaySpec).To(ContainSubstring("client.istio.sapcloud.io"))
-	g.Expect(gatewaySpec).To(ContainSubstring("config/certs/pinger.key"))
-	g.Expect(gatewaySpec).To(ContainSubstring("config/certs/pinger.crt"))
+	g.Expect(gatewaySpec).To(ContainSubstring("config/certs/cf-service.key"))
+	g.Expect(gatewaySpec).To(ContainSubstring("config/certs/cf-service.crt"))
 
 	g.Expect(gatewayMetadata).To(ContainSubstring("name: myservice-gateway"))
 }

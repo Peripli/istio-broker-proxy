@@ -23,8 +23,8 @@ spec:
     tls:
       caCertificates: /var/vcap/jobs/envoy/config/certs/ca.crt
       mode: MUTUAL
-      privateKey: /var/vcap/jobs/envoy/config/certs/pinger.key
-      serverCertificate: /var/vcap/jobs/envoy/config/certs/pinger.crt
+      privateKey: /var/vcap/jobs/envoy/config/certs/cf-service.key
+      serverCertificate: /var/vcap/jobs/envoy/config/certs/cf-service.crt
       subjectAltNames:
       - client.istio.sapcloud.io
 `

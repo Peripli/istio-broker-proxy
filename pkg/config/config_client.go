@@ -105,7 +105,7 @@ func createTlsSettings(hostName string) v1alpha3.TLSSettings {
 	clientCertificate := certPath + "client.crt"
 	privateKey := certPath + "client.key"
 	sni := hostName
-	subjectAltNames := []string{"pinger.services.cf.dev01.aws.istio.sapcloud.io"}
+	subjectAltNames := []string{"cf-service.services.cf.dev01.aws.istio.sapcloud.io"}
 	mode := v1alpha3.TLSSettings_MUTUAL
 	tls := v1alpha3.TLSSettings{CaCertificates: caCertificate, ClientCertificate: clientCertificate, PrivateKey: privateKey,
 		Sni: sni, SubjectAltNames: subjectAltNames, Mode: mode}

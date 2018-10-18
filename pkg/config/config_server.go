@@ -6,7 +6,7 @@ import (
 	"istio.io/istio/pilot/pkg/model"
 )
 
-const ingressCertName = "pinger"
+const ingressCertName = "cf-service"
 
 func createServiceEntryForExternalService(endpointAddress string, portNumber uint32, serviceName string) model.Config {
 	hosts := []string{createServiceHost(serviceName)}
