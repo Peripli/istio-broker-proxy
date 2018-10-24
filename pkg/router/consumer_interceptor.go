@@ -77,12 +77,19 @@ func serviceName(index int, bindId string) string {
 }
 
 func (c ConsumerInterceptor) postDelete(bindId string) error {
+	i := 0
+	var err error
+	//for i := 0; i <= 2; i++ {
+	for err == nil {
+		serviceName := serviceName(i, bindId)
 
-	serviceName := serviceName(0, bindId)
-	for _, id := range config.DeleteEntriesForExternalServiceClient(serviceName) {
-		_ = c.ConfigStore.DeleteIstioConfig(id.Type, id.Name)
+		for _, id := range config.DeleteEntriesForExternalServiceClient(serviceName) {
+			_ = c.ConfigStore.DeleteIstioConfig(id.Type, id.Name)
+		}
+		err = c.ConfigStore.DeleteService(serviceName)
+		fmt.Printf("Error of Deleteservice(): %#v", err)
+		i++
 	}
-	_ = c.ConfigStore.DeleteService(serviceName)
 	return nil
 }
 

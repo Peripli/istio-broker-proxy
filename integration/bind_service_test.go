@@ -20,7 +20,7 @@ metadata:
   name: postgres-instance
 spec:
   clusterServiceClassExternalName: postgresql
-  clusterServicePlanExternalName: v9.4-dev`
+  clusterServicePlanExternalName: v9.4-tiny`
 
 const service_binding = `apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceBinding
@@ -263,9 +263,166 @@ done
 
 }
 
+func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
+	skipWithoutKubeconfigSet(t)
+
+	g := NewGomegaWithT(t)
+	kubectl := NewKubeCtl(g)
+
+	// Test if list of available services is not empty
+	var classes v1beta1.ClusterServiceClassList
+	kubectl.List(&classes)
+	g.Expect(classes.Items).NotTo(BeEmpty(), "List of available services in OSB should not be empty")
+
+	kubectl.Apply([]byte(service_instance))
+	var serviceInstance v1beta1.ServiceInstance
+	waitForCompletion(g, func() bool {
+		kubectl.Read(&serviceInstance, "postgres-instance")
+		statusLen := len(serviceInstance.Status.Conditions)
+		if statusLen == 0 {
+			return false
+		}
+
+		if serviceInstance.Status.Conditions[statusLen-1].Status != v1beta1.ConditionTrue {
+			return false
+		}
+
+		g.Expect(serviceInstance.Status.Conditions[statusLen-1].Type).To(Equal(v1beta1.ServiceInstanceConditionReady))
+		g.Expect(serviceInstance.Status.Conditions[statusLen-1].Status).To(Equal(v1beta1.ConditionTrue))
+		return true
+	})
+	kubectl.Apply([]byte(service_binding))
+	var serviceBinding v1beta1.ServiceBinding
+	waitForCompletion(g, func() bool {
+		kubectl.Read(&serviceBinding, "postgres-binding")
+		statusLen := len(serviceBinding.Status.Conditions)
+		if statusLen == 0 {
+			return false
+		}
+
+		if serviceBinding.Status.Conditions[statusLen-1].Status != v1beta1.ConditionTrue {
+			return false
+		}
+
+		g.Expect(serviceBinding.Status.Conditions[statusLen-1].Type).To(Equal(v1beta1.ServiceBindingConditionReady))
+		g.Expect(serviceBinding.Status.Conditions[statusLen-1].Status).To(Equal(v1beta1.ConditionTrue))
+		return true
+	})
+
+	bindId := serviceBinding.Spec.ExternalID
+	var services v1.ServiceList
+	kubectl.List(&services, "-n", "catalog")
+	g.Expect(services.Items).NotTo(BeEmpty(), "List of available services in OSB should not be empty")
+	matchingServiceInstanceExists := false
+	for _, service := range services.Items {
+		if strings.Contains(service.Name, bindId) {
+			matchingServiceInstanceExists = true
+		}
+	}
+	g.Expect(matchingServiceInstanceExists).To(BeTrue())
+
+	matchingServiceInstanceExists = false
+	for _, service := range services.Items {
+		if strings.Contains(service.Name, "noPropperBindID") {
+			matchingServiceInstanceExists = true
+		}
+	}
+	g.Expect(matchingServiceInstanceExists).To(BeFalse())
+
+	var serviceEntries ServiceEntryList
+	kubectl.List(&serviceEntries, "-n", "catalog")
+	matchingIstioObjectCount := 0
+	for _, serviceEntry := range serviceEntries.Items {
+		if strings.Contains(serviceEntry.Metadata.Name, bindId) {
+			matchingIstioObjectCount += 1
+		}
+	}
+	g.Expect(matchingIstioObjectCount).To(BeNumerically(">=", 1))
+
+	var virtualServices VirtualServiceList
+	kubectl.List(&virtualServices, "-n", "catalog")
+
+	for _, virtualService := range virtualServices.Items {
+
+		if strings.Contains(virtualService.Metadata.Name, bindId) {
+			matchingIstioObjectCount += 1
+		}
+	}
+	g.Expect(matchingIstioObjectCount).To(BeNumerically(">=", 1))
+
+	var gateways GatewayList
+	kubectl.List(&gateways, "-n", "catalog")
+	matchingIstioObjectCount = 0
+
+	for _, gateway := range gateways.Items {
+
+		if strings.Contains(gateway.Metadata.Name, bindId) {
+			matchingIstioObjectCount += 1
+		}
+	}
+	g.Expect(matchingIstioObjectCount).To(BeNumerically(">=", 1))
+
+	var destinationRules DestinationruleList
+	kubectl.List(&destinationRules, "-n", "catalog")
+	matchingIstioObjectCount = 0
+
+	for _, destinationRule := range destinationRules.Items {
+
+		if strings.Contains(destinationRule.Metadata.Name, bindId) {
+			matchingIstioObjectCount += 1
+		}
+	}
+	g.Expect(matchingIstioObjectCount).To(BeNumerically(">=", 1))
+
+	kubectl.Delete("ServiceBinding", "postgres-binding")
+	kubectl.Delete("ServiceInstance", "postgres-instance")
+
+	kubectl.List(&serviceEntries, "-n", "catalog")
+	matchingIstioObjectCount = 0
+	for _, serviceEntry := range serviceEntries.Items {
+		if strings.Contains(serviceEntry.Metadata.Name, bindId) {
+			matchingIstioObjectCount += 1
+		}
+	}
+	g.Expect(matchingIstioObjectCount).To(Equal(0))
+
+	kubectl.List(&virtualServices, "-n", "catalog")
+
+	for _, virtualService := range virtualServices.Items {
+
+		if strings.Contains(virtualService.Metadata.Name, bindId) {
+			matchingIstioObjectCount += 1
+		}
+	}
+	g.Expect(matchingIstioObjectCount).To(Equal(0))
+
+	kubectl.List(&gateways, "-n", "catalog")
+	matchingIstioObjectCount = 0
+
+	for _, gateway := range gateways.Items {
+
+		if strings.Contains(gateway.Metadata.Name, bindId) {
+			matchingIstioObjectCount += 1
+		}
+	}
+	g.Expect(matchingIstioObjectCount).To(Equal(0))
+
+	kubectl.List(&destinationRules, "-n", "catalog")
+	matchingIstioObjectCount = 0
+
+	for _, destinationRule := range destinationRules.Items {
+
+		if strings.Contains(destinationRule.Metadata.Name, bindId) {
+			matchingIstioObjectCount += 1
+		}
+	}
+	g.Expect(matchingIstioObjectCount).To(Equal(0))
+
+}
+
 func waitForCompletion(g *GomegaWithT, test func() bool) {
 	valid := false
-	expiry := time.Now().Add(time.Duration(300) * time.Second)
+	expiry := time.Now().Add(time.Duration(20) * time.Minute)
 	for !valid {
 		valid = test()
 		if !valid {
