@@ -17,6 +17,10 @@ func adapt(credentials model.Credentials, endpointMappings []model.EndpointMappi
 	return &model.BindResponse{Credentials: credentials}, nil
 }
 
+func adaptError(credentials model.Credentials, endpointMappings []model.EndpointMapping) (*model.BindResponse, error) {
+	return &model.BindResponse{Credentials: credentials}, errors.New("Error during adapt.")
+}
+
 func TestConsumerPreBind(t *testing.T) {
 	g := NewGomegaWithT(t)
 
@@ -71,6 +75,15 @@ func TestConsumerPostBind(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(kubernetes.createdServices[0].Name).To(Equal("svc-0-678"))
 	g.Expect(kubernetes.createdServices[0].Spec.Ports[0].Port).To(Equal(int32(5555)))
+}
+
+func TestConsumerPostBindReturnsError(t *testing.T) {
+	g := NewGomegaWithT(t)
+	kubernetes := mockConfigStore{}
+
+	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &kubernetes}
+	_, err := consumer.postBind(model.BindRequest{}, bindResponseSingleEndpoint, "678", adaptError)
+	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNoEndpointsPresent(t *testing.T) {
