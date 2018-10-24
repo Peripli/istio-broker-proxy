@@ -20,7 +20,7 @@ metadata:
   name: postgres-instance
 spec:
   clusterServiceClassExternalName: postgresql
-  clusterServicePlanExternalName: v9.4-tiny`
+  clusterServicePlanExternalName: v9.4-dev`
 
 const service_binding = `apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceBinding
