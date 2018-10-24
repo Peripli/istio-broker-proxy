@@ -87,7 +87,9 @@ func (c ConsumerInterceptor) postDelete(bindId string) error {
 			_ = c.ConfigStore.DeleteIstioConfig(id.Type, id.Name)
 		}
 		err = c.ConfigStore.DeleteService(serviceName)
-		fmt.Printf("Error of Deleteservice(): %#v", err)
+		if err != nil {
+			fmt.Printf("Error of Deleteservice(): %#v\n", err)
+		}
 		i++
 	}
 	return nil

@@ -1,6 +1,7 @@
 package router
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin/json"
 	. "github.com/onsi/gomega"
@@ -8,6 +9,7 @@ import (
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
 	istioModel "istio.io/istio/pilot/pkg/model"
 	"k8s.io/api/core/v1"
+	"strings"
 	"testing"
 )
 
@@ -242,16 +244,24 @@ func TestConsumerPostDelete(t *testing.T) {
 	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
-	err := consumer.postDelete("678")
+	_, err := consumer.postBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
+
+	err = consumer.postDelete("678")
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(len(configStore.deletedServices)).To(Equal(1))
-	g.Expect(len(configStore.deletedIstioConfigs)).To(Equal(6))
+	g.Expect(len(configStore.deletedServices)).To(Equal(2))
+	g.Expect(len(configStore.deletedIstioConfigs)).To(Equal(12))
 	g.Expect(configStore.deletedIstioConfigs[0]).To(Equal("destination-rule:sidecar-to-egress-svc-0-678"))
 	g.Expect(configStore.deletedIstioConfigs[1]).To(Equal("destination-rule:egressgateway-svc-0-678"))
 	g.Expect(configStore.deletedIstioConfigs[2]).To(Equal("gateway:istio-egressgateway-svc-0-678"))
 	g.Expect(configStore.deletedIstioConfigs[3]).To(Equal("virtual-service:egress-gateway-svc-0-678"))
 	g.Expect(configStore.deletedIstioConfigs[4]).To(Equal("virtual-service:mesh-to-egress-svc-0-678"))
 	g.Expect(configStore.deletedIstioConfigs[5]).To(Equal("service-entry:svc-0-678-service"))
+	g.Expect(configStore.deletedIstioConfigs[6]).To(Equal("destination-rule:sidecar-to-egress-svc-1-678"))
+	g.Expect(configStore.deletedIstioConfigs[7]).To(Equal("destination-rule:egressgateway-svc-1-678"))
+	g.Expect(configStore.deletedIstioConfigs[8]).To(Equal("gateway:istio-egressgateway-svc-1-678"))
+	g.Expect(configStore.deletedIstioConfigs[9]).To(Equal("virtual-service:egress-gateway-svc-1-678"))
+	g.Expect(configStore.deletedIstioConfigs[10]).To(Equal("virtual-service:mesh-to-egress-svc-1-678"))
+	g.Expect(configStore.deletedIstioConfigs[11]).To(Equal("service-entry:svc-1-678-service"))
 }
 
 type mockConfigStore struct {
@@ -282,11 +292,21 @@ func (m *mockConfigStore) CreateIstioConfig(object istioModel.Config) error {
 }
 
 func (m *mockConfigStore) DeleteService(serviceName string) error {
-	m.deletedServices = append(m.deletedServices, serviceName)
-	return nil
+	for _, c := range m.createdServices {
+		if strings.Contains(c.Name, serviceName) {
+			m.deletedServices = append(m.deletedServices, serviceName)
+			return nil
+		}
+	}
+	return errors.New("Element for %s doesn`t exist" + serviceName)
 }
 
 func (m *mockConfigStore) DeleteIstioConfig(configType string, configName string) error {
-	m.deletedIstioConfigs = append(m.deletedIstioConfigs, configType+":"+configName)
-	return nil
+	for _, c := range m.createdIstioConfigs {
+		if strings.Contains(c.Name, configName) {
+			m.deletedIstioConfigs = append(m.deletedIstioConfigs, configType+":"+configName)
+			return nil
+		}
+	}
+	return errors.New("Element for %s doesn`t exist" + configName)
 }
