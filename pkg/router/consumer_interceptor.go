@@ -8,6 +8,7 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"log"
+	"strings"
 )
 
 const (
@@ -79,7 +80,7 @@ func serviceName(index int, bindId string) string {
 func (c ConsumerInterceptor) postDelete(bindId string) error {
 	i := 0
 	var err error
-	//for i := 0; i <= 2; i++ {
+
 	for err == nil {
 		serviceName := serviceName(i, bindId)
 
@@ -87,8 +88,8 @@ func (c ConsumerInterceptor) postDelete(bindId string) error {
 			_ = c.ConfigStore.DeleteIstioConfig(id.Type, id.Name)
 		}
 		err = c.ConfigStore.DeleteService(serviceName)
-		if err != nil {
-			fmt.Printf("Error of Deleteservice(): %#v\n", err)
+		if err != nil && !(strings.Contains(err.Error(), bindId) && strings.Contains(err.Error(), "not found")) {
+			return err
 		}
 		i++
 	}

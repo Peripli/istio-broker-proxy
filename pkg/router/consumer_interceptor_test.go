@@ -298,7 +298,8 @@ func (m *mockConfigStore) DeleteService(serviceName string) error {
 			return nil
 		}
 	}
-	return errors.New("Element for %s doesn`t exist" + serviceName)
+	errorMsg := fmt.Sprintf("error services %s not found", serviceName)
+	return errors.New(errorMsg)
 }
 
 func (m *mockConfigStore) DeleteIstioConfig(configType string, configName string) error {
@@ -308,5 +309,6 @@ func (m *mockConfigStore) DeleteIstioConfig(configType string, configName string
 			return nil
 		}
 	}
-	return errors.New("Element for %s doesn`t exist" + configName)
+	errorMsg := fmt.Sprintf("error %s.networking.istio.io %s not found", configType, configName)
+	return errors.New(errorMsg)
 }
