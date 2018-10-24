@@ -10,4 +10,4 @@ export CGO_ENABLED=0
 cd ${SCRIPT_DIR}
 
 go get github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1
-go test -v
+go test -v -timeout 20m
