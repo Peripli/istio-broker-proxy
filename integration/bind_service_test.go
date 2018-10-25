@@ -50,13 +50,13 @@ const client_config = `---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: client
+  name: client-postgres
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: client
+        app: client-postgres
     spec:
       volumes:
       - name: postgres-binding
@@ -75,13 +75,13 @@ const client_config_rabbitmq = `---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: client
+  name: client-rabbitmq
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: client
+        app: client-rabbitmq
     spec:
       volumes:
       - name: rabbitmq-binding
@@ -153,7 +153,7 @@ type Spec struct {
 	Resoultion string       `json:"resolution"`
 }
 
-func TestServiceBindingIstioObjectsCreated(t *testing.T) {
+func TestPostgresServiceBinding(t *testing.T) {
 	skipWithoutKubeconfigSet(t)
 
 	g := NewGomegaWithT(t)
@@ -164,8 +164,8 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 	clientConfigBody := []byte(client_config)
 	kubectl.Apply(clientConfigBody)
 
-	podName := kubectl.GetPod("-l", "app=client", "--field-selector=status.phase=Running")
-	g.Expect(podName).To(ContainSubstring("client"))
+	podName := kubectl.GetPod("-l", "app=client-postgres", "--field-selector=status.phase=Running")
+	g.Expect(podName).To(ContainSubstring("client-postgres"))
 
 	script := `  
 	while true; do
@@ -261,7 +261,7 @@ func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
 
 }
 
-func TestServiceBindingRMQCreated(t *testing.T) {
+func TestRabbitMqServiceBinding(t *testing.T) {
 	skipWithoutKubeconfigSet(t)
 
 	g := NewGomegaWithT(t)
@@ -272,8 +272,8 @@ func TestServiceBindingRMQCreated(t *testing.T) {
 	clientConfigBody := []byte(client_config_rabbitmq)
 	kubectl.Apply(clientConfigBody)
 
-	podName := kubectl.GetPod("-l", "app=client", "--field-selector=status.phase=Running")
-	g.Expect(podName).To(ContainSubstring("client"))
+	podName := kubectl.GetPod("-l", "app=client-rabbitmq", "--field-selector=status.phase=Running")
+	g.Expect(podName).To(ContainSubstring("client-rabbitmq"))
 
 	script := `  
 import pika
@@ -282,14 +282,12 @@ while True:
   try:
     with open('/etc/bindings/rabbitmq/uri', 'r') as content_file:
       uri = content_file.read()
+    print "Connecting to " + uri
     connection = pika.BlockingConnection(parameters=pika.URLParameters(uri))
     connection.close()
     break
-  except pika.exceptions.ConnectionClosed:
+  except (pika.exceptions.IncompatibleProtocolError, IOError, pika.exceptions.ConnectionClosed), e:
     print "Try again"
-    time.sleep(10)
-  except IOError:
-    print "Try again - uri not yet found"
     time.sleep(10)
 print "Connection to rqabbitmq was successful"
 `
