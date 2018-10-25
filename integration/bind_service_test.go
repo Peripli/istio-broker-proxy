@@ -190,7 +190,7 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 	basename := "test.sh"
 	kubeCreateFile(kubectl, g, basename, script, podName)
 
-	kubectl.Exec(podName, "-c", "client", "-ti", "--", "bash", "test.sh")
+	kubectl.Exec(podName, "-c", "client", "-i", "--", "bash", "test.sh")
 
 }
 
@@ -291,11 +291,12 @@ while True:
   except IOError:
     print "Try again - uri not yet found"
     time.sleep(10)
+print "Connection to rqabbitmq was successful"
 `
 	basename := "test.py"
 	kubeCreateFile(kubectl, g, basename, script, podName)
 
-	kubectl.Exec(podName, "-c", "client", "-ti", "--", "/usr/bin/python2.7", basename)
+	kubectl.Exec(podName, "-c", "client", "-i", "--", "/usr/bin/python2.7", basename)
 }
 
 func createServiceBinding(kubectl *kubectl, g *GomegaWithT, name string, serviceConfig string, bindingConfig string) string {
