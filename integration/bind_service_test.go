@@ -71,6 +71,31 @@ spec:
         - mountPath: /etc/bindings/postgres
           name: postgres-binding`
 
+const client_config_rabbitmq = `---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: client
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: client
+    spec:
+      volumes:
+      - name: rabbitmq-binding
+        secret:
+          secretName: rabbitmq-binding
+      containers:
+      - name: client
+        image: gcr.io/sap-se-gcp-istio-dev/client:latest
+        command: ["/bin/sleep","infinity"]
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /etc/bindings/rabbitmq
+          name: rabbitmq-binding`
+
 func skipWithoutKubeconfigSet(t *testing.T) {
 	if os.Getenv("KUBECONFIG") == "" {
 		t.Skip("KUBECONFIG not set, skipping integration test.")
@@ -142,10 +167,7 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 	podName := kubectl.GetPod("-l", "app=client", "--field-selector=status.phase=Running")
 	g.Expect(podName).To(ContainSubstring("client"))
 
-	fileName := path.Join(os.TempDir(), "test.sh")
-	file, err := os.Create(fileName)
-	g.Expect(err).NotTo(HaveOccurred())
-	file.Write([]byte(`  
+	script := `  
 	while true; do
 	  export PGPASSWORD=$(cat /etc/bindings/postgres/password)
 	  HOSTNAME=$(cat /etc/bindings/postgres/hostname)
@@ -164,12 +186,21 @@ func TestServiceBindingIstioObjectsCreated(t *testing.T) {
 	    exit 1
 	  fi
 	done
-	`))
-	file.Close()
-	kubectl.run("cp", fileName, "default/"+podName+":test.sh")
+	`
+	basename := "test.sh"
+	kubeCreateFile(kubectl, g, basename, script, podName)
 
 	kubectl.Exec(podName, "-c", "client", "-ti", "--", "bash", "test.sh")
 
+}
+
+func kubeCreateFile(kubectl *kubectl, g *GomegaWithT, basename string, script string, podName string) {
+	fileName := path.Join(os.TempDir(), basename)
+	file, err := os.Create(fileName)
+	g.Expect(err).NotTo(HaveOccurred())
+	file.Write([]byte(script))
+	file.Close()
+	kubectl.run("cp", fileName, "default/"+podName+":"+basename)
 }
 
 func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
@@ -231,13 +262,37 @@ func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
 }
 
 func TestServiceBindingRMQCreated(t *testing.T) {
-	t.Skip("Test not read.")
 	skipWithoutKubeconfigSet(t)
 
 	g := NewGomegaWithT(t)
 	kubectl := NewKubeCtl(g)
 
 	createServiceBinding(kubectl, g, "rabbitmq", service_instance_rabbitmq, service_binding_rabbitmq)
+
+	clientConfigBody := []byte(client_config_rabbitmq)
+	kubectl.Apply(clientConfigBody)
+
+	podName := kubectl.GetPod("-l", "app=client", "--field-selector=status.phase=Running")
+	g.Expect(podName).To(ContainSubstring("client"))
+
+	script := `  
+import pika
+import time
+while True:
+  try:
+    with open('/etc/bindings/rabbitmq/uri', 'r') as content_file:
+      uri = content_file.read()
+    connection = pika.BlockingConnection(parameters=pika.URLParameters(uri))
+    connection.close()
+    break
+  except pika.exceptions.ConnectionClosed:
+    print "Try again"
+    time.sleep(10)
+`
+	basename := "test.py"
+	kubeCreateFile(kubectl, g, basename, script, podName)
+
+	kubectl.Exec(podName, "-c", "client", "-ti", "--", "/usr/bin/python2.7", basename)
 }
 
 func createServiceBinding(kubectl *kubectl, g *GomegaWithT, name string, serviceConfig string, bindingConfig string) string {
