@@ -288,6 +288,9 @@ while True:
   except pika.exceptions.ConnectionClosed:
     print "Try again"
     time.sleep(10)
+  except IOError:
+    print "Try again - uri not yet found"
+    time.sleep(10)
 `
 	basename := "test.py"
 	kubeCreateFile(kubectl, g, basename, script, podName)
