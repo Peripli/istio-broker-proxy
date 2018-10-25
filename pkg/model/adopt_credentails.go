@@ -5,18 +5,28 @@ type AdaptCredentialsRequest struct {
 	EndpointMappings []EndpointMapping `json:"endpoint_mappings"`
 }
 
+type CredentialConverter func(credentials Credentials, endpointMappings []EndpointMapping) (*Credentials, error)
+
+var converters []CredentialConverter = []CredentialConverter{
+	PostgresCredentialsConverter,
+	RabbitMQCredentialsConverter,
+	func(credentials Credentials, endpointMappings []EndpointMapping) (*Credentials, error) {
+		return &credentials, nil
+	},
+}
+
 func Adapt(credentials Credentials, endpointMappings []EndpointMapping) (*BindResponse, error) {
 
-	postgresCredentials, err := PostgresCredentialsFromCredentials(credentials)
-	if err != nil {
-		return nil, err
-	}
 	result := BindResponse{}
-	if postgresCredentials == nil {
-		result.Credentials = credentials
-	} else {
-		postgresCredentials.Adapt(endpointMappings)
-		result.Credentials = postgresCredentials.ToCredentials()
+	for _, converter := range converters {
+		c, err := converter(credentials, endpointMappings)
+		if err != nil {
+			return nil, err
+		}
+		if c != nil {
+			result.Credentials = *c
+			break
+		}
 	}
 
 	for _, endpointMapping := range endpointMappings {

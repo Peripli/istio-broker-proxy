@@ -2,7 +2,6 @@ package model
 
 import (
 	"fmt"
-	"net/url"
 	"regexp"
 	"strings"
 )
@@ -23,6 +22,19 @@ type PostgresCredentials struct {
 	Uri      string
 	WriteUrl string
 	ReadUrl  string
+}
+
+func PostgresCredentialsConverter(credentials Credentials, endpointMappings []EndpointMapping) (*Credentials, error) {
+	postgresCredentials, err := PostgresCredentialsFromCredentials(credentials)
+	if err != nil {
+		return nil, err
+	}
+	if postgresCredentials == nil {
+		return nil, nil
+	}
+	postgresCredentials.Adapt(endpointMappings)
+	result := postgresCredentials.ToCredentials()
+	return &result, nil
 }
 
 func PostgresCredentialsFromCredentials(credentials Credentials) (*PostgresCredentials, error) {
@@ -51,11 +63,6 @@ func PostgresCredentialsFromCredentials(credentials Credentials) (*PostgresCrede
 	if result.Uri == "" || result.Hostname == "" || result.Port == 0 {
 		return nil, fmt.Errorf("Invalid postgres credentials: %#v", result)
 	}
-	_, err = url.Parse(result.Uri)
-	if err != nil {
-		return nil, err
-	}
-
 	return &result, nil
 }
 
@@ -101,7 +108,7 @@ func toHostPortPattern(endpoint Endpoint) *regexp.Regexp {
 	if endpoint.Port == default_postgres_port {
 		return regexp.MustCompile(fmt.Sprintf("(\\W)%s(?::%d|)(\\W)", regexp.QuoteMeta(endpoint.Host), endpoint.Port))
 	}
-	return regexp.MustCompile(fmt.Sprintf("(\\W)%s:%d(\\W)", regexp.QuoteMeta(endpoint.Host), endpoint.Port))
+	return regexp.MustCompile(fmt.Sprintf("(\\W)%s:%d(\\W|$)", regexp.QuoteMeta(endpoint.Host), endpoint.Port))
 }
 
 func toHostString(endpoint Endpoint) string {

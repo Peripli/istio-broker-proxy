@@ -2,13 +2,14 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
 )
 
 const (
-	exampleRequest = `{
+	examplePostgresRequest = `{
     "credentials": {
  "dbname": "yLO2WoE0-mCcEppn",
  "hostname": "10.11.241.0",
@@ -23,50 +24,37 @@ const (
         "target": {"host": "appnethost", "port": 9876}
 	}]
 }`
-	ExampleRequestHaPostgres = `{
+	exampleRabbitMqRequest = `{
     "credentials": {
- "dbname": "e2b91324e12361f3eaeb35fe570efe1d",
- "end_points": [
-  {
-   "host": "10.11.19.245",
-   "network_id": "SF",
-   "port": 5432
-  },
-  {
-   "host": "10.11.19.240",
-   "network_id": "SF",
-   "port": 5432
-  },
-  {
-   "host": "10.11.19.241",
-   "network_id": "SF",
-   "port": 5432
-  }
- ],
- "hostname": "10.11.19.245",
- "password": "c00132ea8771e16c8aecc9a7b819f91c",
- "port": "5432",
- "read_url": "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=preferSlave\u0026loadBalanceHosts=true",
- "uri": "postgres://0d158137ea834372c7f7f53036b1faf6:c00132ea8771e16c8aecc9a7b819f91c@10.11.19.245:5432/e2b91324e12361f3eaeb35fe570efe1d",
- "username": "0d158137ea834372c7f7f53036b1faf6",
- "write_url": "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master"
-  },
+ "hostname": "10.11.241.0",
+ "password": "ypAT7hlpCrvsvzI2",
+ "port": "51011",
+ "ports": {
+  "15672/tcp": "43795",
+  "15674/tcp": "39776",
+  "15675/tcp": "35827",
+  "1883/tcp": "35982",
+  "5672/tcp": "51011",
+  "61613/tcp": "40865"
+ },
+ "uri": "amqp://gXoS1dkYUt9lyvZc:ypAT7hlpCrvsvzI2@10.11.241.0:51011",
+ "username": "gXoS1dkYUt9lyvZc"
+},
     "endpoint_mappings": [{
-        "source": {"host": "10.11.19.245", "port": 5432},
+        "source": {"host": "10.11.241.0", "port": 51011},
         "target": {"host": "appnethost", "port": 9876}
 	}]
 }`
-	minimalValidEndpointMapping  = `{ "source":{"host":"a", "port":1}, "target":{"host":"b", "port":2}}`
-	minimalValidEndpointMappings = `[` + minimalValidEndpointMapping + `]`
 )
 
-func TestExampleRequestFromBacklogItem(t *testing.T) {
+func TestPostgresExampleRequestFromBacklogItem(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	var example AdaptCredentialsRequest
 	var expected Credentials
-	json.Unmarshal([]byte(exampleRequest), &example)
-	json.Unmarshal([]byte(`{
+	err := json.Unmarshal([]byte(examplePostgresRequest), &example)
+	g.Expect(err).NotTo(HaveOccurred())
+	err = json.Unmarshal([]byte(`{
 	 "dbname": "yLO2WoE0-mCcEppn",
 	 "hostname": "appnethost",
 	 "password": "redacted",
@@ -75,16 +63,54 @@ func TestExampleRequestFromBacklogItem(t *testing.T) {
 	 "uri": "postgres://mma4G8N0isoxe17v:redacted@appnethost:9876/yLO2WoE0-mCcEppn",
 	 "username": "mma4G8N0isoxe17v"
 	  }`), &expected)
+	g.Expect(err).NotTo(HaveOccurred())
 
 	adopted, _ := Adapt(example.Credentials, example.EndpointMappings)
 	g.Expect(adopted.Credentials).To(Equal(expected))
 	g.Expect(adopted.Endpoints).To(Equal([]Endpoint{{"appnethost", 9876}}))
 }
 
+func TestRabbitMqExampleRequestFromBacklogItem(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	var example AdaptCredentialsRequest
+	var expected Credentials
+	err := json.Unmarshal([]byte(exampleRabbitMqRequest), &example)
+	g.Expect(err).NotTo(HaveOccurred())
+	err = json.Unmarshal([]byte(`{
+ "hostname": "appnethost",
+ "password": "ypAT7hlpCrvsvzI2",
+ "port": 9876,
+ "ports": {
+  "15672/tcp": "43795",
+  "15674/tcp": "39776",
+  "15675/tcp": "35827",
+  "1883/tcp": "35982",
+  "5672/tcp": "51011",
+  "61613/tcp": "40865"
+ },
+ "uri": "amqp://gXoS1dkYUt9lyvZc:ypAT7hlpCrvsvzI2@appnethost:9876",
+ "username": "gXoS1dkYUt9lyvZc"
+}`), &expected)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	fmt.Printf("%#v\n", example)
+	adopted, _ := Adapt(example.Credentials, example.EndpointMappings)
+	g.Expect(adopted.Credentials).To(Equal(expected))
+	g.Expect(adopted.Endpoints).To(Equal([]Endpoint{{"appnethost", 9876}}))
+}
+
+func TestUnknownCredentials(t *testing.T) {
+	g := NewGomegaWithT(t)
+	credentials := Credentials{}
+	adopted, _ := Adapt(credentials, []EndpointMapping{})
+	g.Expect(adopted.Credentials).To(Equal(credentials))
+}
+
 func TestEndpointIsAddedAfterApplying(t *testing.T) {
 	g := NewGomegaWithT(t)
 	var example AdaptCredentialsRequest
-	json.Unmarshal([]byte(exampleRequest), &example)
+	json.Unmarshal([]byte(examplePostgresRequest), &example)
 
 	translatedRequest, _ := Adapt(example.Credentials, example.EndpointMappings)
 
