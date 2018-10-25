@@ -9,7 +9,6 @@ type RabbitMQCredentials struct {
 	Credentials
 	Hostname string
 	Port     int
-	Ports    []map[string]int
 	Uri      string
 }
 
@@ -48,7 +47,7 @@ func RabbitMQCredentialsFromCredentials(credentials Credentials) (*RabbitMQCrede
 		return nil, err
 	}
 	if result.Uri == "" || result.Hostname == "" || result.Port == 0 {
-		return nil, fmt.Errorf("Invalid postgres credentials: %#v", result)
+		return nil, fmt.Errorf("Invalid rabbitmq credentials: %#v", result)
 	}
 	return &result, nil
 }
@@ -74,7 +73,11 @@ func (credentials *RabbitMQCredentials) Adapt(endpointMappings []EndpointMapping
 			credentials.Hostname = endpointMapping.Target.Host
 			credentials.Port = endpointMapping.Target.Port
 		}
-		credentials.Uri = replaceInUrl(credentials.Uri, endpointMapping)
+		credentials.Uri = replaceInRabbitMqUrl(credentials.Uri, endpointMapping)
 
 	}
+}
+
+func replaceInRabbitMqUrl(url string, endpointMapping EndpointMapping) string {
+	return replaceInUrl(url, endpointMapping, 5672)
 }

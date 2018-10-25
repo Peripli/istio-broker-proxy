@@ -92,20 +92,24 @@ func (credentials *PostgresCredentials) Adapt(endpointMappings []EndpointMapping
 			credentials.Hostname = endpointMapping.Target.Host
 			credentials.Port = endpointMapping.Target.Port
 		}
-		credentials.Uri = replaceInUrl(credentials.Uri, endpointMapping)
-		credentials.ReadUrl = replaceInUrl(credentials.ReadUrl, endpointMapping)
-		credentials.WriteUrl = replaceInUrl(credentials.WriteUrl, endpointMapping)
+		credentials.Uri = replaceInPostgresUrl(credentials.Uri, endpointMapping)
+		credentials.ReadUrl = replaceInPostgresUrl(credentials.ReadUrl, endpointMapping)
+		credentials.WriteUrl = replaceInPostgresUrl(credentials.WriteUrl, endpointMapping)
 	}
 }
 
-func replaceInUrl(url string, endpointMapping EndpointMapping) string {
-	pattern := toHostPortPattern(endpointMapping.Source)
+func replaceInPostgresUrl(url string, endpointMapping EndpointMapping) string {
+	return replaceInUrl(url, endpointMapping, default_postgres_port)
+}
+
+func replaceInUrl(url string, endpointMapping EndpointMapping, defaultPort int) string {
+	pattern := toHostPortPattern(endpointMapping.Source, defaultPort)
 	return pattern.ReplaceAllString(url, "${1}"+toHostString(endpointMapping.Target)+"${2}")
 }
 
-func toHostPortPattern(endpoint Endpoint) *regexp.Regexp {
+func toHostPortPattern(endpoint Endpoint, defaultPort int) *regexp.Regexp {
 	// the groups are only there to capture the rest of the string around the endpoint in question
-	if endpoint.Port == default_postgres_port {
+	if endpoint.Port == defaultPort {
 		return regexp.MustCompile(fmt.Sprintf("(\\W)%s(?::%d|)(\\W)", regexp.QuoteMeta(endpoint.Host), endpoint.Port))
 	}
 	return regexp.MustCompile(fmt.Sprintf("(\\W)%s:%d(\\W|$)", regexp.QuoteMeta(endpoint.Host), endpoint.Port))
