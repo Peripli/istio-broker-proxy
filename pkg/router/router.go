@@ -52,6 +52,37 @@ func (client osbProxy) updateCredentials(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
+func (client osbProxy) getCatalog(header http.Header) (*model.Catalog, error) {
+	url := fmt.Sprintf("%s/v2/catalog", client.config.ForwardURL)
+	proxyRequest, err := client.config.HttpRequestFactory(http.MethodGet, url, bytes.NewReader(make([]byte, 0)))
+	proxyRequest.Header = header
+
+	response, err := client.Do(proxyRequest)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err.Error())
+		return nil, err
+	}
+	log.Printf("Response status from get catalog: %s\n", response.Status)
+
+	defer response.Body.Close()
+
+	var catalog model.Catalog
+	bodyAsBytes, err := ioutil.ReadAll(response.Body)
+	if nil != err {
+		log.Printf("ERROR: %s\n", err.Error())
+		return nil, err
+	}
+	err = json.Unmarshal(bodyAsBytes, &catalog)
+
+	log.Printf("Response from get catalog: %s\n", string(bodyAsBytes))
+	if nil != err {
+		log.Printf("ERROR: %s\n", err.Error())
+		return nil, err
+	}
+
+	return &catalog, nil
+}
+
 func (client osbProxy) adaptCredentials(credentials model.Credentials, mapping []model.EndpointMapping, instanceId string, bindId string, header http.Header) (*model.BindResponse, error) {
 
 	request := model.AdaptCredentialsRequest{Credentials: credentials, EndpointMappings: mapping}
@@ -102,6 +133,17 @@ func (client osbProxy) deleteBinding(ctx *gin.Context) {
 	client.forwardWithCallback(ctx, func(ctx *gin.Context) error {
 		return client.interceptor.postDelete(ctx.Params.ByName("binding_id"))
 	})
+}
+
+func (client osbProxy) forwardCatalog(ctx *gin.Context) {
+	catalog, err := client.getCatalog(ctx.Request.Header)
+	if err != nil {
+		ctx.JSON(http.StatusBadGateway, make(map[string]interface{}))
+		log.Printf("ERROR: %s\n", err.Error())
+		return
+	}
+	client.interceptor.postCatalog(catalog)
+	ctx.JSON(200, catalog)
 }
 
 func (client osbProxy) forwardWithCallback(ctx *gin.Context, postCallback func(ctx *gin.Context) error) {
@@ -306,6 +348,7 @@ func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig RouterConfig
 	}
 	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardBindRequest)
 	mux.DELETE("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.deleteBinding)
+	mux.GET("/v2/catalog", client.forwardCatalog)
 	mux.NoRoute(client.forward)
 
 	return mux

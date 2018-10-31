@@ -277,6 +277,24 @@ func TestConsumerPostDelete(t *testing.T) {
 	g.Expect(configStore.deletedIstioConfigs[11]).To(Equal("service-entry:svc-1-678-service"))
 }
 
+func TestConsumerPostCatalog(t *testing.T) {
+	g := NewGomegaWithT(t)
+	interceptor := ConsumerInterceptor{ServiceIdPrefix: "istio-"}
+	catalog := model.Catalog{[]model.Service{{Id: "istio-name"}}}
+	interceptor.postCatalog(&catalog)
+	g.Expect(catalog.Services[0].Id).To(Equal("name"))
+
+}
+
+func TestConsumerPostCatalogWithoutPrefix(t *testing.T) {
+	g := NewGomegaWithT(t)
+	interceptor := ConsumerInterceptor{ServiceIdPrefix: "istio-"}
+	catalog := model.Catalog{[]model.Service{{Id: "test-xxx-name"}}}
+	interceptor.postCatalog(&catalog)
+	g.Expect(catalog.Services[0].Id).To(Equal("test-xxx-name"))
+
+}
+
 type mockConfigStore struct {
 	createdServices     []*v1.Service
 	createdIstioConfigs []istioModel.Config

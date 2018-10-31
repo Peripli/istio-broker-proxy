@@ -3,8 +3,39 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
 )
+
+type AdditionalProperties map[string]json.RawMessage
+
+func (ap *AdditionalProperties) UnmarshalJSON(b []byte, values map[string]interface{}) error {
+	if err := json.Unmarshal(b, ap); err != nil {
+		return err
+	}
+	err := removeProperties(*ap, values)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ap *AdditionalProperties) MarshalJSON(values map[string]interface{}) ([]byte, error) {
+	properties := clone(*ap)
+	for key, value := range values {
+		if value != nil {
+			val := reflect.ValueOf(value)
+			if val.Kind() == reflect.Array || val.Kind() == reflect.Slice {
+				if val.Len() != 0 {
+					addProperty(properties, key, value)
+				}
+			} else {
+				addProperty(properties, key, value)
+			}
+		}
+	}
+	return json.Marshal(properties)
+}
 
 func addProperty(additionalProperties map[string]json.RawMessage, key string, data interface{}) {
 	rawData, err := json.Marshal(data)

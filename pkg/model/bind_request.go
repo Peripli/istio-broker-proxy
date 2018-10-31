@@ -1,9 +1,7 @@
 package model
 
-import "encoding/json"
-
 type BindRequest struct {
-	AdditionalProperties map[string]json.RawMessage
+	AdditionalProperties AdditionalProperties
 	NetworkData          NetworkDataRequest
 }
 
@@ -17,20 +15,9 @@ type DataRequest struct {
 }
 
 func (bindRequest *BindRequest) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, &bindRequest.AdditionalProperties); err != nil {
-		return err
-	}
-	err := removeProperty(bindRequest.AdditionalProperties, "network_data", &bindRequest.NetworkData)
-	if err != nil {
-		return err
-	}
-	return nil
+	return bindRequest.AdditionalProperties.UnmarshalJSON(b, map[string]interface{}{"network_data": &bindRequest.NetworkData})
 }
 
 func (bindRequest BindRequest) MarshalJSON() ([]byte, error) {
-	properties := clone(bindRequest.AdditionalProperties)
-	if len(bindRequest.NetworkData.NetworkProfileId) > 0 {
-		addProperty(properties, "network_data", &bindRequest.NetworkData)
-	}
-	return json.Marshal(properties)
+	return bindRequest.AdditionalProperties.MarshalJSON(map[string]interface{}{"network_data": &bindRequest.NetworkData})
 }

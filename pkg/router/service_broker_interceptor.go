@@ -9,6 +9,7 @@ type ServiceBrokerInterceptor interface {
 	postBind(request model.BindRequest, response model.BindResponse, bindId string,
 		adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error)
 	postDelete(bindId string) error
+	postCatalog(catalog *model.Catalog)
 	hasAdaptCredentials() bool
 }
 
@@ -30,4 +31,7 @@ func (c NoOpInterceptor) hasAdaptCredentials() bool {
 
 func (c NoOpInterceptor) postDelete(bindId string) error {
 	return nil
+}
+
+func (c NoOpInterceptor) postCatalog(catalog *model.Catalog) {
 }

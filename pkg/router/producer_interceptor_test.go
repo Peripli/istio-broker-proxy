@@ -114,3 +114,12 @@ func TestConfigFilesAreWrittenAndDeleted(t *testing.T) {
 	err = interceptor.postDelete("123")
 	g.Expect(err).NotTo(HaveOccurred())
 }
+
+func TestProducerPostCatalog(t *testing.T) {
+	g := NewGomegaWithT(t)
+	interceptor := ProducerInterceptor{ServiceIdPrefix: "istio-"}
+	catalog := model.Catalog{[]model.Service{{Id: "name"}}}
+	interceptor.postCatalog(&catalog)
+	g.Expect(catalog.Services[0].Id).To(Equal("istio-name"))
+
+}

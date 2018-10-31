@@ -8,6 +8,7 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"log"
+	"strings"
 )
 
 const (
@@ -15,8 +16,9 @@ const (
 )
 
 type ConsumerInterceptor struct {
-	ConsumerId  string
-	ConfigStore ConfigStore
+	ConsumerId      string
+	ConfigStore     ConfigStore
+	ServiceIdPrefix string
 }
 
 func (c ConsumerInterceptor) preBind(request model.BindRequest) *model.BindRequest {
@@ -94,4 +96,10 @@ func (c ConsumerInterceptor) postDelete(bindId string) error {
 
 func (c ConsumerInterceptor) hasAdaptCredentials() bool {
 	return false
+}
+
+func (c ConsumerInterceptor) postCatalog(catalog *model.Catalog) {
+	for i := range catalog.Services {
+		catalog.Services[i].Id = strings.TrimPrefix(catalog.Services[i].Id, c.ServiceIdPrefix)
+	}
 }

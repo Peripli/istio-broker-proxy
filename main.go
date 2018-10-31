@@ -11,6 +11,7 @@ import (
 var producerInterceptor router.ProducerInterceptor
 var consumerInterceptor router.ConsumerInterceptor
 var routerConfig router.RouterConfig
+var serviceIdPrefix string
 
 func main() {
 	SetupConfiguration()
@@ -19,9 +20,11 @@ func main() {
 	log.Printf("Running on port %d\n", routerConfig.Port)
 	var interceptor router.ServiceBrokerInterceptor
 	if consumerInterceptor.ConsumerId != "" {
+		consumerInterceptor.ServiceIdPrefix = serviceIdPrefix
 		consumerInterceptor.ConfigStore = router.NewInClusterConfigStore()
 		interceptor = consumerInterceptor
 	} else if producerInterceptor.ProviderId != "" {
+		producerInterceptor.ServiceIdPrefix = serviceIdPrefix
 		err := producerInterceptor.WriteIstioConfigFiles(routerConfig.Port)
 		if err != nil {
 			panic(fmt.Sprintf("Unable to write istio-broker provider side configuration file: %v", err))
@@ -47,4 +50,5 @@ func SetupConfiguration() {
 
 	flag.StringVar(&routerConfig.ForwardURL, "forwardUrl", "", "url for forwarding incoming requests")
 	flag.IntVar(&routerConfig.Port, "port", router.DefaultPort, "Server listen port")
+	flag.StringVar(&serviceIdPrefix, "serviceIdPrefix", "", "Service id prefix")
 }

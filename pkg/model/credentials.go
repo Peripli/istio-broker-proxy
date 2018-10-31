@@ -1,11 +1,7 @@
 package model
 
-import (
-	"encoding/json"
-)
-
 type Credentials struct {
-	AdditionalProperties map[string]json.RawMessage
+	AdditionalProperties AdditionalProperties
 	Endpoints            []Endpoint
 }
 
@@ -15,20 +11,9 @@ type EndpointMapping struct {
 }
 
 func (credentials *Credentials) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, &credentials.AdditionalProperties); err != nil {
-		return err
-	}
-	err := removeProperty(credentials.AdditionalProperties, "end_points", &credentials.Endpoints)
-	if err != nil {
-		return err
-	}
-	return nil
+	return credentials.AdditionalProperties.UnmarshalJSON(b, map[string]interface{}{"end_points": &credentials.Endpoints})
 }
 
 func (credentials Credentials) MarshalJSON() ([]byte, error) {
-	properties := clone(credentials.AdditionalProperties)
-	if len(credentials.Endpoints) != 0 {
-		addProperty(properties, "end_points", credentials.Endpoints)
-	}
-	return json.Marshal(properties)
+	return credentials.AdditionalProperties.MarshalJSON(map[string]interface{}{"end_points": credentials.Endpoints})
 }

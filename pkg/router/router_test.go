@@ -506,6 +506,24 @@ func TestDeleteBinding(t *testing.T) {
 	g.Expect(bindId).To(Equal("456"))
 }
 
+func TestForwardGetCatalog(t *testing.T) {
+	g := NewGomegaWithT(t)
+	body := []byte(`{"services": [{ "id" : "abc" } ] }`)
+	handlerStub := NewHandlerStub(http.StatusOK, body)
+	server, routerConfig := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/v2/catalog", bytes.NewReader(make([]byte, 0)))
+
+	response := httptest.NewRecorder()
+	router := SetupRouter(&ProducerInterceptor{ServiceIdPrefix: "istio-"}, *routerConfig)
+	router.ServeHTTP(response, request)
+	responseBody := response.Body.String()
+	g.Expect(responseBody).To(ContainSubstring("istio-abc"))
+
+}
+
 func TestCorrectRequestParamForDelete(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte(`{}`)
@@ -566,6 +584,67 @@ func TestAdaptCredentialsWithProxy(t *testing.T) {
 	g.Expect(postgresCredentials.Hostname).To(Equal("postgres.catalog.svc.cluster.local"))
 	g.Expect(postgresCredentials.Uri).To(Equal("postgres://mma4G8N0isoxe17v:redacted@postgres.catalog.svc.cluster.local:5555/yLO2WoE0-mCcEppn"))
 
+}
+
+func TestGetCatalog(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	handlerStub := NewHandlerStubWithFunc(http.StatusOK, func(body []byte) []byte {
+		return []byte(`{
+  "services": [{
+    "name": "fake-Service",
+    "id": "acb56d7c-XXXX-XXXX-XXXX-feb140a59a66" }]
+}`)
+	})
+	server, routerConfig := injectClientStub(handlerStub)
+	defer server.Close()
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := osbProxy{routerConfig.HttpClientFactory(tr), NoOpInterceptor{}, *routerConfig}
+	catalog, err := client.getCatalog(make(map[string][]string))
+
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(catalog).NotTo(BeNil())
+	g.Expect(len(catalog.Services)).To(Equal(1))
+	g.Expect(catalog.Services[0].Id).To(Equal("acb56d7c-XXXX-XXXX-XXXX-feb140a59a66"))
+
+}
+
+func TestGetCatalogWithoutUpstreamServer(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	handlerStub := NewHandlerStubWithFunc(http.StatusOK, func(body []byte) []byte {
+		return []byte(`{
+  "services": {}
+}`)
+	})
+	server, routerConfig := injectClientStub(handlerStub)
+	defer server.Close()
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := osbProxy{routerConfig.HttpClientFactory(tr), NoOpInterceptor{}, *routerConfig}
+	_, err := client.getCatalog(make(map[string][]string))
+
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestGetCatalogWithInvalidCatalog(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	handlerStub := NewHandlerStubWithFunc(http.StatusBadRequest, func(body []byte) []byte {
+		return []byte("")
+	})
+	server, routerConfig := injectClientStub(handlerStub)
+	defer server.Close()
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := osbProxy{routerConfig.HttpClientFactory(tr), NoOpInterceptor{}, *routerConfig}
+	_, err := client.getCatalog(make(map[string][]string))
+
+	g.Expect(err).To(HaveOccurred())
 }
 
 type DeleteInterceptor struct {

@@ -17,6 +17,7 @@ type ProducerInterceptor struct {
 	ProviderId       string
 	IstioDirectory   string
 	IpAddress        string
+	ServiceIdPrefix  string
 }
 
 func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) error {
@@ -80,4 +81,10 @@ func (c ProducerInterceptor) writeIstioConfigFiles(fileName string, configuratio
 		return err
 	}
 	return nil
+}
+
+func (c ProducerInterceptor) postCatalog(catalog *model.Catalog) {
+	for i := range catalog.Services {
+		catalog.Services[i].Id = c.ServiceIdPrefix + catalog.Services[i].Id
+	}
 }
