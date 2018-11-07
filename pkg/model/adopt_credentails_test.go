@@ -65,9 +65,9 @@ func TestPostgresExampleRequestFromBacklogItem(t *testing.T) {
 	  }`), &expected)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	adopted, _ := Adapt(example.Credentials, example.EndpointMappings)
-	g.Expect(adopted.Credentials).To(Equal(expected))
-	g.Expect(adopted.Endpoints).To(Equal([]Endpoint{{"appnethost", 9876}}))
+	adapted, _ := Adapt(example.Credentials, example.EndpointMappings)
+	g.Expect(adapted.Credentials).To(Equal(expected))
+	g.Expect(adapted.Endpoints).To(Equal([]Endpoint{{"appnethost", 9876}}))
 }
 
 func TestRabbitMqExampleRequestFromBacklogItem(t *testing.T) {
@@ -95,16 +95,16 @@ func TestRabbitMqExampleRequestFromBacklogItem(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 
 	fmt.Printf("%#v\n", example)
-	adopted, _ := Adapt(example.Credentials, example.EndpointMappings)
-	g.Expect(adopted.Credentials).To(Equal(expected))
-	g.Expect(adopted.Endpoints).To(Equal([]Endpoint{{"appnethost", 9876}}))
+	adapted, _ := Adapt(example.Credentials, example.EndpointMappings)
+	g.Expect(adapted.Credentials).To(Equal(expected))
+	g.Expect(adapted.Endpoints).To(Equal([]Endpoint{{"appnethost", 9876}}))
 }
 
 func TestUnknownCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
 	credentials := Credentials{}
-	adopted, _ := Adapt(credentials, []EndpointMapping{})
-	g.Expect(adopted.Credentials).To(Equal(credentials))
+	adapted, _ := Adapt(credentials, []EndpointMapping{})
+	g.Expect(adapted.Credentials).To(Equal(credentials))
 }
 
 func TestEndpointIsAddedAfterApplying(t *testing.T) {
