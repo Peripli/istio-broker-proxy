@@ -21,13 +21,13 @@ type ConsumerInterceptor struct {
 	ServiceIdPrefix string
 }
 
-func (c ConsumerInterceptor) preBind(request model.BindRequest) *model.BindRequest {
+func (c ConsumerInterceptor) PreBind(request model.BindRequest) *model.BindRequest {
 	request.NetworkData.Data.ConsumerId = c.ConsumerId
 	request.NetworkData.NetworkProfileId = profiles.NetworkProfile
 	return &request
 }
 
-func (c ConsumerInterceptor) postBind(request model.BindRequest, response model.BindResponse, bindId string,
+func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.BindResponse, bindId string,
 	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
 	var endpointMapping []model.EndpointMapping
 
@@ -78,7 +78,7 @@ func serviceName(index int, bindId string) string {
 	return name
 }
 
-func (c ConsumerInterceptor) postDelete(bindId string) error {
+func (c ConsumerInterceptor) PostDelete(bindId string) error {
 	i := 0
 	var err error
 
@@ -94,11 +94,11 @@ func (c ConsumerInterceptor) postDelete(bindId string) error {
 	return nil
 }
 
-func (c ConsumerInterceptor) hasAdaptCredentials() bool {
+func (c ConsumerInterceptor) HasAdaptCredentials() bool {
 	return false
 }
 
-func (c ConsumerInterceptor) postCatalog(catalog *model.Catalog) {
+func (c ConsumerInterceptor) PostCatalog(catalog *model.Catalog) {
 	for i := range catalog.Services {
 		catalog.Services[i].Id = strings.TrimPrefix(catalog.Services[i].Id, c.ServiceIdPrefix)
 	}

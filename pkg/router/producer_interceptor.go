@@ -25,11 +25,11 @@ func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) error {
 		config.CreateEntriesForExternalService("istio-broker", string(c.IpAddress), uint32(port), "istio-broker."+c.SystemDomain, "client.istio.sapcloud.io", 9000))
 }
 
-func (c ProducerInterceptor) preBind(request model.BindRequest) *model.BindRequest {
+func (c ProducerInterceptor) PreBind(request model.BindRequest) *model.BindRequest {
 	return &request
 }
 
-func (c ProducerInterceptor) postBind(request model.BindRequest, response model.BindResponse, bindingId string,
+func (c ProducerInterceptor) PostBind(request model.BindRequest, response model.BindResponse, bindingId string,
 	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
 	systemDomain := c.SystemDomain
 	providerId := c.ProviderId
@@ -46,11 +46,11 @@ func (c ProducerInterceptor) postBind(request model.BindRequest, response model.
 	return &response, nil
 }
 
-func (c ProducerInterceptor) hasAdaptCredentials() bool {
+func (c ProducerInterceptor) HasAdaptCredentials() bool {
 	return true
 }
 
-func (c ProducerInterceptor) postDelete(bindId string) error {
+func (c ProducerInterceptor) PostDelete(bindId string) error {
 	fileName := path.Join(c.IstioDirectory, bindId) + ".yml"
 	err := os.Remove(fileName)
 	if err != nil {
@@ -83,7 +83,7 @@ func (c ProducerInterceptor) writeIstioConfigFiles(fileName string, configuratio
 	return nil
 }
 
-func (c ProducerInterceptor) postCatalog(catalog *model.Catalog) {
+func (c ProducerInterceptor) PostCatalog(catalog *model.Catalog) {
 	for i := range catalog.Services {
 		catalog.Services[i].Id = c.ServiceIdPrefix + catalog.Services[i].Id
 	}

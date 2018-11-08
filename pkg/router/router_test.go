@@ -652,6 +652,6 @@ type DeleteInterceptor struct {
 	deleteCallback func(bindId string) error
 }
 
-func (c DeleteInterceptor) postDelete(bindId string) error {
+func (c DeleteInterceptor) PostDelete(bindId string) error {
 	return c.deleteCallback(bindId)
 }

@@ -131,7 +131,7 @@ func (client osbProxy) forward(ctx *gin.Context) {
 
 func (client osbProxy) deleteBinding(ctx *gin.Context) {
 	client.forwardWithCallback(ctx, func(ctx *gin.Context) error {
-		return client.interceptor.postDelete(ctx.Params.ByName("binding_id"))
+		return client.interceptor.PostDelete(ctx.Params.ByName("binding_id"))
 	})
 }
 
@@ -142,7 +142,7 @@ func (client osbProxy) forwardCatalog(ctx *gin.Context) {
 		log.Printf("ERROR: %s\n", err.Error())
 		return
 	}
-	client.interceptor.postCatalog(catalog)
+	client.interceptor.PostCatalog(catalog)
 	ctx.JSON(200, catalog)
 }
 
@@ -204,7 +204,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 		return
 	}
 
-	bindRequest = *client.interceptor.preBind(bindRequest)
+	bindRequest = *client.interceptor.PreBind(bindRequest)
 
 	requestBody, err = json.Marshal(bindRequest)
 	log.Printf("translatedRequestBody:\n %v", string(requestBody))
@@ -242,7 +242,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 		}
 		bindingId := ctx.Params.ByName("binding_id")
 		instanceId := ctx.Params.ByName("instance_id")
-		modifiedBindResponse, err := client.interceptor.postBind(bindRequest, bindResponse, bindingId,
+		modifiedBindResponse, err := client.interceptor.PostBind(bindRequest, bindResponse, bindingId,
 			func(credentials model.Credentials, mappings []model.EndpointMapping) (*model.BindResponse, error) {
 				return client.adaptCredentials(credentials, mappings, instanceId, bindingId, request.Header)
 			})
@@ -343,7 +343,7 @@ func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig RouterConfig
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := osbProxy{routerConfig.HttpClientFactory(tr), interceptor, routerConfig}
-	if interceptor.hasAdaptCredentials() {
+	if interceptor.HasAdaptCredentials() {
 		mux.POST("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
 	}
 	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardBindRequest)

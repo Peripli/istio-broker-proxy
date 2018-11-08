@@ -5,33 +5,33 @@ import (
 )
 
 type ServiceBrokerInterceptor interface {
-	preBind(request model.BindRequest) *model.BindRequest
-	postBind(request model.BindRequest, response model.BindResponse, bindId string,
+	PreBind(request model.BindRequest) *model.BindRequest
+	PostBind(request model.BindRequest, response model.BindResponse, bindId string,
 		adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error)
-	postDelete(bindId string) error
-	postCatalog(catalog *model.Catalog)
-	hasAdaptCredentials() bool
+	PostDelete(bindId string) error
+	PostCatalog(catalog *model.Catalog)
+	HasAdaptCredentials() bool
 }
 
 type NoOpInterceptor struct {
 }
 
-func (c NoOpInterceptor) preBind(request model.BindRequest) *model.BindRequest {
+func (c NoOpInterceptor) PreBind(request model.BindRequest) *model.BindRequest {
 	return &request
 }
 
-func (c NoOpInterceptor) postBind(request model.BindRequest, response model.BindResponse, bindingId string,
+func (c NoOpInterceptor) PostBind(request model.BindRequest, response model.BindResponse, bindingId string,
 	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
 	return &response, nil
 }
 
-func (c NoOpInterceptor) hasAdaptCredentials() bool {
+func (c NoOpInterceptor) HasAdaptCredentials() bool {
 	return false
 }
 
-func (c NoOpInterceptor) postDelete(bindId string) error {
+func (c NoOpInterceptor) PostDelete(bindId string) error {
 	return nil
 }
 
-func (c NoOpInterceptor) postCatalog(catalog *model.Catalog) {
+func (c NoOpInterceptor) PostCatalog(catalog *model.Catalog) {
 }

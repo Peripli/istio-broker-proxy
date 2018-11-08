@@ -72,7 +72,7 @@ func TestEndpointsAreTransferedFromCredentials(t *testing.T) {
 		IstioDirectory:   os.TempDir(),
 	}
 	endpoints := []model.Endpoint{{"test.local", 5757}}
-	bindResponse, err := interceptor.postBind(model.BindRequest{}, model.BindResponse{
+	bindResponse, err := interceptor.PostBind(model.BindRequest{}, model.BindResponse{
 		Credentials: model.Credentials{
 			Endpoints: endpoints,
 		},
@@ -92,7 +92,7 @@ func TestConfigFilesAreWrittenAndDeleted(t *testing.T) {
 		IstioDirectory:   os.TempDir(),
 	}
 	endpoints := []model.Endpoint{{"test.local", 5757}}
-	_, err := interceptor.postBind(model.BindRequest{}, model.BindResponse{
+	_, err := interceptor.PostBind(model.BindRequest{}, model.BindResponse{
 		Credentials: model.Credentials{
 			Endpoints: endpoints,
 		},
@@ -106,12 +106,12 @@ func TestConfigFilesAreWrittenAndDeleted(t *testing.T) {
 	contentAsString := string(content)
 	g.Expect(contentAsString).To(ContainSubstring("9000"))
 
-	err = interceptor.postDelete("123")
+	err = interceptor.PostDelete("123")
 	g.Expect(err).NotTo(HaveOccurred())
 	_, err = os.Stat(fileName)
 	g.Expect(err).To(HaveOccurred())
 
-	err = interceptor.postDelete("123")
+	err = interceptor.PostDelete("123")
 	g.Expect(err).NotTo(HaveOccurred())
 }
 
@@ -119,7 +119,7 @@ func TestProducerPostCatalog(t *testing.T) {
 	g := NewGomegaWithT(t)
 	interceptor := ProducerInterceptor{ServiceIdPrefix: "istio-"}
 	catalog := model.Catalog{[]model.Service{{Id: "name"}}}
-	interceptor.postCatalog(&catalog)
+	interceptor.PostCatalog(&catalog)
 	g.Expect(catalog.Services[0].Id).To(Equal("istio-name"))
 
 }
