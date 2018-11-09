@@ -49,7 +49,10 @@ for test_line in test_lines:
         test_result = re.split(r'\s+', test_line)
         coverage = test_result[-3]
         if "%" not in coverage:
-            coverage = test_result[-7]
+            if len(test_result) > 7:
+                coverage = test_result[-7]
+            else:
+                coverage = "0%"
         coverage = float(coverage[:-1])
         path = test_result[1]
         coverage_map[path] = coverage
