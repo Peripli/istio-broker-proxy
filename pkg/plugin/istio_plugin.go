@@ -1,4 +1,4 @@
-package main
+package plugin
 
 import (
 	"encoding/json"
@@ -38,7 +38,7 @@ func extractBindId(path string) string {
 	return strings.Split(path, "/")[3]
 }
 
-func Init(api *web.API) {
+func InitItioPlugin(api *web.API) {
 	istioPlugin := &ItioPlugin{interceptor: &router.NoOpInterceptor{}}
 	api.RegisterPlugins(istioPlugin)
 }
