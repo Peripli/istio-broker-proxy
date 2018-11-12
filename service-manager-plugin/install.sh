@@ -16,6 +16,6 @@ helm install \
     --set config.sm.url=https://service-manager-nocis.cfapps.dev01.aws.istio.sapcloud.io \
     --set sm.user=o1msSsCXOYA5WQ9MjGd+oYxD03CqhZrrsUQMt0IfTzI= \
     --set sm.password=wcRV6lrPNyb/apAXsSk2i1kxZ0fMfteMJ6GoI8VheT4= \
-    --set image.repository=gcr.io/sap-se-gcp-istio-dev/sb-proxy-k8s \
+    --set image.repository=gcr.io/sap-se-gcp-istio-dev/sb-istio-proxy-k8s \
     --set image.tag=latest \
     charts/service-broker-proxy-k8s

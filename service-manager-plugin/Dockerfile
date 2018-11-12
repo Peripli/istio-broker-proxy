@@ -6,4 +6,4 @@ RUN apk add --no-cache bash gawk sed grep bc coreutils
 
 ADD service-manager-plugin/service-manager-plugin.so /app/service-manager-plugin.so
 
-ENTRYPOINT [ "./main", "--plugin" , "service-manager-plugin.so" ]
+ENTRYPOINT [ "./main"]
