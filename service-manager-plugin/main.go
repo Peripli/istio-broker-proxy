@@ -8,6 +8,6 @@ import (
 
 func Init(api unsafe.Pointer) error {
 	myApi := ((*web.API)(api))
-	plugin.InitSimplePlugin(myApi)
+	plugin.InitIstioPlugin(myApi)
 	return nil
 }
