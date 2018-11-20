@@ -1,0 +1,25 @@
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: service-broker-proxy
+  name: istio
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["services", "serviceentries"]
+  verbs: ["get", "watch", "list", "create", "delete"]
+---
+# This role binding allows "dave" to read secrets in the "development" namespace.
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: istio
+  namespace: service-broker-proxy  # This only grants permissions within the "development" namespace.
+subjects:
+- kind: ServiceAccount
+  name: service-broker-proxy-service-broker-proxy-k8s # Name is case sensitive
+  apiGroup: ""
+roleRef:
+  kind: Role
+  name: istio
+  apiGroup: ""

@@ -5,19 +5,21 @@ import (
 	"github.com/Peripli/service-manager/pkg/web"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
 	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/router"
+	"log"
 	"strings"
 )
 
-type ItioPlugin struct {
+type IstioPlugin struct {
 	interceptor router.ServiceBrokerInterceptor
 }
 
-func (i *ItioPlugin) Name() string {
+func (i *IstioPlugin) Name() string {
 	return "istio"
 }
 
-func (i *ItioPlugin) Bind(request *web.Request, next web.Handler) (*web.Response, error) {
+func (i *IstioPlugin) Bind(request *web.Request, next web.Handler) (*web.Response, error) {
 	var bindRequest model.BindRequest
+	log.Printf("IstioPlugin was triggered with request body: %s\n", string(request.Body))
 	json.Unmarshal(request.Body, &bindRequest)
 	bindRequest = *i.interceptor.PreBind(bindRequest)
 	request.Body, _ = json.Marshal(bindRequest)
@@ -29,7 +31,7 @@ func (i *ItioPlugin) Bind(request *web.Request, next web.Handler) (*web.Response
 	return response, nil
 }
 
-func (i *ItioPlugin) Unbind(request *web.Request, next web.Handler) (*web.Response, error) {
+func (i *IstioPlugin) Unbind(request *web.Request, next web.Handler) (*web.Response, error) {
 	// call interceptor.PostDelete()
 	return next.Handle(request)
 }
@@ -38,7 +40,15 @@ func extractBindId(path string) string {
 	return strings.Split(path, "/")[3]
 }
 
-func InitItioPlugin(api *web.API) {
-	istioPlugin := &ItioPlugin{interceptor: &router.NoOpInterceptor{}}
+func createConsumerInterceptor() router.ConsumerInterceptor {
+	consumerInterceptor := router.ConsumerInterceptor{}
+	consumerInterceptor.ServiceIdPrefix = "istio-"
+	consumerInterceptor.ConsumerId = "client.istio.sapcloud.io"
+	consumerInterceptor.ConfigStore = router.NewInClusterConfigStore()
+	return consumerInterceptor
+}
+
+func InitIstioPlugin(api *web.API) {
+	istioPlugin := &IstioPlugin{interceptor: createConsumerInterceptor()}
 	api.RegisterPlugins(istioPlugin)
 }

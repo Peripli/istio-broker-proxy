@@ -59,14 +59,14 @@ func CreateIstioObjectsInK8S(configStore ConfigStore, name string, endpoint mode
 	service.Name = name
 	service, err := configStore.CreateService(service)
 	if err != nil {
-		log.Println("error creating service")
+		log.Println("error creating service:", err.Error())
 		return "", err
 	}
 	configurations := config.CreateEntriesForExternalServiceClient(service.Name, endpoint.Host, service.Spec.ClusterIP, 9000)
 	for _, configuration := range configurations {
 		err = configStore.CreateIstioConfig(configuration)
 		if err != nil {
-			log.Printf("error creating %#v: %s\n", configuration, err)
+			log.Printf("error creating %#v: %s\n", configuration, err.Error())
 			return "", err
 		}
 	}

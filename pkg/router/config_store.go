@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"log"
 	"os"
 )
 
@@ -55,7 +56,9 @@ func getNamespace() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(content), nil
+	namespace := string(content)
+	log.Println("Using namespace", namespace)
+	return namespace, nil
 }
 
 type kubeConfigStore struct {
