@@ -5,9 +5,9 @@ metadata:
   namespace: service-broker-proxy
   name: istio
 rules:
-- apiGroups: [""] # "" indicates the core API group
-  resources: ["services", "serviceentries"]
-  verbs: ["get", "watch", "list", "create", "delete"]
+- apiGroups: ["", "networking.istio.io"] # "" indicates the core API group
+  resources: ["services", "serviceentries", "destinationrules", "gateways", "virtualservices"]
+  verbs: ["get", "watch", "list", "create"]
 ---
 # This role binding allows "dave" to read secrets in the "development" namespace.
 kind: RoleBinding

@@ -88,25 +88,25 @@ func DeleteEntriesForExternalServiceClient(serviceName string) []ServiceId {
 	return result
 }
 
-func CreateEntriesForExternalServiceClient(serviceName string, hostName string, serviceIP string, port int) []istioModel.Config {
+func CreateEntriesForExternalServiceClient(serviceName string, hostName string, serviceIP string, port int, namespace string) []istioModel.Config {
 	var configs []istioModel.Config
 
-	serviceEntry := createEgressExternServiceEntryForExternalService(hostName, uint32(port), serviceName)
+	serviceEntry := createEgressExternServiceEntryForExternalService(hostName, uint32(port), serviceName, namespace)
 	configs = append(configs, serviceEntry)
 
-	virtualService := createMeshVirtualServiceForExternalService(hostName, 443, serviceName, serviceIP)
+	virtualService := createMeshVirtualServiceForExternalService(hostName, 443, serviceName, serviceIP, namespace)
 	configs = append(configs, virtualService)
 
-	virtualService = createEgressVirtualServiceForExternalService(hostName, uint32(port), serviceName, 443)
+	virtualService = createEgressVirtualServiceForExternalService(hostName, uint32(port), serviceName, 443, namespace)
 	configs = append(configs, virtualService)
 
-	gateway := createEgressGatewayForExternalService(hostName, 443, serviceName)
+	gateway := createEgressGatewayForExternalService(hostName, 443, serviceName, namespace)
 	configs = append(configs, gateway)
 
-	destinationRule := createEgressDestinationRuleForExternalService(hostName, uint32(port), serviceName)
+	destinationRule := createEgressDestinationRuleForExternalService(hostName, uint32(port), serviceName, namespace)
 	configs = append(configs, destinationRule)
 
-	destinationRule = createSidecarDestinationRuleForExternalService(hostName, serviceName)
+	destinationRule = createSidecarDestinationRuleForExternalService(hostName, serviceName, namespace)
 	configs = append(configs, destinationRule)
 
 	return configs

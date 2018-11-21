@@ -19,6 +19,7 @@ type ConfigStore interface {
 	CreateIstioConfig(model.Config) error
 	DeleteService(string) error
 	DeleteIstioConfig(string, string) error
+	getNamespace() string
 }
 
 func NewInClusterConfigStore() ConfigStore {
@@ -47,6 +48,11 @@ func newKubeConfigStore(config *rest.Config, namespace string) ConfigStore {
 	return kubeConfigStore{clientset, namespace, configClient}
 
 }
+
+func (k kubeConfigStore) getNamespace() string {
+	return k.namespace
+}
+
 func getNamespace() (string, error) {
 	file, err := os.Open("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {

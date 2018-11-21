@@ -314,6 +314,10 @@ func (m *mockConfigStore) CreateService(service *v1.Service) (*v1.Service, error
 	return service, nil
 }
 
+func (m *mockConfigStore) getNamespace() string {
+	return "catalog"
+}
+
 func (m *mockConfigStore) CreateIstioConfig(object istioModel.Config) error {
 	if m.createObjectErr != nil {
 		return m.createObjectErr
