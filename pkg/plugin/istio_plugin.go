@@ -19,20 +19,26 @@ func (i *IstioPlugin) Name() string {
 
 func (i *IstioPlugin) Bind(request *web.Request, next web.Handler) (*web.Response, error) {
 	var bindRequest model.BindRequest
-	log.Printf("IstioPlugin was triggered with request body: %s\n", string(request.Body))
+	log.Printf("IstioPlugin bind was triggered with request body: %s\n", string(request.Body))
 	json.Unmarshal(request.Body, &bindRequest)
+	log.Println("execute prebind")
 	bindRequest = *i.interceptor.PreBind(bindRequest)
 	request.Body, _ = json.Marshal(bindRequest)
 	response, _ := next.Handle(request)
 	var bindResponse model.BindResponse
 	json.Unmarshal(response.Body, &bindResponse)
-	modifiedBindResponse, _ := i.interceptor.PostBind(bindRequest, bindResponse, extractBindId(request.URL.Path), model.Adapt)
+	log.Println("execute postbind")
+	modifiedBindResponse, err := i.interceptor.PostBind(bindRequest, bindResponse, extractBindId(request.URL.Path), model.Adapt)
+	if err != nil {
+		log.Printf("Error during PostBind %s\n", err.Error())
+	}
 	response.Body, _ = json.Marshal(modifiedBindResponse)
 	return response, nil
 }
 
 func (i *IstioPlugin) Unbind(request *web.Request, next web.Handler) (*web.Response, error) {
-	// call interceptor.PostDelete()
+	log.Printf("IstioPlugin unbind was triggered with request body: %s\n", string(request.Body))
+	i.interceptor.PostDelete(extractBindId(request.URL.Path))
 	return next.Handle(request)
 }
 

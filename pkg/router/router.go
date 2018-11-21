@@ -86,12 +86,7 @@ func (client osbProxy) getCatalog(header http.Header) (*model.Catalog, error) {
 func (client osbProxy) adaptCredentials(credentials model.Credentials, mapping []model.EndpointMapping, instanceId string, bindId string, header http.Header) (*model.BindResponse, error) {
 
 	request := model.AdaptCredentialsRequest{Credentials: credentials, EndpointMappings: mapping}
-	requestBody, err := json.Marshal(request)
-
-	if nil != err {
-		log.Printf("ERROR: %s\n", err.Error())
-		return nil, err
-	}
+	requestBody, _ := json.Marshal(request)
 
 	url := fmt.Sprintf("%s/v2/service_instances/%s/service_bindings/%s/adapt_credentials", client.config.ForwardURL, instanceId, bindId)
 	proxyRequest, err := client.config.HttpRequestFactory(http.MethodPost, url, bytes.NewReader(requestBody))
@@ -206,12 +201,8 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 
 	bindRequest = *client.interceptor.PreBind(bindRequest)
 
-	requestBody, err = json.Marshal(bindRequest)
+	requestBody, _ = json.Marshal(bindRequest)
 	log.Printf("translatedRequestBody:\n %v", string(requestBody))
-	if err != nil {
-		httpError(writer, err)
-		return
-	}
 	proxyRequest := client.createForwardingRequest(request, err, requestBody)
 
 	response, err := client.Do(proxyRequest)
@@ -252,7 +243,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 		}
 		bindResponse = *modifiedBindResponse
 
-		responseBody, err = json.Marshal(bindResponse)
+		responseBody, _ = json.Marshal(bindResponse)
 		log.Printf("translatedResponseBody:\n %v", string(responseBody))
 	}
 

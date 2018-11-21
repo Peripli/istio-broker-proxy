@@ -46,7 +46,6 @@ func newKubeConfigStore(config *rest.Config, namespace string) ConfigStore {
 	}
 
 	return kubeConfigStore{clientset, namespace, configClient}
-
 }
 
 func (k kubeConfigStore) getNamespace() string {

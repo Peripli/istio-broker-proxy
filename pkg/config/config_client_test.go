@@ -8,7 +8,7 @@ import (
 func TestClientGatewayFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	gatewayConfig := createEgressGatewayForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io", 443, "mypostgres")
+	gatewayConfig := createEgressGatewayForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io", 443, "mypostgres", "catalog")
 	g.Expect(gatewayConfig.Version).To(Equal("v1alpha3"))
 	g.Expect(gatewayConfig.Group).To(Equal("networking.istio.io"))
 	g.Expect(gatewayConfig.Type).To(Equal("gateway"))
@@ -21,7 +21,7 @@ func TestClientVirtualServiceFromGo(t *testing.T) {
 
 	virtualServiceSpec := createEgressVirtualServiceForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
 		9000,
-		"mypostgres", 443)
+		"mypostgres", 443, "catalog")
 
 	g.Expect(virtualServiceSpec.Version).To(Equal("v1alpha3"))
 	g.Expect(virtualServiceSpec.Group).To(Equal("networking.istio.io"))
@@ -35,7 +35,7 @@ func TestClientMeshVirtualServiceFromGo(t *testing.T) {
 
 	virtualServiceConfig := createMeshVirtualServiceForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
 		443,
-		"mypostgres", "100.66.152.30")
+		"mypostgres", "100.66.152.30", "catalog")
 
 	g.Expect(virtualServiceConfig.Version).To(Equal("v1alpha3"))
 	g.Expect(virtualServiceConfig.Group).To(Equal("networking.istio.io"))
@@ -49,7 +49,7 @@ func TestClientEgressDestinationRuleFromGo(t *testing.T) {
 
 	destinationRuleConfig := createEgressDestinationRuleForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
 		9000,
-		"mypostgres")
+		"mypostgres", "catalog")
 
 	g.Expect(destinationRuleConfig.Version).To(Equal("v1alpha3"))
 	g.Expect(destinationRuleConfig.Group).To(Equal("networking.istio.io"))
@@ -63,7 +63,7 @@ func TestClientExternServiceEntryFromGo(t *testing.T) {
 
 	serviceEntryConfig := createEgressExternServiceEntryForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
 		9000,
-		"mypostgres")
+		"mypostgres", "catalog")
 
 	g.Expect(serviceEntryConfig.Version).To(Equal("v1alpha3"))
 	g.Expect(serviceEntryConfig.Group).To(Equal("networking.istio.io"))
@@ -76,7 +76,7 @@ func TestClientSidecarDestinationRuleFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	destinationRuleConfig := createSidecarDestinationRuleForExternalService("mypostgres.services.cf.dev01.aws.istio.sapcloud.io",
-		"mypostgres")
+		"mypostgres", "catalog")
 
 	g.Expect(destinationRuleConfig.Version).To(Equal("v1alpha3"))
 	g.Expect(destinationRuleConfig.Group).To(Equal("networking.istio.io"))

@@ -35,6 +35,7 @@ func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.
 		return nil, fmt.Errorf("Number of endpoints in NetworkData.Data (%d) doesn't match number of endpoints in root (%d)",
 			len(response.NetworkData.Data.Endpoints), len(response.Endpoints))
 	}
+	log.Printf("Number of endpoints: %d\n", len(response.NetworkData.Data.Endpoints))
 	for index, endpoint := range response.NetworkData.Data.Endpoints {
 		clusterIp, err := CreateIstioObjectsInK8S(c.ConfigStore, serviceName(index, bindId), endpoint)
 		if err != nil {
@@ -57,13 +58,10 @@ func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.
 func CreateIstioObjectsInK8S(configStore ConfigStore, name string, endpoint model.Endpoint) (string, error) {
 	service := &v1.Service{Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Port: service_port, TargetPort: intstr.FromInt(service_port)}}}}
 	service.Name = name
+	log.Println("Creating istio objects for", name)
 	service, err := configStore.CreateService(service)
 	if err != nil {
 		log.Println("error creating service:", err.Error())
-		return "", err
-	}
-	if err != nil {
-		log.Printf("error reading namespace: %s\n", err.Error())
 		return "", err
 	}
 	configurations := config.CreateEntriesForExternalServiceClient(service.Name, endpoint.Host, service.Spec.ClusterIP, 9000, configStore.getNamespace())
