@@ -1,9 +1,9 @@
-github.infra.hana.ondemand.com/istio/istio-broker;0.0
-github.infra.hana.ondemand.com/istio/istio-broker/integration;0.0
+github.infra.hana.ondemand.com/istio/istio-broker/pkg/plugin;0.0
+github.infra.hana.ondemand.com/istio/istio-broker/pkg/router;75.9
+github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles;100.0
 github.infra.hana.ondemand.com/istio/istio-broker/pkg/config;95.3
 github.infra.hana.ondemand.com/istio/istio-broker/pkg/config/client;21.4
+github.infra.hana.ondemand.com/istio/istio-broker/integration;0.0
 github.infra.hana.ondemand.com/istio/istio-broker/pkg/model;97.6
-github.infra.hana.ondemand.com/istio/istio-broker/pkg/plugin;0.0
-github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles;100.0
-github.infra.hana.ondemand.com/istio/istio-broker/pkg/router;75.7
+github.infra.hana.ondemand.com/istio/istio-broker;0.0
 github.infra.hana.ondemand.com/istio/istio-broker/service-manager-plugin;0.0
