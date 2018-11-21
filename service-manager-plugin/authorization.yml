@@ -7,7 +7,7 @@ metadata:
 rules:
 - apiGroups: ["", "networking.istio.io"] # "" indicates the core API group
   resources: ["services", "serviceentries", "destinationrules", "gateways", "virtualservices"]
-  verbs: ["get", "watch", "list", "create"]
+  verbs: ["get", "watch", "list", "create", "delete"]
 ---
 # This role binding allows "dave" to read secrets in the "development" namespace.
 kind: RoleBinding
