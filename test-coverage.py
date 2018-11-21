@@ -88,7 +88,7 @@ if coverage_better:
         print("Coverage got better. Writing new reference.")
         write_coverage(coverage_map, filename)
                 
-        if args.write_better_ref:
+        if args.push_better_ref:
                 os.chdir(scriptdir)
                 subprocess.call(["git", "commit", "-a", "-m", "Update coverage reference."])
                 subprocess.call(["git", "push", "origin", "HEAD:master"])
