@@ -26,6 +26,9 @@ parser = ArgumentParser()
 parser.add_argument("-w", "--write-new-ref", dest="write_new_ref", default=False,
                     help="write new reference file")
 
+parser.add_argument("-p", "--push-better-ref", dest="push_better_ref", default=False,
+                    help="push new reference file if coverage got better")
+
 
 args = parser.parse_args()
 filename = os.path.join(scriptdir,"coverage.csv")
@@ -82,9 +85,10 @@ if coverage_worse:
         exit (1)
 
 if coverage_better:
-        print("Coverage got bestter. Writing new reference.")
+        print("Coverage got better. Writing new reference.")
         write_coverage(coverage_map, filename)
                 
-        os.chdir(scriptdir)
-        subprocess.call(["git", "commit", "-a", "-m", "Update coverage reference."])
-        subprocess.call(["git", "push", "origin", "HEAD:master"])
+        if args.write_better_ref:
+                os.chdir(scriptdir)
+                subprocess.call(["git", "commit", "-a", "-m", "Update coverage reference."])
+                subprocess.call(["git", "push", "origin", "HEAD:master"])
