@@ -2,9 +2,9 @@ package router
 
 import (
 	"fmt"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/config"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
+	"github.com/Peripli/istio-broker-proxy/pkg/config"
+	"github.com/Peripli/istio-broker-proxy/pkg/model"
+	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"log"

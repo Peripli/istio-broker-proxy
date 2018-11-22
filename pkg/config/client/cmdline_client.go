@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/config"
-	m "github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/router"
+	"github.com/Peripli/istio-broker-proxy/pkg/config"
+	m "github.com/Peripli/istio-broker-proxy/pkg/model"
+	"github.com/Peripli/istio-broker-proxy/pkg/router"
 	"istio.io/istio/pilot/pkg/model"
 	"os"
 )

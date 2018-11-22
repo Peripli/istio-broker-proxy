@@ -2,7 +2,7 @@ package config
 
 import (
 	"encoding/json"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
+	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"regexp"
 	"testing"
 

@@ -1,13 +1,13 @@
 package integration
 
 import (
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/config"
+	"github.com/Peripli/istio-broker-proxy/pkg/config"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
 	"k8s.io/client-go/tools/clientcmd"
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/router"
+	"github.com/Peripli/istio-broker-proxy/pkg/router"
 	"istio.io/api/networking/v1alpha3"
 	"istio.io/istio/pilot/pkg/model"
 	"k8s.io/api/core/v1"

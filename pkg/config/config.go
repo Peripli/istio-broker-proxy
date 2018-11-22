@@ -3,8 +3,8 @@ package config
 import (
 	"fmt"
 	"github.com/ghodss/yaml"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
+	"github.com/Peripli/istio-broker-proxy/pkg/model"
+	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
 	istioModel "istio.io/istio/pilot/pkg/model"
 	"regexp"

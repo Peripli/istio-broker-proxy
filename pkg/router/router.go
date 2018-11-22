@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
+	"github.com/Peripli/istio-broker-proxy/pkg/model"
 )
 
 const (

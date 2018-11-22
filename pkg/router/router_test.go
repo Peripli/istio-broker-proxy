@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
+	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/profiles"
+	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
 )
 
 func TestInvalidUpdateCredentials(t *testing.T) {

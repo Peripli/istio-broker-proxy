@@ -2,7 +2,7 @@ package router
 
 import (
 	. "github.com/onsi/gomega"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
+	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"io/ioutil"
 	"os"
 	"path"

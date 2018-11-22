@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/router"
+	"github.com/Peripli/istio-broker-proxy/pkg/router"
 	"log"
 	"os"
 )

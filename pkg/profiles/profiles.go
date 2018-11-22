@@ -2,7 +2,7 @@ package profiles
 
 import (
 	"fmt"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/model"
+	"github.com/Peripli/istio-broker-proxy/pkg/model"
 )
 
 const NetworkProfile = "urn:com.sap.istio:public"
