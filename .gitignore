@@ -1,5 +1,6 @@
 # Binaries for programs and plugins
 istio-broker
+istio-broker-proxy
 client
 *.exe
 *.dll
