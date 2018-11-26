@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"testing"
 
-	. "github.com/onsi/gomega"
 	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
+	. "github.com/onsi/gomega"
 )
 
 func TestInvalidUpdateCredentials(t *testing.T) {
@@ -586,6 +586,43 @@ func TestAdaptCredentialsWithProxy(t *testing.T) {
 
 }
 
+func TestAdaptCredentialsWithBadRequest(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	handlerStub := NewHandlerStub(http.StatusBadRequest, []byte(`{"error" : "myerror", "description" : "mydescription"}`))
+	server, routerConfig := injectClientStub(handlerStub)
+	defer server.Close()
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := osbProxy{routerConfig.HttpClientFactory(tr), NoOpInterceptor{}, *routerConfig}
+	_, err := client.adaptCredentials(
+		model.PostgresCredentials{}.ToCredentials(),
+		[]model.EndpointMapping{}, "1234-4567", "7654-3210", make(map[string][]string))
+
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.(*model.HttpError).Status).To(Equal(http.StatusBadRequest))
+	g.Expect(err.(*model.HttpError).Message).To(Equal("myerror"))
+	g.Expect(err.(*model.HttpError).Description).To(Equal("mydescription"))
+}
+
+func TestAdaptCredentialsWithInvalidJson(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	handlerStub := NewHandlerStub(http.StatusOK, []byte(""))
+	server, routerConfig := injectClientStub(handlerStub)
+	defer server.Close()
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := osbProxy{routerConfig.HttpClientFactory(tr), NoOpInterceptor{}, *routerConfig}
+	_, err := client.adaptCredentials(
+		model.PostgresCredentials{}.ToCredentials(),
+		[]model.EndpointMapping{}, "1234-4567", "7654-3210", make(map[string][]string))
+
+	g.Expect(err).To(HaveOccurred())
+}
+
 func TestGetCatalog(t *testing.T) {
 	g := NewGomegaWithT(t)
 
@@ -633,7 +670,7 @@ func TestGetCatalogWithoutUpstreamServer(t *testing.T) {
 func TestGetCatalogWithInvalidCatalog(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	handlerStub := NewHandlerStubWithFunc(http.StatusBadRequest, func(body []byte) []byte {
+	handlerStub := NewHandlerStubWithFunc(http.StatusOK, func(body []byte) []byte {
 		return []byte("")
 	})
 	server, routerConfig := injectClientStub(handlerStub)
@@ -645,6 +682,45 @@ func TestGetCatalogWithInvalidCatalog(t *testing.T) {
 	_, err := client.getCatalog(make(map[string][]string))
 
 	g.Expect(err).To(HaveOccurred())
+}
+
+func TestGetCatalogWithBadRequest(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	handlerStub := NewHandlerStubWithFunc(http.StatusBadRequest, func(body []byte) []byte {
+		return []byte("{}")
+	})
+	server, routerConfig := injectClientStub(handlerStub)
+	defer server.Close()
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := osbProxy{routerConfig.HttpClientFactory(tr), NoOpInterceptor{}, *routerConfig}
+	_, err := client.getCatalog(make(map[string][]string))
+
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestGetHttpErrorWithInvalidJson(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	err := getHttpError(501, []byte("[]"))
+
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.(*model.HttpError).Status).To(Equal(501))
+	g.Expect(err.(*model.HttpError).Message).To(Equal(""))
+	g.Expect(err.(*model.HttpError).Description).To(Equal(""))
+}
+
+func TestGetHttpErrorWith(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	err := getHttpError(502, []byte(`{"error" : "myerror", "description" : "mydescription"}`))
+
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.(*model.HttpError).Status).To(Equal(502))
+	g.Expect(err.(*model.HttpError).Message).To(Equal("myerror"))
+	g.Expect(err.(*model.HttpError).Description).To(Equal("mydescription"))
 }
 
 type DeleteInterceptor struct {

@@ -12,8 +12,8 @@ import (
 	"net/http/httputil"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
+	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -72,6 +72,12 @@ func (client osbProxy) getCatalog(header http.Header) (*model.Catalog, error) {
 		log.Printf("ERROR: %s\n", err.Error())
 		return nil, err
 	}
+
+	err = getHttpError(response.StatusCode, bodyAsBytes)
+	if err != nil {
+		return nil, err
+	}
+
 	err = json.Unmarshal(bodyAsBytes, &catalog)
 
 	log.Printf("Response from get catalog: %s\n", string(bodyAsBytes))
@@ -81,6 +87,21 @@ func (client osbProxy) getCatalog(header http.Header) (*model.Catalog, error) {
 	}
 
 	return &catalog, nil
+}
+
+func getHttpError(statusCode int, body []byte) error {
+	okResponse := statusCode/100 == 2
+	if !okResponse {
+		var httpError model.HttpError
+		err := json.Unmarshal(body, &httpError)
+		if err != nil {
+			return &model.HttpError{Status: statusCode}
+		}
+		httpError.Status = statusCode
+		return &httpError
+	}
+	return nil
+
 }
 
 func (client osbProxy) adaptCredentials(credentials model.Credentials, mapping []model.EndpointMapping, instanceId string, bindId string, header http.Header) (*model.BindResponse, error) {
@@ -101,12 +122,18 @@ func (client osbProxy) adaptCredentials(credentials model.Credentials, mapping [
 
 	defer response.Body.Close()
 
-	var bindResponse model.BindResponse
 	bodyAsBytes, err := ioutil.ReadAll(response.Body)
 	if nil != err {
 		log.Printf("ERROR: %s\n", err.Error())
 		return nil, err
 	}
+
+	err = getHttpError(response.StatusCode, bodyAsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	var bindResponse model.BindResponse
 	err = json.Unmarshal(bodyAsBytes, &bindResponse)
 
 	log.Printf("Response from adapt credentials: %s\n", string(bodyAsBytes))
