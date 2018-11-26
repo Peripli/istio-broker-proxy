@@ -52,41 +52,103 @@ func (client osbProxy) updateCredentials(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-func (client osbProxy) getCatalog(header http.Header) (*model.Catalog, error) {
-	url := fmt.Sprintf("%s/v2/catalog", client.config.ForwardURL)
-	proxyRequest, err := client.config.HttpRequestFactory(http.MethodGet, url, bytes.NewReader(make([]byte, 0)))
-	proxyRequest.Header = header
+type OsbRequest struct {
+	url     string
+	err     error
+	request []byte
+	method  string
+	header  http.Header
+	client  osbProxy
+}
 
-	response, err := client.Do(proxyRequest)
-	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
-		return nil, err
+type OsbResponse struct {
+	err      error
+	response []byte
+}
+
+func (client osbProxy) Get() *OsbRequest {
+	return &OsbRequest{method: http.MethodGet, client: client, request: make([]byte, 0)}
+}
+
+func (client osbProxy) Post(request interface{}) *OsbRequest {
+	requestBody, err := json.Marshal(request)
+	return &OsbRequest{method: http.MethodPost, client: client, request: requestBody, err: err}
+}
+
+func (o *OsbRequest) Header(header http.Header) *OsbRequest {
+	o.header = header
+	return o
+}
+
+func (o *OsbRequest) Url(url string) *OsbRequest {
+	o.url = url
+	return o
+}
+
+func (o *OsbRequest) Do() *OsbResponse {
+	osbResponse := OsbResponse{err: o.err}
+	if o.err != nil {
+		return &osbResponse
 	}
-	log.Printf("Response status from get catalog: %s\n", response.Status)
+	var proxyRequest *http.Request
+	proxyRequest, osbResponse.err = o.client.config.HttpRequestFactory(o.method, o.url, bytes.NewReader(o.request))
+	if osbResponse.err != nil {
+		log.Printf("ERROR: %s\n", osbResponse.err.Error())
+		return &osbResponse
+	}
+	proxyRequest.Header = o.header
+
+	var response *http.Response
+	response, osbResponse.err = o.client.Do(proxyRequest)
+	if osbResponse.err != nil {
+		log.Printf("ERROR: %s\n", osbResponse.err.Error())
+		return &osbResponse
+	}
+	log.Printf("Response status from %s: %s\n", o.url, response.Status)
 
 	defer response.Body.Close()
 
+	osbResponse.response, osbResponse.err = ioutil.ReadAll(response.Body)
+	if nil != osbResponse.err {
+		log.Printf("ERROR: %s\n", osbResponse.err.Error())
+		return &osbResponse
+	}
+	log.Printf("Response from %s: %s\n", o.url, string(osbResponse.response))
+
+	osbResponse.err = getHttpError(response.StatusCode, osbResponse.response)
+	if osbResponse.err != nil {
+		return &osbResponse
+	}
+
+	return &osbResponse
+}
+
+func (o *OsbResponse) Into(result interface{}) error {
+	if o.err != nil {
+		return o.err
+	}
+	o.err = json.Unmarshal(o.response, result)
+
+	if nil != o.err {
+		log.Printf("ERROR: %s\n", o.err.Error())
+		return o.err
+	}
+	return nil
+}
+
+func (o *OsbResponse) Error() error {
+	return o.err
+}
+
+func (client osbProxy) getCatalog(header http.Header) (*model.Catalog, error) {
 	var catalog model.Catalog
-	bodyAsBytes, err := ioutil.ReadAll(response.Body)
-	if nil != err {
-		log.Printf("ERROR: %s\n", err.Error())
-		return nil, err
-	}
+	err := client.Get().
+		Url(fmt.Sprintf("%s/v2/catalog", client.config.ForwardURL)).
+		Header(header).
+		Do().
+		Into(&catalog)
+	return &catalog, err
 
-	err = getHttpError(response.StatusCode, bodyAsBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(bodyAsBytes, &catalog)
-
-	log.Printf("Response from get catalog: %s\n", string(bodyAsBytes))
-	if nil != err {
-		log.Printf("ERROR: %s\n", err.Error())
-		return nil, err
-	}
-
-	return &catalog, nil
 }
 
 func getHttpError(statusCode int, body []byte) error {
@@ -106,43 +168,14 @@ func getHttpError(statusCode int, body []byte) error {
 
 func (client osbProxy) adaptCredentials(credentials model.Credentials, mapping []model.EndpointMapping, instanceId string, bindId string, header http.Header) (*model.BindResponse, error) {
 
-	request := model.AdaptCredentialsRequest{Credentials: credentials, EndpointMappings: mapping}
-	requestBody, _ := json.Marshal(request)
-
-	url := fmt.Sprintf("%s/v2/service_instances/%s/service_bindings/%s/adapt_credentials", client.config.ForwardURL, instanceId, bindId)
-	proxyRequest, err := client.config.HttpRequestFactory(http.MethodPost, url, bytes.NewReader(requestBody))
-	proxyRequest.Header = header
-
-	response, err := client.Do(proxyRequest)
-	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
-		return nil, err
-	}
-	log.Printf("Response status from adapt credentials: %s\n", response.Status)
-
-	defer response.Body.Close()
-
-	bodyAsBytes, err := ioutil.ReadAll(response.Body)
-	if nil != err {
-		log.Printf("ERROR: %s\n", err.Error())
-		return nil, err
-	}
-
-	err = getHttpError(response.StatusCode, bodyAsBytes)
-	if err != nil {
-		return nil, err
-	}
-
 	var bindResponse model.BindResponse
-	err = json.Unmarshal(bodyAsBytes, &bindResponse)
+	err := client.Post(&model.AdaptCredentialsRequest{Credentials: credentials, EndpointMappings: mapping}).
+		Url(fmt.Sprintf("%s/v2/service_instances/%s/service_bindings/%s/adapt_credentials", client.config.ForwardURL, instanceId, bindId)).
+		Header(header).
+		Do().
+		Into(&bindResponse)
+	return &bindResponse, err
 
-	log.Printf("Response from adapt credentials: %s\n", string(bodyAsBytes))
-	if nil != err {
-		log.Printf("ERROR: %s\n", err.Error())
-		return nil, err
-	}
-
-	return &bindResponse, nil
 }
 
 func (client osbProxy) forward(ctx *gin.Context) {

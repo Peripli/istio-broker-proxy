@@ -33,16 +33,16 @@ parser.add_argument("-p", "--push-better-ref", dest="push_better_ref", default=F
 args = parser.parse_args()
 filename = os.path.join(scriptdir,"coverage.csv")
 reference_coverage_map = read_coverage(filename)
-package = "github.infra.hana.ondemand.com/istio/istio-broker"
+package = "github.com/Peripli/istio-broker-proxy"
 command = "go test -cover %s/..." % package
 print(command)
 
-test = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE).stdout.read()
+test = subprocess.check_output(command, shell=True)
 test_output = test.decode("utf-8")
 print( test_output)
 #should look like this:
-#ok  	github.infra.hana.ondemand.com/istio/istio-broker	(cached)	coverage: 0.0% of statements [no tests to run]
-#ok  	github.infra.hana.ondemand.com/istio/istio-broker/integration	(cached)	coverage: 0.0% of statements
+#ok  	github.com/Peripli/istio-broker-proxy	(cached)	coverage: 0.0% of statements [no tests to run]
+#ok  	github.com/Peripli/istio-broker-proxy/integration	(cached)	coverage: 0.0% of statements
 
 coverage_map = {}
 
