@@ -6,8 +6,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"testing"
 
-	. "github.com/onsi/gomega"
 	"github.com/Peripli/istio-broker-proxy/pkg/router"
+	. "github.com/onsi/gomega"
 	"istio.io/api/networking/v1alpha3"
 	"istio.io/istio/pilot/pkg/model"
 	"k8s.io/api/core/v1"
