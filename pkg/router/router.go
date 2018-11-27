@@ -5,15 +5,12 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/Peripli/istio-broker-proxy/pkg/model"
+	"github.com/gin-gonic/gin"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httputil"
-	"strings"
-
-	"github.com/Peripli/istio-broker-proxy/pkg/model"
-	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -73,6 +70,11 @@ func (client osbProxy) Get() *OsbRequest {
 func (client osbProxy) Post(request interface{}) *OsbRequest {
 	requestBody, err := json.Marshal(request)
 	return &OsbRequest{method: http.MethodPost, client: client, request: requestBody, err: err}
+}
+
+func (client osbProxy) Put(request interface{}) *OsbRequest {
+	requestBody, err := json.Marshal(request)
+	return &OsbRequest{method: http.MethodPut, client: client, request: requestBody, err: err}
 }
 
 func (o *OsbRequest) Header(header http.Header) *OsbRequest {
@@ -242,97 +244,45 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 	writer := ctx.Writer
 	request := ctx.Request
 
-	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
-
-	// we need to buffer the requestBody if we want to read it here and send it
-	// in the request.
-	requestBody, err := ioutil.ReadAll(request.Body)
-	if err != nil {
-		httpError(writer, err)
-		return
-	}
-
 	var bindRequest model.BindRequest
-	err = json.Unmarshal(requestBody, &bindRequest)
+	err := ctx.ShouldBindJSON(&bindRequest)
 	if err != nil {
-		httpError(writer, err)
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
+
+	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
 
 	bindRequest = *client.interceptor.PreBind(bindRequest)
 
-	requestBody, _ = json.Marshal(bindRequest)
-	log.Printf("translatedRequestBody:\n %v", string(requestBody))
-	proxyRequest := client.createForwardingRequest(request, err, requestBody)
+	var bindResponse model.BindResponse
 
-	response, err := client.Do(proxyRequest)
+	err = client.Put(bindRequest).
+		Header(request.Header).
+		Url(createNewUrl(client.config.ForwardURL, request)).
+		Do().
+		Into(&bindResponse)
+
+	if err != nil {
+		httpError := model.HttpErrorFromError(err)
+		ctx.AbortWithStatusJSON(httpError.Status, httpError)
+		return
+	}
+
+	bindingId := ctx.Params.ByName("binding_id")
+	instanceId := ctx.Params.ByName("instance_id")
+	modifiedBindResponse, err := client.interceptor.PostBind(bindRequest, bindResponse, bindingId,
+		func(credentials model.Credentials, mappings []model.EndpointMapping) (*model.BindResponse, error) {
+			return client.adaptCredentials(credentials, mappings, instanceId, bindingId, request.Header)
+		})
 	if err != nil {
 		httpError(writer, err)
 		return
 	}
-	log.Printf("Request forwarded: %s\n", response.Status)
+	bindResponse = *modifiedBindResponse
 
-	defer func() {
-		response.Body.Close()
-	}()
+	ctx.JSON(http.StatusOK, bindResponse)
 
-	responseBody, err := ioutil.ReadAll(response.Body)
-	log.Printf("respBody:\n %v", string(responseBody))
-	if err != nil {
-		httpError(writer, err)
-		return
-	}
-
-	okResponse := response.StatusCode/100 == 2
-	if okResponse {
-		var bindResponse model.BindResponse
-		err = json.Unmarshal(responseBody, &bindResponse)
-		if err != nil {
-			httpError(writer, err)
-			return
-		}
-		bindingId := ctx.Params.ByName("binding_id")
-		instanceId := ctx.Params.ByName("instance_id")
-		modifiedBindResponse, err := client.interceptor.PostBind(bindRequest, bindResponse, bindingId,
-			func(credentials model.Credentials, mappings []model.EndpointMapping) (*model.BindResponse, error) {
-				return client.adaptCredentials(credentials, mappings, instanceId, bindingId, request.Header)
-			})
-		if err != nil {
-			httpError(writer, err)
-			return
-		}
-		bindResponse = *modifiedBindResponse
-
-		responseBody, _ = json.Marshal(bindResponse)
-		log.Printf("translatedResponseBody:\n %v", string(responseBody))
-	}
-
-	for name, values := range response.Header {
-		switch strings.ToLower(name) {
-		case "content-length":
-			writer.Header()[name] = []string{fmt.Sprintf("%d", len(responseBody))}
-		case "transfer-encoding":
-			// just remove it
-		default:
-			writer.Header()[name] = values
-		}
-	}
-
-	writer.WriteHeader(response.StatusCode)
-
-	count, err := writer.Write(responseBody)
-
-	fmt.Printf("count: %d\n", count)
-	fmt.Printf("error: %v\n", err)
-
-	//reassign responseBody for dump
-	response.Body = ioutil.NopCloser(bytes.NewReader(responseBody))
-	responseDump, err := httputil.DumpResponse(response, true)
-	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
-	}
-
-	log.Printf("Response:\n%v\n", string(responseDump))
 }
 
 func httpError(writer gin.ResponseWriter, err error) {
@@ -347,25 +297,6 @@ func httpClientFactory(tr *http.Transport) *http.Client {
 
 func httpRequestFactory(method string, url string, body io.Reader) (*http.Request, error) {
 	return http.NewRequest(method, url, body)
-}
-
-func (client osbProxy) createForwardingRequest(request *http.Request, err error, body []byte) *http.Request {
-	url := createNewUrl(client.config.ForwardURL, request)
-	proxyRequest, err := client.config.HttpRequestFactory(request.Method, url, bytes.NewReader(body))
-	// We may want to filter some headers, otherwise we could just use a shallow copy
-	// proxyRequest.Header = request.Header
-	proxyRequest.Header = make(http.Header)
-	for key, value := range request.Header {
-		proxyRequest.Header[key] = value
-	}
-
-	requestDump, err := httputil.DumpRequest(proxyRequest, true)
-	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
-	}
-	log.Printf("Proxy request:\n%v\n", string(requestDump))
-
-	return proxyRequest
 }
 
 func createNewUrl(newBaseUrl string, req *http.Request) string {

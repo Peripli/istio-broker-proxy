@@ -8,12 +8,12 @@ type HttpError struct {
 	Status      int    `json:"-"`
 }
 
-func HttpErrorFromError(err error) HttpError {
+func HttpErrorFromError(err error) *HttpError {
 	switch t := err.(type) {
-	case HttpError:
+	case *HttpError:
 		return t
 	default:
-		return HttpError{err.Error(), "", http.StatusInternalServerError}
+		return &HttpError{err.Error(), "", http.StatusInternalServerError}
 	}
 }
 

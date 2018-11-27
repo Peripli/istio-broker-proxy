@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path"
-	"strconv"
 	"testing"
 
 	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
@@ -280,8 +279,6 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 	router.ServeHTTP(response, request)
 
 	bodyString := response.Body.String()
-	expectedLength, _ := strconv.Atoi(response.Header().Get("content-length"))
-	g.Expect(len(bodyString)).To(Equal(expectedLength))
 	g.Expect(bodyString).To(ContainSubstring("network_data"))
 	g.Expect(bodyString).To(ContainSubstring("istio.sapcloud.io"))
 	g.Expect(bodyString).To(ContainSubstring("your-provider"))
@@ -404,7 +401,7 @@ func TestHttpClientError(t *testing.T) {
 
 	bodyString := response.Body.String()
 	g.Expect(response.Code).To(Equal(http.StatusNotFound))
-	g.Expect(bodyString).To(Equal(""))
+	g.Expect(bodyString).To(Equal(`{"error":"","description":""}`))
 }
 
 func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
