@@ -98,3 +98,13 @@ func (self kubectl) GetPod(args ...string) string {
 	podName := pods.Items[0].Name
 	return podName
 }
+
+func (self kubectl) GetPodIfExists(args ...string) string {
+	var pods v1.PodList
+	self.List(&pods, args...)
+	if len(pods.Items) == 0 {
+		return ""
+	}
+	podName := pods.Items[0].Name
+	return podName
+}

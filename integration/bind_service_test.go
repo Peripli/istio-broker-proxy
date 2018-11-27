@@ -50,6 +50,24 @@ const client_config = `---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
+  name: client
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: client
+    spec:
+      containers:
+      - name: client
+        image: gcr.io/sap-se-gcp-istio-dev/client:latest
+        command: ["/bin/sleep","infinity"]
+        imagePullPolicy: Always`
+
+const client_config_postgres = `---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
   name: client-postgres
 spec:
   replicas: 1
@@ -137,6 +155,19 @@ type GatewayList struct {
 	IstioObjectList
 }
 
+type ClusterServiceClassObject struct {
+	ApiVersion string                  `json:"apiVersion"`
+	Kind       string                  `json:"kind"`
+	Metadata   Metadata                `json:"metadata"`
+	Spec       ClusterServiceClassSpec `json:"spec"`
+}
+
+type ClusterServiceClassList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	Items           []ClusterServiceClassObject `json:"items" protobuf:"bytes,2,rep,name=items"`
+}
+
 type Metadata struct {
 	CreationTimestamp string `json:"creationTimestamp"`
 	Generation        int    `json:"generation"`
@@ -153,6 +184,11 @@ type Spec struct {
 	Resoultion string       `json:"resolution"`
 }
 
+type ClusterServiceClassSpec struct {
+	ExternalName             string `json:"externalName"`
+	ClusterServiceBrokerName string `json:"clusterServiceBrokerName"`
+}
+
 func TestPostgresServiceBinding(t *testing.T) {
 	skipWithoutKubeconfigSet(t)
 
@@ -161,37 +197,41 @@ func TestPostgresServiceBinding(t *testing.T) {
 
 	createServiceBinding(kubectl, g, "postgres", service_instance, service_binding)
 
-	clientConfigBody := []byte(client_config)
-	kubectl.Apply(clientConfigBody)
-
-	podName := kubectl.GetPod("-l", "app=client-postgres", "--field-selector=status.phase=Running")
+	podName := runClientPod(kubectl, client_config_postgres, "client-postgres")
 	g.Expect(podName).To(ContainSubstring("client-postgres"))
 
 	script := `  
-	while true; do
-	  export PGPASSWORD=$(cat /etc/bindings/postgres/password)
-	  HOSTNAME=$(cat /etc/bindings/postgres/hostname)
-	  PORT=$(cat /etc/bindings/postgres/port)
-	  DBNAME=$(cat /etc/bindings/postgres/dbname)
-	  USER=$(cat /etc/bindings/postgres/username)
-	  OUTPUT=$(psql -h $HOSTNAME  -p $PORT -c 'SELECT 1'  $DBNAME $USER 2>&1)
-	  echo $OUTPUT >> /tmp/psql.txt
-	  if [[ $OUTPUT == *"server closed the connection unexpectedly"* ]]; then
-	    echo "Try again!"
-	    sleep 10
-	  elif [[ $OUTPUT == *"(1 row)"* ]]; then
-	    break
-	  else
-	    echo $OUTPUT
-	    exit 1
-	  fi
-	done
-	`
+		while true; do
+		  export PGPASSWORD=$(cat /etc/bindings/postgres/password)
+		  HOSTNAME=$(cat /etc/bindings/postgres/hostname)
+		  PORT=$(cat /etc/bindings/postgres/port)
+		  DBNAME=$(cat /etc/bindings/postgres/dbname)
+		  USER=$(cat /etc/bindings/postgres/username)
+		  OUTPUT=$(psql -h $HOSTNAME  -p $PORT -c 'SELECT 1'  $DBNAME $USER 2>&1)
+		  echo $OUTPUT >> /tmp/psql.txt
+		  if [[ $OUTPUT == *"server closed the connection unexpectedly"* ]]; then
+		    echo "Try again!"
+		    sleep 10
+		  elif [[ $OUTPUT == *"(1 row)"* ]]; then
+		    break
+		  else
+		    echo $OUTPUT
+		    exit 1
+		  fi
+		done
+		`
 	basename := "test.sh"
 	kubeCreateFile(kubectl, g, basename, script, podName)
 
 	kubectl.Exec(podName, "-c", "client", "-i", "--", "bash", "test.sh")
 
+}
+
+func runClientPod(kubectl *kubectl, config string, appName string) string {
+	clientConfigBody := []byte(config)
+	kubectl.Apply(clientConfigBody)
+	podName := kubectl.GetPod("-l", "app="+appName, "--field-selector=status.phase=Running")
+	return podName
 }
 
 func kubeCreateFile(kubectl *kubectl, g *GomegaWithT, basename string, script string, podName string) {
@@ -269,10 +309,7 @@ func TestRabbitMqServiceBinding(t *testing.T) {
 
 	createServiceBinding(kubectl, g, "rabbitmq", service_instance_rabbitmq, service_binding_rabbitmq)
 
-	clientConfigBody := []byte(client_config_rabbitmq)
-	kubectl.Apply(clientConfigBody)
-
-	podName := kubectl.GetPod("-l", "app=client-rabbitmq", "--field-selector=status.phase=Running")
+	podName := runClientPod(kubectl, client_config_rabbitmq, "client-rabbitmq")
 	g.Expect(podName).To(ContainSubstring("client-rabbitmq"))
 
 	script := `  
