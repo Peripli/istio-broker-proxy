@@ -1,12 +1,12 @@
 package integration
 
 import (
-	"fmt"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	. "github.com/onsi/gomega"
 	"istio.io/istio/pilot/pkg/model"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"log"
 	"os"
 	"path"
 	"strings"
@@ -404,7 +404,7 @@ func waitForCompletion(g *GomegaWithT, test func() bool) {
 	for !valid {
 		valid = test()
 		if !valid {
-			fmt.Println("Not ready - waiting 10s...")
+			log.Println("Not ready - waiting 10s...")
 			time.Sleep(time.Duration(10) * time.Second)
 			g.Expect(time.Now().Before(expiry)).To(BeTrue(), "Timeout expired")
 		}

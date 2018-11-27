@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"github.com/Peripli/istio-broker-proxy/pkg/config"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
@@ -54,7 +53,7 @@ func (c ProducerInterceptor) PostDelete(bindId string) error {
 	fileName := path.Join(c.IstioDirectory, bindId) + ".yml"
 	err := os.Remove(fileName)
 	if err != nil {
-		fmt.Printf("Ignoring error during removal of file %s: %v\n", fileName, err)
+		log.Printf("Ignoring error during removal of file %s: %v\n", fileName, err)
 	}
 	return nil
 }

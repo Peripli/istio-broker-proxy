@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"k8s.io/api/core/v1"
+	"log"
 	"os"
 	"os/exec"
 	"reflect"
@@ -27,7 +28,7 @@ type kubectl struct {
 func (self kubectl) run(args ...string) []byte {
 	expiry := time.Now().Add(time.Duration(300) * time.Second)
 	for {
-		fmt.Println("kubectl ", strings.Join(args, " "))
+		log.Println("kubectl ", strings.Join(args, " "))
 		out, err := exec.Command("kubectl", args...).CombinedOutput()
 		if err == nil {
 			return out
@@ -37,7 +38,7 @@ func (self kubectl) run(args ...string) []byte {
 			fmt.Sprintf("Timeout expired: %s", string(out)))
 
 		if strings.Contains(string(out), "ServiceUnavailable") {
-			fmt.Println("ServiceUnavailable: retry... ")
+			log.Println("ServiceUnavailable: retry... ")
 			time.Sleep(10 * time.Second)
 		} else {
 			self.g.Expect(err).NotTo(HaveOccurred(),

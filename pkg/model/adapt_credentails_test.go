@@ -2,7 +2,7 @@ package model
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -94,7 +94,7 @@ func TestRabbitMqExampleRequestFromBacklogItem(t *testing.T) {
 }`), &expected)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	fmt.Printf("%#v\n", example)
+	log.Printf("%#v\n", example)
 	adapted, _ := Adapt(example.Credentials, example.EndpointMappings)
 	g.Expect(adapted.Credentials).To(Equal(expected))
 	g.Expect(adapted.Endpoints).To(Equal([]Endpoint{{"appnethost", 9876}}))

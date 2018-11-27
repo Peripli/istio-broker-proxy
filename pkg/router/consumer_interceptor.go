@@ -68,7 +68,7 @@ func CreateIstioObjectsInK8S(configStore ConfigStore, name string, endpoint mode
 	for _, configuration := range configurations {
 		err = configStore.CreateIstioConfig(configuration)
 		if err != nil {
-			log.Printf("error creating %#v: %s\n", configuration, err.Error())
+			log.Printf("error creating %s: %s\n", configuration.Name, err.Error())
 			return "", err
 		}
 	}

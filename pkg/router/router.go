@@ -115,7 +115,6 @@ func (o *OsbRequest) Do() *OsbResponse {
 		log.Printf("ERROR: %s\n", osbResponse.err.Error())
 		return &osbResponse
 	}
-	log.Printf("Response from %s: %s\n", o.url, string(osbResponse.response))
 
 	osbResponse.err = getHttpError(response.StatusCode, osbResponse.response)
 	if osbResponse.err != nil {
@@ -219,7 +218,7 @@ func (client osbProxy) forwardWithCallback(ctx *gin.Context, postCallback func(c
 		log.Printf("ERROR: %s\n", err.Error())
 		return
 	}
-	log.Printf("Request forwarded: %s\n", response.Status)
+	log.Printf("Request forwarded %v: %s\n", request.URL, response.Status)
 
 	defer response.Body.Close()
 

@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"io/ioutil"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
 	"istio.io/istio/pilot/pkg/model"
@@ -82,19 +81,19 @@ func (k kubeConfigStore) CreateIstioConfig(cfg model.Config) error {
 }
 
 func (k kubeConfigStore) DeleteService(serviceName string) error {
-	fmt.Printf("kubectl -n %s delete services %s\n", k.namespace, serviceName)
+	log.Printf("kubectl -n %s delete services %s\n", k.namespace, serviceName)
 	err := k.CoreV1().Services(k.namespace).Delete(serviceName, &meta_v1.DeleteOptions{})
 	if err != nil {
-		fmt.Printf("error %s\n", err.Error())
+		log.Printf("error %s\n", err.Error())
 	}
 	return err
 }
 
 func (k kubeConfigStore) DeleteIstioConfig(configType string, configName string) error {
-	fmt.Printf("kubectl -n %s delete %s %s\n", k.namespace, configType, configName)
+	log.Printf("kubectl -n %s delete %s %s\n", k.namespace, configType, configName)
 	err := k.configClient.Delete(configType, configName, k.namespace)
 	if err != nil {
-		fmt.Printf("error %s\n", err.Error())
+		log.Printf("error %s\n", err.Error())
 	}
 	return err
 }
