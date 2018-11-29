@@ -377,24 +377,11 @@ func createServiceBinding(kubectl *kubectl, g *GomegaWithT, name string, service
 	})
 	bindId := serviceBinding.Spec.ExternalID
 	var services v1.ServiceList
-	kubectl.List(&services, "-n", "catalog")
+	kubectl.List(&services, "--all-namespaces=true")
 	g.Expect(services.Items).NotTo(BeEmpty(), "List of available services in OSB should not be empty")
-	matchingServiceInstanceExists := false
-	for _, service := range services.Items {
-		if strings.Contains(service.Name, bindId) {
-			matchingServiceInstanceExists = true
-		}
-	}
-	g.Expect(matchingServiceInstanceExists).To(BeTrue())
-	matchingServiceInstanceExists = false
-	for _, service := range services.Items {
-		if strings.Contains(service.Name, "noPropperBindID") {
-			matchingServiceInstanceExists = true
-		}
-	}
-	g.Expect(matchingServiceInstanceExists).To(BeFalse())
+	g.Expect(serviceExists(services, bindId)).To(BeTrue())
 	var serviceEntries ServiceEntryList
-	kubectl.List(&serviceEntries, "-n", "catalog")
+	kubectl.List(&serviceEntries, "--all-namespaces=true")
 	matchingServiceEntryExists := false
 	for _, serviceEntry := range serviceEntries.Items {
 		if strings.Contains(serviceEntry.Metadata.Name, bindId) {
@@ -403,7 +390,7 @@ func createServiceBinding(kubectl *kubectl, g *GomegaWithT, name string, service
 	}
 	g.Expect(matchingServiceEntryExists).To(BeTrue())
 	var virtualServices VirtualServiceList
-	kubectl.List(&virtualServices, "-n", "catalog")
+	kubectl.List(&virtualServices, "--all-namespaces=true")
 	matchingIstioObjectCount := 0
 	for _, virtualService := range virtualServices.Items {
 
@@ -413,7 +400,7 @@ func createServiceBinding(kubectl *kubectl, g *GomegaWithT, name string, service
 	}
 	g.Expect(matchingIstioObjectCount).To(Equal(2))
 	var gateways GatewayList
-	kubectl.List(&gateways, "-n", "catalog")
+	kubectl.List(&gateways, "--all-namespaces=true")
 	matchingIstioObjectCount = 0
 	for _, gateway := range gateways.Items {
 
@@ -423,7 +410,7 @@ func createServiceBinding(kubectl *kubectl, g *GomegaWithT, name string, service
 	}
 	g.Expect(matchingIstioObjectCount).To(Equal(1))
 	var destinationRules DestinationruleList
-	kubectl.List(&destinationRules, "-n", "catalog")
+	kubectl.List(&destinationRules, "--all-namespaces=true")
 	matchingIstioObjectCount = 0
 	for _, destinationRule := range destinationRules.Items {
 
@@ -433,6 +420,15 @@ func createServiceBinding(kubectl *kubectl, g *GomegaWithT, name string, service
 	}
 	g.Expect(matchingIstioObjectCount).To(Equal(2))
 	return bindId
+}
+
+func serviceExists(services v1.ServiceList, bindId string) bool {
+	for _, service := range services.Items {
+		if strings.Contains(service.Name, bindId) {
+			return true
+		}
+	}
+	return false
 }
 
 func waitForCompletion(g *GomegaWithT, test func() bool) {

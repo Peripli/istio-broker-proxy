@@ -15,9 +15,9 @@ func TestAdaptCredentialsWithInvalidRequest(t *testing.T) {
 	kubectl := NewKubeCtl(g)
 
 	kubeBaseUrl := getClusterServiceBrokerUrl(kubectl)
-	namespace, podName := getServiceBrokerPodName(kubectl)
+	podName := runClientPod(kubectl, client_config, "client")
 
-	result := post(g, kubectl, namespace, podName, kubeBaseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", `
+	result := post(g, kubectl, "default", podName, kubeBaseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", `
 	                  {
 	                  "credentials": {
 	                   "dbname": "yLO2WoE0-mCcEppn",
@@ -43,9 +43,9 @@ func TestAdaptCredentialsWithValidRequest(t *testing.T) {
 	kubectl := NewKubeCtl(g)
 
 	kubeBaseUrl := getClusterServiceBrokerUrl(kubectl)
-	namespace, podName := "default", runClientPod(kubectl, client_config, "client")
+	podName := runClientPod(kubectl, client_config, "client")
 
-	result := post(g, kubectl, namespace, podName, kubeBaseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", `{
+	result := post(g, kubectl, "default", podName, kubeBaseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", `{
 	                  "credentials": {
 	                   "dbname": "yLO2WoE0-mCcEppn",
 	                   "hostname": "10.11.241.0",
@@ -65,14 +65,6 @@ func TestAdaptCredentialsWithValidRequest(t *testing.T) {
 
 	g.Expect(result).To(ContainSubstring(`HTTP/1.1 200 OK`))
 	g.Expect(result).To(ContainSubstring(`"hostname":"new-magic-host"`))
-}
-
-func getServiceBrokerPodName(kubectl *kubectl) (string, string) {
-	podName := kubectl.GetPodIfExists("-n", "catalog", "-l", "app=istiobroker")
-	if podName != "" {
-		return "catalog", podName
-	}
-	return "service-broker-proxy", kubectl.GetPod("-n", "service-broker-proxy", "-l", "app=service-broker-proxy-k8s")
 }
 
 func getPostgresqlServiceBroker(kubectl *kubectl) string {
