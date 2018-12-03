@@ -12,7 +12,7 @@ ln -s ../../hooks/pre-commit pre-commit
 
 Forward all requests to the service fabrik.
 
-## Steps to deploy
+## Steps to deploy:
 
 * Deploy the app
 ```
