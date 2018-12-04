@@ -14,7 +14,7 @@ Forward all requests to the service fabrik.
 
 ## Steps to deploy
 
-* Deploy the app
+* Deploy the app:
 ```
   cf push istio-broker
 ```
