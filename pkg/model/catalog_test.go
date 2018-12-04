@@ -133,7 +133,7 @@ func TestCatalogUnmarshal(t *testing.T) {
 	err := json.Unmarshal([]byte(exampleCatalog), &c)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(len(c.Services)).To(Equal(1))
-	g.Expect(c.Services[0].Id).To(Equal("acb56d7c-XXXX-XXXX-XXXX-feb140a59a66"))
+	g.Expect(c.Services[0].Name).To(Equal("fake-Service"))
 	data, err := json.Marshal(&c)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(string(data)).To(MatchJSON(exampleCatalog))

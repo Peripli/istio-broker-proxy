@@ -3,10 +3,10 @@ package router
 import (
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin/json"
-	. "github.com/onsi/gomega"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
+	"github.com/gin-gonic/gin/json"
+	. "github.com/onsi/gomega"
 	istioModel "istio.io/istio/pilot/pkg/model"
 	"k8s.io/api/core/v1"
 	"strings"
@@ -279,19 +279,19 @@ func TestConsumerPostDelete(t *testing.T) {
 
 func TestConsumerPostCatalog(t *testing.T) {
 	g := NewGomegaWithT(t)
-	interceptor := ConsumerInterceptor{ServiceIdPrefix: "istio-"}
-	catalog := model.Catalog{[]model.Service{{Id: "istio-name"}}}
+	interceptor := ConsumerInterceptor{ServiceNamePrefix: "istio-"}
+	catalog := model.Catalog{[]model.Service{{Name: "istio-name"}}}
 	interceptor.PostCatalog(&catalog)
-	g.Expect(catalog.Services[0].Id).To(Equal("name"))
+	g.Expect(catalog.Services[0].Name).To(Equal("name"))
 
 }
 
 func TestConsumerPostCatalogWithoutPrefix(t *testing.T) {
 	g := NewGomegaWithT(t)
-	interceptor := ConsumerInterceptor{ServiceIdPrefix: "istio-"}
-	catalog := model.Catalog{[]model.Service{{Id: "test-xxx-name"}}}
+	interceptor := ConsumerInterceptor{ServiceNamePrefix: "istio-"}
+	catalog := model.Catalog{[]model.Service{{Name: "test-xxx-name"}}}
 	interceptor.PostCatalog(&catalog)
-	g.Expect(catalog.Services[0].Id).To(Equal("test-xxx-name"))
+	g.Expect(catalog.Services[0].Name).To(Equal("test-xxx-name"))
 
 }
 

@@ -1,8 +1,8 @@
 package router
 
 import (
-	. "github.com/onsi/gomega"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
+	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"os"
 	"path"
@@ -117,9 +117,9 @@ func TestConfigFilesAreWrittenAndDeleted(t *testing.T) {
 
 func TestProducerPostCatalog(t *testing.T) {
 	g := NewGomegaWithT(t)
-	interceptor := ProducerInterceptor{ServiceIdPrefix: "istio-"}
-	catalog := model.Catalog{[]model.Service{{Id: "name"}}}
+	interceptor := ProducerInterceptor{ServiceNamePrefix: "istio-"}
+	catalog := model.Catalog{[]model.Service{{Name: "name"}}}
 	interceptor.PostCatalog(&catalog)
-	g.Expect(catalog.Services[0].Id).To(Equal("istio-name"))
+	g.Expect(catalog.Services[0].Name).To(Equal("istio-name"))
 
 }

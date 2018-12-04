@@ -11,12 +11,12 @@ import (
 )
 
 type ProducerInterceptor struct {
-	LoadBalancerPort int
-	SystemDomain     string
-	ProviderId       string
-	IstioDirectory   string
-	IpAddress        string
-	ServiceIdPrefix  string
+	LoadBalancerPort  int
+	SystemDomain      string
+	ProviderId        string
+	IstioDirectory    string
+	IpAddress         string
+	ServiceNamePrefix string
 }
 
 func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) error {
@@ -84,6 +84,6 @@ func (c ProducerInterceptor) writeIstioConfigFiles(fileName string, configuratio
 
 func (c ProducerInterceptor) PostCatalog(catalog *model.Catalog) {
 	for i := range catalog.Services {
-		catalog.Services[i].Id = c.ServiceIdPrefix + catalog.Services[i].Id
+		catalog.Services[i].Name = c.ServiceNamePrefix + catalog.Services[i].Name
 	}
 }

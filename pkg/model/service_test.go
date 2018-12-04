@@ -17,6 +17,6 @@ func TestServiceInvalidJson(t *testing.T) {
 func TestServiceInvalidServiceName(t *testing.T) {
 	g := NewGomegaWithT(t)
 	var s Service
-	err := json.Unmarshal([]byte(`{"id" : {}}`), &s)
+	err := json.Unmarshal([]byte(`{"name" : {}}`), &s)
 	g.Expect(err).To(HaveOccurred())
 }

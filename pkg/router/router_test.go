@@ -505,7 +505,7 @@ func TestDeleteBinding(t *testing.T) {
 
 func TestForwardGetCatalog(t *testing.T) {
 	g := NewGomegaWithT(t)
-	body := []byte(`{"services": [{ "id" : "abc" } ] }`)
+	body := []byte(`{"services": [{ "name" : "abc" } ] }`)
 	handlerStub := NewHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 
@@ -514,7 +514,7 @@ func TestForwardGetCatalog(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/v2/catalog", bytes.NewReader(make([]byte, 0)))
 
 	response := httptest.NewRecorder()
-	router := SetupRouter(&ProducerInterceptor{ServiceIdPrefix: "istio-"}, *routerConfig)
+	router := SetupRouter(&ProducerInterceptor{ServiceNamePrefix: "istio-"}, *routerConfig)
 	router.ServeHTTP(response, request)
 	responseBody := response.Body.String()
 	g.Expect(responseBody).To(ContainSubstring("istio-abc"))
@@ -626,8 +626,8 @@ func TestGetCatalog(t *testing.T) {
 	handlerStub := NewHandlerStubWithFunc(http.StatusOK, func(body []byte) []byte {
 		return []byte(`{
   "services": [{
-    "name": "fake-Service",
-    "id": "acb56d7c-XXXX-XXXX-XXXX-feb140a59a66" }]
+    "id": "id",
+    "name": "name" }]
 }`)
 	})
 	server, routerConfig := injectClientStub(handlerStub)
@@ -641,7 +641,7 @@ func TestGetCatalog(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(catalog).NotTo(BeNil())
 	g.Expect(len(catalog.Services)).To(Equal(1))
-	g.Expect(catalog.Services[0].Id).To(Equal("acb56d7c-XXXX-XXXX-XXXX-feb140a59a66"))
+	g.Expect(catalog.Services[0].Name).To(Equal("name"))
 
 }
 

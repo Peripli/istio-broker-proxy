@@ -16,9 +16,9 @@ const (
 )
 
 type ConsumerInterceptor struct {
-	ConsumerId      string
-	ConfigStore     ConfigStore
-	ServiceIdPrefix string
+	ConsumerId        string
+	ConfigStore       ConfigStore
+	ServiceNamePrefix string
 }
 
 func (c ConsumerInterceptor) PreBind(request model.BindRequest) *model.BindRequest {
@@ -102,6 +102,6 @@ func (c ConsumerInterceptor) HasAdaptCredentials() bool {
 
 func (c ConsumerInterceptor) PostCatalog(catalog *model.Catalog) {
 	for i := range catalog.Services {
-		catalog.Services[i].Id = strings.TrimPrefix(catalog.Services[i].Id, c.ServiceIdPrefix)
+		catalog.Services[i].Name = strings.TrimPrefix(catalog.Services[i].Name, c.ServiceNamePrefix)
 	}
 }
