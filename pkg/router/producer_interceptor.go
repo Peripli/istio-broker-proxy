@@ -40,6 +40,7 @@ func (c ProducerInterceptor) PostBind(request model.BindRequest, response model.
 
 	err := c.writeIstioFilesForProvider(bindingId, &request, &response)
 	if err != nil {
+		c.PostDelete(bindingId)
 		return nil, err
 	}
 	return &response, nil

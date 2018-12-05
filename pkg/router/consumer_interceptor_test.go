@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/gomega"
 	istioModel "istio.io/istio/pilot/pkg/model"
 	"k8s.io/api/core/v1"
-	"strings"
 	"testing"
 )
 
@@ -277,6 +276,36 @@ func TestConsumerPostDelete(t *testing.T) {
 	g.Expect(configStore.deletedIstioConfigs[11]).To(Equal("service-entry:svc-1-678-service"))
 }
 
+func TestConsumerPostDeleteNoResourceLeaks(t *testing.T) {
+	g := NewGomegaWithT(t)
+	configStore := mockConfigStore{}
+
+	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
+
+	configStore.createdServices = configStore.createdServices[1:]
+	configStore.createdIstioConfigs = append(configStore.createdIstioConfigs[0:3], configStore.createdIstioConfigs[5:]...)
+
+	err = consumer.PostDelete("678")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	g.Expect(configStore.createdServices).To(HaveLen(0))
+	g.Expect(configStore.createdIstioConfigs).To(HaveLen(0))
+}
+
+func TestConsumerFailingPostBindGetsCleanedUp(t *testing.T) {
+	g := NewGomegaWithT(t)
+	configStore := mockConfigStore{createObjectErrCount: 3, createObjectErr: errors.New("No more objects")}
+
+	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+
+	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
+	g.Expect(err).To(HaveOccurred())
+
+	g.Expect(configStore.createdServices).To(HaveLen(0))
+	g.Expect(configStore.createdIstioConfigs).To(HaveLen(0))
+}
+
 func TestConsumerPostCatalog(t *testing.T) {
 	g := NewGomegaWithT(t)
 	interceptor := ConsumerInterceptor{ServiceNamePrefix: "istio-"}
@@ -296,13 +325,14 @@ func TestConsumerPostCatalogWithoutPrefix(t *testing.T) {
 }
 
 type mockConfigStore struct {
-	createdServices     []*v1.Service
-	createdIstioConfigs []istioModel.Config
-	clusterIp           string
-	createServiceErr    error
-	createObjectErr     error
-	deletedServices     []string
-	deletedIstioConfigs []string
+	createdServices      []*v1.Service
+	createdIstioConfigs  []istioModel.Config
+	clusterIp            string
+	createServiceErr     error
+	createObjectErr      error
+	createObjectErrCount int
+	deletedServices      []string
+	deletedIstioConfigs  []string
 }
 
 func (m *mockConfigStore) CreateService(service *v1.Service) (*v1.Service, error) {
@@ -319,7 +349,7 @@ func (m *mockConfigStore) getNamespace() string {
 }
 
 func (m *mockConfigStore) CreateIstioConfig(object istioModel.Config) error {
-	if m.createObjectErr != nil {
+	if m.createObjectErr != nil && m.createObjectErrCount == len(m.createdIstioConfigs) {
 		return m.createObjectErr
 	}
 	m.createdIstioConfigs = append(m.createdIstioConfigs, object)
@@ -327,9 +357,10 @@ func (m *mockConfigStore) CreateIstioConfig(object istioModel.Config) error {
 }
 
 func (m *mockConfigStore) DeleteService(serviceName string) error {
-	for _, c := range m.createdServices {
-		if strings.Contains(c.Name, serviceName) {
+	for index, c := range m.createdServices {
+		if c.Name == serviceName {
 			m.deletedServices = append(m.deletedServices, serviceName)
+			m.createdServices = append(m.createdServices[:index], m.createdServices[index+1:]...)
 			return nil
 		}
 	}
@@ -338,9 +369,10 @@ func (m *mockConfigStore) DeleteService(serviceName string) error {
 }
 
 func (m *mockConfigStore) DeleteIstioConfig(configType string, configName string) error {
-	for _, c := range m.createdIstioConfigs {
-		if strings.Contains(c.Name, configName) {
+	for index, c := range m.createdIstioConfigs {
+		if c.Name == configName {
 			m.deletedIstioConfigs = append(m.deletedIstioConfigs, configType+":"+configName)
+			m.createdIstioConfigs = append(m.createdIstioConfigs[:index], m.createdIstioConfigs[index+1:]...)
 			return nil
 		}
 	}

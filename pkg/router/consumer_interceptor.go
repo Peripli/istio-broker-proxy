@@ -35,10 +35,16 @@ func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.
 		return nil, fmt.Errorf("Number of endpoints in NetworkData.Data (%d) doesn't match number of endpoints in root (%d)",
 			len(response.NetworkData.Data.Endpoints), len(response.Endpoints))
 	}
+
+	endCleanupCondition := func(index int, err error) bool {
+		return index < len(response.NetworkData.Data.Endpoints)
+	}
+
 	log.Printf("Number of endpoints: %d\n", len(response.NetworkData.Data.Endpoints))
 	for index, endpoint := range response.NetworkData.Data.Endpoints {
 		clusterIp, err := CreateIstioObjectsInK8S(c.ConfigStore, serviceName(index, bindId), endpoint)
 		if err != nil {
+			c.cleanUpConfig(bindId, endCleanupCondition)
 			return nil, err
 		}
 		endpointMapping = append(endpointMapping,
@@ -48,6 +54,7 @@ func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.
 	}
 	binding, err := adapt(response.Credentials, endpointMapping)
 	if err != nil {
+		c.cleanUpConfig(bindId, endCleanupCondition)
 		return nil, err
 	}
 	binding.NetworkData = response.NetworkData
@@ -81,16 +88,32 @@ func serviceName(index int, bindId string) string {
 }
 
 func (c ConsumerInterceptor) PostDelete(bindId string) error {
+	return c.cleanUpConfig(bindId, func(index int, err error) bool {
+		return err != nil && index > 2
+	})
+}
+
+func (c ConsumerInterceptor) cleanUpConfig(bindId string, endCleanupCondition func(index int, err error) bool) error {
 	i := 0
 	var err error
 
-	for err == nil {
+	for {
 		serviceName := serviceName(i, bindId)
+		isFirstIteration := i == 0
 
 		for _, id := range config.DeleteEntriesForExternalServiceClient(serviceName) {
-			_ = c.ConfigStore.DeleteIstioConfig(id.Type, id.Name)
+			ignoredErr := c.ConfigStore.DeleteIstioConfig(id.Type, id.Name)
+			if ignoredErr != nil && isFirstIteration {
+				log.Printf("Ignoring error during removal of configuration %s: %s\n", id, ignoredErr.Error())
+			}
 		}
 		err = c.ConfigStore.DeleteService(serviceName)
+		if endCleanupCondition(i, err) {
+			break
+		}
+		if err != nil && isFirstIteration {
+			log.Printf("Ignoring error during removal of configuration %s: %s\n", serviceName, err.Error())
+		}
 		i++
 	}
 	return nil

@@ -115,6 +115,39 @@ func TestConfigFilesAreWrittenAndDeleted(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 }
 
+func TestConfigFilesBindFailsButFileIsCleanedUp(t *testing.T) {
+	g := NewGomegaWithT(t)
+	tempDir := os.TempDir()
+	interceptor := ProducerInterceptor{
+		ProviderId:       "cf-service.services.cf.dev01.aws.istio.sapcloud.io",
+		SystemDomain:     "services.cf.dev01.aws.istio.sapcloud.io",
+		LoadBalancerPort: 9000,
+		IpAddress:        "10.0.81.0",
+		IstioDirectory:   tempDir,
+	}
+	endpoints := []model.Endpoint{{"test.local", 5757}}
+
+	//Create file upfront to provoke error
+	fileName := path.Join(tempDir, "cant_be_accessed.yml")
+	_, err := os.Create(fileName)
+	defer os.Remove(fileName)
+	g.Expect(err).NotTo(HaveOccurred())
+	err = os.Chmod(fileName, os.ModeDir)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	_, err = interceptor.PostBind(model.BindRequest{}, model.BindResponse{
+		Credentials: model.Credentials{
+			Endpoints: endpoints,
+		},
+	}, "cant_be_accessed", adapt)
+	g.Expect(err).To(HaveOccurred())
+
+	//file should be deleted
+	_, err = os.Stat(fileName)
+	g.Expect(err).To(HaveOccurred())
+
+}
+
 func TestProducerPostCatalog(t *testing.T) {
 	g := NewGomegaWithT(t)
 	interceptor := ProducerInterceptor{ServiceNamePrefix: "istio-"}
