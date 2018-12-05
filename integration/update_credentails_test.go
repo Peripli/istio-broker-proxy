@@ -5,67 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 	"os"
 	"path"
-	"testing"
 )
-
-func TestAdaptCredentialsWithInvalidRequest(t *testing.T) {
-	skipWithoutKubeconfigSet(t)
-
-	g := NewGomegaWithT(t)
-	kubectl := NewKubeCtl(g)
-
-	kubeBaseUrl := getClusterServiceBrokerUrl(kubectl)
-	podName := runClientPod(kubectl, client_config, "client")
-
-	result := post(g, kubectl, "default", podName, kubeBaseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", `
-	                  {
-	                  "credentials": {
-	                   "dbname": "yLO2WoE0-mCcEppn",
-	                   "hostname": "10.11.241.0",
-	                   "password": "redacted",
-	                   "port": "47637",
-	                   "ports": {
-	                    "5432/tcp": "47637"
-	                   },
-	                   "uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn",
-	                   "username": "mma4G8N0isoxe17v"
-	                  }
-	                  }`)
-
-	g.Expect(result).To(ContainSubstring(`HTTP/1.1 400 Bad Request`))
-	g.Expect(result).To(ContainSubstring(`No endpoint mappings available`))
-}
-
-func TestAdaptCredentialsWithValidRequest(t *testing.T) {
-	skipWithoutKubeconfigSet(t)
-
-	g := NewGomegaWithT(t)
-	kubectl := NewKubeCtl(g)
-
-	kubeBaseUrl := getClusterServiceBrokerUrl(kubectl)
-	podName := runClientPod(kubectl, client_config, "client")
-
-	result := post(g, kubectl, "default", podName, kubeBaseUrl+"/v2/service_instances/1/service_bindings/2/adapt_credentials", `{
-	                  "credentials": {
-	                   "dbname": "yLO2WoE0-mCcEppn",
-	                   "hostname": "10.11.241.0",
-	                   "password": "redacted",
-	                   "port": "47637",
-	                   "ports": {
-	                    "5432/tcp": "47637"
-	                   },
-	                   "uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn",
-	                   "username": "mma4G8N0isoxe17v"
-	                  },
-	                  "endpoint_mappings": [{
-	                    "source": {"host": "10.11.241.0", "port": 47637},
-	                    "target": {"host": "new-magic-host", "port": 9876}
-	                  	}]
-	                  }`)
-
-	g.Expect(result).To(ContainSubstring(`HTTP/1.1 200 OK`))
-	g.Expect(result).To(ContainSubstring(`"hostname":"new-magic-host"`))
-}
 
 func getPostgresqlServiceBroker(kubectl *kubectl) string {
 	var serviceClasses ClusterServiceClassList
