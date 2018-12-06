@@ -129,10 +129,8 @@ func TestConfigFilesBindFailsButFileIsCleanedUp(t *testing.T) {
 
 	//Create file upfront to provoke error
 	fileName := path.Join(tempDir, "cant_be_accessed.yml")
-	_, err := os.Create(fileName)
+	err := os.Mkdir(fileName, os.ModeDir)
 	defer os.Remove(fileName)
-	g.Expect(err).NotTo(HaveOccurred())
-	err = os.Chmod(fileName, os.ModeDir)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	_, err = interceptor.PostBind(model.BindRequest{}, model.BindResponse{
