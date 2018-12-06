@@ -7,8 +7,6 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
 	"github.com/gin-gonic/gin/json"
 	. "github.com/onsi/gomega"
-	istioModel "istio.io/istio/pilot/pkg/model"
-	"k8s.io/api/core/v1"
 	"testing"
 )
 
@@ -67,18 +65,18 @@ var (
 
 func TestConsumerPostBind(t *testing.T) {
 	g := NewGomegaWithT(t)
-	kubernetes := mockConfigStore{}
+	kubernetes := MockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &kubernetes}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(kubernetes.createdServices[0].Name).To(Equal("svc-0-678"))
-	g.Expect(kubernetes.createdServices[0].Spec.Ports[0].Port).To(Equal(int32(5555)))
+	g.Expect(kubernetes.CreatedServices[0].Name).To(Equal("svc-0-678"))
+	g.Expect(kubernetes.CreatedServices[0].Spec.Ports[0].Port).To(Equal(int32(5555)))
 }
 
 func TestConsumerPostBindReturnsError(t *testing.T) {
 	g := NewGomegaWithT(t)
-	kubernetes := mockConfigStore{}
+	kubernetes := MockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &kubernetes}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "678", adaptError)
@@ -87,19 +85,19 @@ func TestConsumerPostBindReturnsError(t *testing.T) {
 
 func TestNoEndpointsPresent(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := mockConfigStore{}
+	configStore := MockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, model.BindResponse{}, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(configStore.createdServices).To(BeNil())
-	g.Expect(configStore.createdIstioConfigs).To(BeNil())
+	g.Expect(configStore.CreatedServices).To(BeNil())
+	g.Expect(configStore.CreatedIstioConfigs).To(BeNil())
 }
 
 func TestEndpointsMappingWorks(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := mockConfigStore{}
-	configStore.clusterIp = "1.2.3.5"
+	configStore := MockConfigStore{}
+	configStore.ClusterIp = "1.2.3.5"
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	endpoints := []model.Endpoint{
 		{
@@ -137,75 +135,75 @@ func TestEndpointsMappingWorks(t *testing.T) {
 
 func TestBindIdIsPartOfServiceName(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := mockConfigStore{}
+	configStore := MockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "555", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(configStore.createdServices[0].Name).To(Equal("svc-0-555"))
+	g.Expect(configStore.CreatedServices[0].Name).To(Equal("svc-0-555"))
 }
 
 func TestMaximumLengthIsNotExceededWithRealBindId(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := mockConfigStore{}
+	configStore := MockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "f1b32107-c8a5-11e8-b8be-02caceffa7f1", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	const maxLabelLength = 63
-	for _, object := range configStore.createdIstioConfigs {
+	for _, object := range configStore.CreatedIstioConfigs {
 		g.Expect(len(object.Name)).To(BeNumerically("<", maxLabelLength), "%s is too long", object.Name)
 	}
 }
 
 func TestEndpointIndexIsPartOfServiceName(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := mockConfigStore{}
+	configStore := MockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "adf123", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(configStore.createdServices[1].Name).To(Equal("svc-1-adf123"))
+	g.Expect(configStore.CreatedServices[1].Name).To(Equal("svc-1-adf123"))
 }
 
 func TestConsumerInterceptorCreatesIstioObjects(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := mockConfigStore{}
+	configStore := MockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	g.Expect(len(configStore.createdIstioConfigs)).To(Equal(6))
-	g.Expect(configStore.createdIstioConfigs[0].Type).To(Equal("service-entry"))
-	text, _ := json.Marshal(configStore.createdIstioConfigs[0])
+	g.Expect(len(configStore.CreatedIstioConfigs)).To(Equal(6))
+	g.Expect(configStore.CreatedIstioConfigs[0].Type).To(Equal("service-entry"))
+	text, _ := json.Marshal(configStore.CreatedIstioConfigs[0])
 	g.Expect(text).To(ContainSubstring("0.678.services.cf.dev01.aws.istio.sapcloud.io"))
-	g.Expect(configStore.createdIstioConfigs[1].Type).To(Equal("virtual-service"))
-	text, _ = json.Marshal(configStore.createdIstioConfigs[1])
+	g.Expect(configStore.CreatedIstioConfigs[1].Type).To(Equal("virtual-service"))
+	text, _ = json.Marshal(configStore.CreatedIstioConfigs[1])
 	g.Expect(text).To(ContainSubstring("svc-0-678"))
-	g.Expect(configStore.createdIstioConfigs[2].Type).To(Equal("virtual-service"))
-	g.Expect(configStore.createdIstioConfigs[3].Type).To(Equal("gateway"))
-	g.Expect(configStore.createdIstioConfigs[4].Type).To(Equal("destination-rule"))
-	g.Expect(configStore.createdIstioConfigs[5].Type).To(Equal("destination-rule"))
+	g.Expect(configStore.CreatedIstioConfigs[2].Type).To(Equal("virtual-service"))
+	g.Expect(configStore.CreatedIstioConfigs[3].Type).To(Equal("gateway"))
+	g.Expect(configStore.CreatedIstioConfigs[4].Type).To(Equal("destination-rule"))
+	g.Expect(configStore.CreatedIstioConfigs[5].Type).To(Equal("destination-rule"))
 }
 
 func TestTwoEndpointsCreateTwelveObject(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := mockConfigStore{}
+	configStore := MockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	g.Expect(len(configStore.createdIstioConfigs)).To(Equal(12))
-	text, err := json.Marshal(configStore.createdIstioConfigs[6])
+	g.Expect(len(configStore.CreatedIstioConfigs)).To(Equal(12))
+	text, err := json.Marshal(configStore.CreatedIstioConfigs[6])
 	g.Expect(text).To(ContainSubstring("1.678.services.cf.dev01.aws.istio.sapcloud.io"))
 }
 
 func TestTwoEndpointsHasTheCorrcetCount(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := mockConfigStore{}
+	configStore := MockConfigStore{}
 	bindResponse := model.BindResponse{
 		Credentials: model.Credentials{},
 		Endpoints:   []model.Endpoint{},
@@ -223,19 +221,19 @@ func TestTwoEndpointsHasTheCorrcetCount(t *testing.T) {
 
 func TestClusterIpIsUsed(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := mockConfigStore{clusterIp: "9.8.7.6"}
+	configStore := MockConfigStore{ClusterIp: "9.8.7.6"}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	text, err := json.Marshal(configStore.createdIstioConfigs[1])
+	text, err := json.Marshal(configStore.CreatedIstioConfigs[1])
 	g.Expect(text).To(ContainSubstring("9.8.7.6"))
 }
 
 func TestCreateServiceErrorIsHandled(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := mockConfigStore{createServiceErr: fmt.Errorf("Test service error")}
+	configStore := MockConfigStore{CreateServiceErr: fmt.Errorf("Test service error")}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
@@ -244,7 +242,7 @@ func TestCreateServiceErrorIsHandled(t *testing.T) {
 
 func TestCreateObjectErrorIsHandled(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := mockConfigStore{createObjectErr: fmt.Errorf("Test object error")}
+	configStore := MockConfigStore{CreateObjectErr: fmt.Errorf("Test object error")}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
@@ -253,57 +251,57 @@ func TestCreateObjectErrorIsHandled(t *testing.T) {
 
 func TestConsumerPostDelete(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := mockConfigStore{}
+	configStore := MockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 
 	err = consumer.PostDelete("678")
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(len(configStore.deletedServices)).To(Equal(2))
-	g.Expect(len(configStore.deletedIstioConfigs)).To(Equal(12))
-	g.Expect(configStore.deletedIstioConfigs[0]).To(Equal("destination-rule:sidecar-to-egress-svc-0-678"))
-	g.Expect(configStore.deletedIstioConfigs[1]).To(Equal("destination-rule:egressgateway-svc-0-678"))
-	g.Expect(configStore.deletedIstioConfigs[2]).To(Equal("gateway:istio-egressgateway-svc-0-678"))
-	g.Expect(configStore.deletedIstioConfigs[3]).To(Equal("virtual-service:egress-gateway-svc-0-678"))
-	g.Expect(configStore.deletedIstioConfigs[4]).To(Equal("virtual-service:mesh-to-egress-svc-0-678"))
-	g.Expect(configStore.deletedIstioConfigs[5]).To(Equal("service-entry:svc-0-678-service"))
-	g.Expect(configStore.deletedIstioConfigs[6]).To(Equal("destination-rule:sidecar-to-egress-svc-1-678"))
-	g.Expect(configStore.deletedIstioConfigs[7]).To(Equal("destination-rule:egressgateway-svc-1-678"))
-	g.Expect(configStore.deletedIstioConfigs[8]).To(Equal("gateway:istio-egressgateway-svc-1-678"))
-	g.Expect(configStore.deletedIstioConfigs[9]).To(Equal("virtual-service:egress-gateway-svc-1-678"))
-	g.Expect(configStore.deletedIstioConfigs[10]).To(Equal("virtual-service:mesh-to-egress-svc-1-678"))
-	g.Expect(configStore.deletedIstioConfigs[11]).To(Equal("service-entry:svc-1-678-service"))
+	g.Expect(len(configStore.DeletedServices)).To(Equal(2))
+	g.Expect(len(configStore.DeletedIstioConfigs)).To(Equal(12))
+	g.Expect(configStore.DeletedIstioConfigs[0]).To(Equal("destination-rule:sidecar-to-egress-svc-0-678"))
+	g.Expect(configStore.DeletedIstioConfigs[1]).To(Equal("destination-rule:egressgateway-svc-0-678"))
+	g.Expect(configStore.DeletedIstioConfigs[2]).To(Equal("gateway:istio-egressgateway-svc-0-678"))
+	g.Expect(configStore.DeletedIstioConfigs[3]).To(Equal("virtual-service:egress-gateway-svc-0-678"))
+	g.Expect(configStore.DeletedIstioConfigs[4]).To(Equal("virtual-service:mesh-to-egress-svc-0-678"))
+	g.Expect(configStore.DeletedIstioConfigs[5]).To(Equal("service-entry:svc-0-678-service"))
+	g.Expect(configStore.DeletedIstioConfigs[6]).To(Equal("destination-rule:sidecar-to-egress-svc-1-678"))
+	g.Expect(configStore.DeletedIstioConfigs[7]).To(Equal("destination-rule:egressgateway-svc-1-678"))
+	g.Expect(configStore.DeletedIstioConfigs[8]).To(Equal("gateway:istio-egressgateway-svc-1-678"))
+	g.Expect(configStore.DeletedIstioConfigs[9]).To(Equal("virtual-service:egress-gateway-svc-1-678"))
+	g.Expect(configStore.DeletedIstioConfigs[10]).To(Equal("virtual-service:mesh-to-egress-svc-1-678"))
+	g.Expect(configStore.DeletedIstioConfigs[11]).To(Equal("service-entry:svc-1-678-service"))
 }
 
 func TestConsumerPostDeleteNoResourceLeaks(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := mockConfigStore{}
+	configStore := MockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 
-	configStore.createdServices = configStore.createdServices[1:]
-	configStore.createdIstioConfigs = append(configStore.createdIstioConfigs[0:3], configStore.createdIstioConfigs[5:]...)
+	configStore.CreatedServices = configStore.CreatedServices[1:]
+	configStore.CreatedIstioConfigs = append(configStore.CreatedIstioConfigs[0:3], configStore.CreatedIstioConfigs[5:]...)
 
 	err = consumer.PostDelete("678")
 	g.Expect(err).NotTo(HaveOccurred())
 
-	g.Expect(configStore.createdServices).To(HaveLen(0))
-	g.Expect(configStore.createdIstioConfigs).To(HaveLen(0))
+	g.Expect(configStore.CreatedServices).To(HaveLen(0))
+	g.Expect(configStore.CreatedIstioConfigs).To(HaveLen(0))
 }
 
 func TestConsumerFailingPostBindGetsCleanedUp(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := mockConfigStore{createObjectErrCount: 3, createObjectErr: errors.New("No more objects")}
+	configStore := MockConfigStore{CreateObjectErrCount: 3, CreateObjectErr: errors.New("No more objects")}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 	g.Expect(err).To(HaveOccurred())
 
-	g.Expect(configStore.createdServices).To(HaveLen(0))
-	g.Expect(configStore.createdIstioConfigs).To(HaveLen(0))
+	g.Expect(configStore.CreatedServices).To(HaveLen(0))
+	g.Expect(configStore.CreatedIstioConfigs).To(HaveLen(0))
 }
 
 func TestConsumerPostCatalog(t *testing.T) {
@@ -322,60 +320,4 @@ func TestConsumerPostCatalogWithoutPrefix(t *testing.T) {
 	interceptor.PostCatalog(&catalog)
 	g.Expect(catalog.Services[0].Name).To(Equal("test-xxx-name"))
 
-}
-
-type mockConfigStore struct {
-	createdServices      []*v1.Service
-	createdIstioConfigs  []istioModel.Config
-	clusterIp            string
-	createServiceErr     error
-	createObjectErr      error
-	createObjectErrCount int
-	deletedServices      []string
-	deletedIstioConfigs  []string
-}
-
-func (m *mockConfigStore) CreateService(service *v1.Service) (*v1.Service, error) {
-	if m.createServiceErr != nil {
-		return nil, m.createServiceErr
-	}
-	m.createdServices = append(m.createdServices, service)
-	service.Spec.ClusterIP = m.clusterIp
-	return service, nil
-}
-
-func (m *mockConfigStore) getNamespace() string {
-	return "catalog"
-}
-
-func (m *mockConfigStore) CreateIstioConfig(object istioModel.Config) error {
-	if m.createObjectErr != nil && m.createObjectErrCount == len(m.createdIstioConfigs) {
-		return m.createObjectErr
-	}
-	m.createdIstioConfigs = append(m.createdIstioConfigs, object)
-	return nil
-}
-
-func (m *mockConfigStore) DeleteService(serviceName string) error {
-	for index, c := range m.createdServices {
-		if c.Name == serviceName {
-			m.deletedServices = append(m.deletedServices, serviceName)
-			m.createdServices = append(m.createdServices[:index], m.createdServices[index+1:]...)
-			return nil
-		}
-	}
-	errorMsg := fmt.Sprintf("error services %s not found", serviceName)
-	return errors.New(errorMsg)
-}
-
-func (m *mockConfigStore) DeleteIstioConfig(configType string, configName string) error {
-	for index, c := range m.createdIstioConfigs {
-		if c.Name == configName {
-			m.deletedIstioConfigs = append(m.deletedIstioConfigs, configType+":"+configName)
-			m.createdIstioConfigs = append(m.createdIstioConfigs[:index], m.createdIstioConfigs[index+1:]...)
-			return nil
-		}
-	}
-	errorMsg := fmt.Sprintf("error %s.networking.istio.io %s not found", configType, configName)
-	return errors.New(errorMsg)
 }

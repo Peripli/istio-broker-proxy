@@ -37,7 +37,7 @@ func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.
 	}
 
 	endCleanupCondition := func(index int, err error) bool {
-		return index < len(response.NetworkData.Data.Endpoints)
+		return index >= len(response.NetworkData.Data.Endpoints)
 	}
 
 	log.Printf("Number of endpoints: %d\n", len(response.NetworkData.Data.Endpoints))

@@ -30,7 +30,7 @@ func (bindResponse BindResponse) MarshalJSON() ([]byte, error) {
 		"credentials": &bindResponse.Credentials,
 		"endpoints":   bindResponse.Endpoints,
 	}
-	if len(bindResponse.NetworkData.NetworkProfileId) > 0 {
+	if len(bindResponse.NetworkData.NetworkProfileId) > 0 || len(bindResponse.NetworkData.Data.Endpoints) > 0 {
 		mapping["network_data"] = &bindResponse.NetworkData
 	}
 	return bindResponse.AdditionalProperties.MarshalJSON(mapping)
