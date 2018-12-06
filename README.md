@@ -1,4 +1,4 @@
-# Install pre-commit hook
+# Install pre-commit hook:
 
 The hook will
 * Call `go fmt`
