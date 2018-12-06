@@ -12,13 +12,13 @@ var producerInterceptor router.ProducerInterceptor
 var consumerInterceptor router.ConsumerInterceptor
 var routerConfig router.RouterConfig
 var serviceNamePrefix string
-var oldServiceIdPrefix string
+var oldServiceIDPrefix string
 
 func main() {
 	SetupConfiguration()
 	flag.Parse()
 	if serviceNamePrefix == "" {
-		serviceNamePrefix = oldServiceIdPrefix
+		serviceNamePrefix = oldServiceIDPrefix
 	}
 
 	log.Printf("Running on port %d\n", routerConfig.Port)
@@ -42,6 +42,7 @@ func main() {
 	engine.Run(fmt.Sprintf(":%d", routerConfig.Port))
 }
 
+// SetupConfiguration sets up the configuration (e.g. initializing the available command line parameters)
 func SetupConfiguration() {
 	flag.StringVar(&producerInterceptor.SystemDomain, "systemdomain", "", "system domain of the landscape")
 	flag.StringVar(&producerInterceptor.ProviderId, "providerId", "", "The subject alternative name of the provider for which the service has a certificate")
@@ -54,6 +55,6 @@ func SetupConfiguration() {
 
 	flag.StringVar(&routerConfig.ForwardURL, "forwardUrl", "", "url for forwarding incoming requests")
 	flag.IntVar(&routerConfig.Port, "port", router.DefaultPort, "Server listen port")
-	flag.StringVar(&oldServiceIdPrefix, "serviceIdPrefix", "", "Service name prefix")
+	flag.StringVar(&oldServiceIDPrefix, "serviceIdPrefix", "", "Service name prefix")
 	flag.StringVar(&serviceNamePrefix, "serviceNamePrefix", "", "Service name prefix")
 }
