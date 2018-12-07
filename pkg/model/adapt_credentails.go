@@ -1,5 +1,9 @@
 package model
 
+import (
+	"errors"
+)
+
 type AdaptCredentialsRequest struct {
 	Credentials      Credentials       `json:"credentials"`
 	EndpointMappings []EndpointMapping `json:"endpoint_mappings"`
@@ -17,6 +21,9 @@ var converters []CredentialConverter = []CredentialConverter{
 
 func Adapt(credentials Credentials, endpointMappings []EndpointMapping) (*BindResponse, error) {
 
+	if len(endpointMappings) == 0 {
+		return nil, errors.New("No endpoint mappings available")
+	}
 	result := BindResponse{}
 	for _, converter := range converters {
 		c, err := converter(credentials, endpointMappings)
