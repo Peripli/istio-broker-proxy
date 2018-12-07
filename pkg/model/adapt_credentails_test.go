@@ -103,7 +103,7 @@ func TestRabbitMqExampleRequestFromBacklogItem(t *testing.T) {
 func TestUnknownCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
 	credentials := Credentials{}
-	adapted, _ := Adapt(credentials, []EndpointMapping{})
+	adapted, _ := Adapt(credentials, []EndpointMapping{{Endpoint{}, Endpoint{}}})
 	g.Expect(adapted.Credentials).To(Equal(credentials))
 }
 
