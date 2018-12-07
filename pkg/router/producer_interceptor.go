@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"github.com/Peripli/istio-broker-proxy/pkg/config"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
@@ -68,7 +69,7 @@ func (c ProducerInterceptor) writeIstioConfigFiles(fileName string, configuratio
 	log.Printf("PATH to istio config: %v\n", ymlPath)
 	file, err := os.Create(ymlPath)
 	if nil != err {
-		return err
+		return fmt.Errorf("Unable to write istio configuration to file '%s': %s", fileName, err.Error())
 	}
 	defer file.Close()
 

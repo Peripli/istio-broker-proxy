@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"github.com/gin-gonic/gin"
@@ -34,16 +35,16 @@ func (client osbProxy) updateCredentials(ctx *gin.Context) {
 	var request model.AdaptCredentialsRequest
 	err := ctx.ShouldBindJSON(&request)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, model.HttpErrorFromError(err))
+		httpError(ctx, err, http.StatusBadRequest)
 		return
 	}
 	if len(request.EndpointMappings) == 0 {
-		ctx.JSON(http.StatusBadRequest, model.HttpError{Message: "No endpoint mappings available"})
+		httpError(ctx, errors.New("No endpoint mappings available"), http.StatusBadRequest)
 		return
 	}
 	response, err := model.Adapt(request.Credentials, request.EndpointMappings)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, model.HttpErrorFromError(err))
+		httpError(ctx, err, http.StatusBadRequest)
 		return
 	}
 	ctx.JSON(http.StatusOK, response)
@@ -61,6 +62,7 @@ type OsbRequest struct {
 type OsbResponse struct {
 	err      error
 	response []byte
+	url      string
 }
 
 func (client osbProxy) Get() *OsbRequest {
@@ -88,7 +90,7 @@ func (o *OsbRequest) Url(url string) *OsbRequest {
 }
 
 func (o *OsbRequest) Do() *OsbResponse {
-	osbResponse := OsbResponse{err: o.err}
+	osbResponse := OsbResponse{err: o.err, url: o.url}
 	if o.err != nil {
 		return &osbResponse
 	}
@@ -116,7 +118,7 @@ func (o *OsbRequest) Do() *OsbResponse {
 		return &osbResponse
 	}
 
-	osbResponse.err = getHttpError(response.StatusCode, osbResponse.response)
+	osbResponse.err = model.HttpErrorFromResponse(response.StatusCode, osbResponse.response)
 	if osbResponse.err != nil {
 		return &osbResponse
 	}
@@ -131,6 +133,7 @@ func (o *OsbResponse) Into(result interface{}) error {
 	o.err = json.Unmarshal(o.response, result)
 
 	if nil != o.err {
+		o.err = fmt.Errorf("Can't unmarshal response from %s: %s", o.url, o.err.Error())
 		log.Printf("ERROR: %s\n", o.err.Error())
 		return o.err
 	}
@@ -149,21 +152,6 @@ func (client osbProxy) getCatalog(header http.Header) (*model.Catalog, error) {
 		Do().
 		Into(&catalog)
 	return &catalog, err
-
-}
-
-func getHttpError(statusCode int, body []byte) error {
-	okResponse := statusCode/100 == 2
-	if !okResponse {
-		var httpError model.HttpError
-		err := json.Unmarshal(body, &httpError)
-		if err != nil {
-			return &model.HttpError{Status: statusCode}
-		}
-		httpError.Status = statusCode
-		return &httpError
-	}
-	return nil
 
 }
 
@@ -194,12 +182,11 @@ func (client osbProxy) deleteBinding(ctx *gin.Context) {
 func (client osbProxy) forwardCatalog(ctx *gin.Context) {
 	catalog, err := client.getCatalog(ctx.Request.Header)
 	if err != nil {
-		ctx.JSON(http.StatusBadGateway, make(map[string]interface{}))
-		log.Printf("ERROR: %s\n", err.Error())
+		httpError(ctx, err, http.StatusBadGateway)
 		return
 	}
 	client.interceptor.PostCatalog(catalog)
-	ctx.JSON(200, catalog)
+	ctx.JSON(http.StatusOK, catalog)
 }
 
 func (client osbProxy) forwardWithCallback(ctx *gin.Context, postCallback func(ctx *gin.Context) error) {
@@ -214,8 +201,7 @@ func (client osbProxy) forwardWithCallback(ctx *gin.Context, postCallback func(c
 
 	response, err := client.Do(proxyRequest)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadGateway)
-		log.Printf("ERROR: %s\n", err.Error())
+		httpError(ctx, err, http.StatusBadGateway)
 		return
 	}
 	log.Printf("Request forwarded %v: %s\n", request.URL, response.Status)
@@ -225,8 +211,7 @@ func (client osbProxy) forwardWithCallback(ctx *gin.Context, postCallback func(c
 	if (response.StatusCode / 100) == 2 {
 		err = postCallback(ctx)
 		if err != nil {
-			http.Error(writer, err.Error(), http.StatusBadGateway)
-			log.Printf("ERROR: %s\n", err.Error())
+			httpError(ctx, err, http.StatusBadGateway)
 			return
 		}
 	}
@@ -240,13 +225,12 @@ func (client osbProxy) forwardWithCallback(ctx *gin.Context, postCallback func(c
 }
 
 func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
-	writer := ctx.Writer
 	request := ctx.Request
 
 	var bindRequest model.BindRequest
 	err := ctx.ShouldBindJSON(&bindRequest)
 	if err != nil {
-		ctx.AbortWithError(http.StatusBadRequest, err)
+		httpError(ctx, err, http.StatusBadRequest)
 		return
 	}
 
@@ -263,8 +247,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 		Into(&bindResponse)
 
 	if err != nil {
-		httpError := model.HttpErrorFromError(err)
-		ctx.AbortWithStatusJSON(httpError.Status, httpError)
+		httpError(ctx, err, http.StatusBadGateway)
 		return
 	}
 
@@ -275,7 +258,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 			return client.adaptCredentials(credentials, mappings, instanceId, bindingId, request.Header)
 		})
 	if err != nil {
-		httpError(writer, err)
+		httpError(ctx, err, http.StatusInternalServerError)
 		return
 	}
 	bindResponse = *modifiedBindResponse
@@ -284,9 +267,10 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 
 }
 
-func httpError(writer gin.ResponseWriter, err error) {
-	http.Error(writer, err.Error(), http.StatusInternalServerError)
+func httpError(ctx *gin.Context, err error, statusCode int) {
 	log.Printf("ERROR: %s\n", err.Error())
+	httpError := model.HttpErrorFromError(err, statusCode)
+	ctx.AbortWithStatusJSON(httpError.StatusCode, httpError)
 }
 
 func httpClientFactory(tr *http.Transport) *http.Client {

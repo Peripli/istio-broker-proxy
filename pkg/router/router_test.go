@@ -61,7 +61,7 @@ func TestValidUpdateCredentials(t *testing.T) {
 
 func TestConsumerForwardsAdpotCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	handlerStub := NewHandlerStub(499, []byte{})
+	handlerStub := NewHandlerStub(499, []byte(`{"error" : "abc"}`))
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
 	router := SetupRouter(ConsumerInterceptor{ConsumerId: "x"}, *routerConfig)
@@ -74,6 +74,9 @@ func TestConsumerForwardsAdpotCredentials(t *testing.T) {
 	code := response.Code
 
 	g.Expect(code).To(Equal(499))
+	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
+	g.Expect(err.Error()).To(Equal("abc"))
+
 }
 
 func TestCreateNewURL(t *testing.T) {
@@ -178,6 +181,8 @@ func TestBadGateway(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(502))
+	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
+	g.Expect(err.Error()).To(Equal(`Get doesntexist.org/get: unsupported protocol scheme ""`))
 }
 
 func TestAdaptCredentials(t *testing.T) {
@@ -372,6 +377,9 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 	router := SetupRouter(producerConfig, *routerConfig)
 	router.ServeHTTP(response, request)
 	g.Expect(response.Code).To(Equal(500))
+	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.(*model.HttpError).ErrorMsg).To(ContainSubstring("Unable to write istio configuration to file"))
 }
 
 func TestHttpClientError(t *testing.T) {
@@ -389,7 +397,7 @@ func TestHttpClientError(t *testing.T) {
                         "uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
                     }
                     }`)
-	handlerStub := NewHandlerStub(http.StatusNotFound, []byte{})
+	handlerStub := NewHandlerStub(http.StatusNotFound, []byte(`{ "error": "Not found", "description": "Unable to find entry"}`))
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -399,9 +407,11 @@ func TestHttpClientError(t *testing.T) {
 	router := SetupRouter(&NoOpInterceptor{}, *routerConfig)
 	router.ServeHTTP(response, request)
 
-	bodyString := response.Body.String()
 	g.Expect(response.Code).To(Equal(http.StatusNotFound))
-	g.Expect(bodyString).To(Equal(`{"error":"","description":""}`))
+	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("Not found"))
+	g.Expect(err.(*model.HttpError).Description).To(Equal("Unable to find entry"))
 }
 
 func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
@@ -433,19 +443,22 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
 
 func TestErrorCodeOfForwardIsReturned(t *testing.T) {
 	g := NewGomegaWithT(t)
-	handlerStub := NewHandlerStub(http.StatusServiceUnavailable, nil)
+	handlerStub := NewHandlerStub(http.StatusServiceUnavailable, []byte(`{ "error": "xxx", "description": "yyy"}`))
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
 
-	body := []byte{'{', '}'}
-	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/status/503", bytes.NewReader(body))
+	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/status/503", bytes.NewReader([]byte("{}")))
 
 	response := httptest.NewRecorder()
 	router := SetupRouter(&NoOpInterceptor{}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(503))
+	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("xxx"))
+	g.Expect(err.(*model.HttpError).Description).To(Equal("yyy"))
 }
 
 func TestReturnCodeOfGet(t *testing.T) {
@@ -598,8 +611,8 @@ func TestAdaptCredentialsWithBadRequest(t *testing.T) {
 		[]model.EndpointMapping{}, "1234-4567", "7654-3210", make(map[string][]string))
 
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HttpError).Status).To(Equal(http.StatusBadRequest))
-	g.Expect(err.(*model.HttpError).Message).To(Equal("myerror"))
+	g.Expect(err.(*model.HttpError).StatusCode).To(Equal(http.StatusBadRequest))
+	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("myerror"))
 	g.Expect(err.(*model.HttpError).Description).To(Equal("mydescription"))
 }
 
@@ -618,6 +631,7 @@ func TestAdaptCredentialsWithInvalidJson(t *testing.T) {
 		[]model.EndpointMapping{}, "1234-4567", "7654-3210", make(map[string][]string))
 
 	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("Can't unmarshal response from"))
 }
 
 func TestGetCatalog(t *testing.T) {
@@ -679,13 +693,14 @@ func TestGetCatalogWithInvalidCatalog(t *testing.T) {
 	_, err := client.getCatalog(make(map[string][]string))
 
 	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("Can't unmarshal response from"))
 }
 
 func TestGetCatalogWithBadRequest(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	handlerStub := NewHandlerStubWithFunc(http.StatusBadRequest, func(body []byte) []byte {
-		return []byte("{}")
+		return []byte(`{ "error" : "bad request"}`)
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
@@ -696,28 +711,7 @@ func TestGetCatalogWithBadRequest(t *testing.T) {
 	_, err := client.getCatalog(make(map[string][]string))
 
 	g.Expect(err).To(HaveOccurred())
-}
-
-func TestGetHttpErrorWithInvalidJson(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	err := getHttpError(501, []byte("[]"))
-
-	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HttpError).Status).To(Equal(501))
-	g.Expect(err.(*model.HttpError).Message).To(Equal(""))
-	g.Expect(err.(*model.HttpError).Description).To(Equal(""))
-}
-
-func TestGetHttpErrorWith(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	err := getHttpError(502, []byte(`{"error" : "myerror", "description" : "mydescription"}`))
-
-	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HttpError).Status).To(Equal(502))
-	g.Expect(err.(*model.HttpError).Message).To(Equal("myerror"))
-	g.Expect(err.(*model.HttpError).Description).To(Equal("mydescription"))
+	g.Expect(err.Error()).To(Equal("bad request"))
 }
 
 type DeleteInterceptor struct {
