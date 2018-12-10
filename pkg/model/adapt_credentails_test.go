@@ -118,3 +118,12 @@ func TestEndpointIsAddedAfterApplying(t *testing.T) {
 	g.Expect(len(translatedRequest.Endpoints)).To(Equal(1))
 	g.Expect(translatedRequest.Endpoints[0]).To(Equal(Endpoint{"appnethost", 9876}))
 }
+
+func TestAdaptWithEmptyEndpointMappings(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	_, err := Adapt(Credentials{}, []EndpointMapping{})
+
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("No endpoint mappings available"))
+}
