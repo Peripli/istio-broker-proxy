@@ -1,6 +1,7 @@
 package router
 
 import (
+	"encoding/json"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	. "github.com/onsi/gomega"
 	"io/ioutil"
@@ -152,5 +153,31 @@ func TestProducerPostCatalog(t *testing.T) {
 	catalog := model.Catalog{[]model.Service{{Name: "name"}}}
 	interceptor.PostCatalog(&catalog)
 	g.Expect(catalog.Services[0].Name).To(Equal("istio-name"))
+}
 
+func TestEnrichMetaData(t *testing.T) {
+	g := NewGomegaWithT(t)
+	interceptor := ProducerInterceptor{ServiceMetaData: `{"supportedPlattforms": ["kubernetes"]}`}
+	catalog := model.Catalog{[]model.Service{{Name: "name"}}}
+	err := interceptor.PostCatalog(&catalog)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(string(catalog.Services[0].MetaData["supportedPlattforms"])).To(MatchJSON(`["kubernetes"]`))
+}
+
+func TestEnrichNonEmptyMetaData(t *testing.T) {
+	g := NewGomegaWithT(t)
+	interceptor := ProducerInterceptor{ServiceMetaData: `{"supportedPlattforms": ["kubernetes"]}`}
+	catalog := model.Catalog{[]model.Service{{Name: "name", MetaData: map[string]json.RawMessage{"testKey": json.RawMessage(`"testvalue"`)}}}}
+	err := interceptor.PostCatalog(&catalog)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(string(catalog.Services[0].MetaData["supportedPlattforms"])).To(MatchJSON(`["kubernetes"]`))
+	g.Expect(string(catalog.Services[0].MetaData["testKey"])).To(MatchJSON(`"testvalue"`))
+}
+
+func TestEnrichInvalidMetaData(t *testing.T) {
+	g := NewGomegaWithT(t)
+	interceptor := ProducerInterceptor{ServiceMetaData: `{"supportedPlattforms": "invalidJson"]}`}
+	catalog := model.Catalog{[]model.Service{{Name: "name"}}}
+	err := interceptor.PostCatalog(&catalog)
+	g.Expect(err).To(HaveOccurred())
 }

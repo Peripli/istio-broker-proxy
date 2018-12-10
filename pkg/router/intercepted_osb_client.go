@@ -14,8 +14,8 @@ func (c *InterceptedOsbClient) GetCatalog() (*model.Catalog, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.Interceptor.PostCatalog(catalog)
-	return catalog, nil
+	err = c.Interceptor.PostCatalog(catalog)
+	return catalog, err
 }
 
 func (c *InterceptedOsbClient) Bind(instanceId string, bindingId string, bindRequest *model.BindRequest) (*model.BindResponse, error) {

@@ -123,8 +123,9 @@ func (c ConsumerInterceptor) HasAdaptCredentials() bool {
 	return false
 }
 
-func (c ConsumerInterceptor) PostCatalog(catalog *model.Catalog) {
+func (c ConsumerInterceptor) PostCatalog(catalog *model.Catalog) error {
 	for i := range catalog.Services {
 		catalog.Services[i].Name = strings.TrimPrefix(catalog.Services[i].Name, c.ServiceNamePrefix)
 	}
+	return nil
 }

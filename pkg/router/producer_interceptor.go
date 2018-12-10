@@ -1,6 +1,7 @@
 package router
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/Peripli/istio-broker-proxy/pkg/config"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
@@ -18,6 +19,7 @@ type ProducerInterceptor struct {
 	IstioDirectory    string
 	IpAddress         string
 	ServiceNamePrefix string
+	ServiceMetaData   string
 }
 
 func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) error {
@@ -84,8 +86,14 @@ func (c ProducerInterceptor) writeIstioConfigFiles(fileName string, configuratio
 	return nil
 }
 
-func (c ProducerInterceptor) PostCatalog(catalog *model.Catalog) {
+func (c ProducerInterceptor) PostCatalog(catalog *model.Catalog) error {
 	for i := range catalog.Services {
 		catalog.Services[i].Name = c.ServiceNamePrefix + catalog.Services[i].Name
+
+		err := json.Unmarshal([]byte(c.ServiceMetaData), &catalog.Services[i].MetaData)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
