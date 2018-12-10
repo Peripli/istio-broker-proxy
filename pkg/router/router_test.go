@@ -382,6 +382,24 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 	g.Expect(err.(*model.HttpError).ErrorMsg).To(ContainSubstring("Unable to write istio configuration to file"))
 }
 
+func TestBindWithInvalidRequest(t *testing.T) {
+	producerConfig := ProducerInterceptor{}
+	g := NewGomegaWithT(t)
+	handlerStub := NewHandlerStub(http.StatusOK, []byte(``))
+	server, routerConfig := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/error", bytes.NewReader([]byte(`[]`)))
+	response := httptest.NewRecorder()
+	router := SetupRouter(producerConfig, *routerConfig)
+	router.ServeHTTP(response, request)
+	g.Expect(response.Code).To(Equal(http.StatusBadRequest))
+	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.(*model.HttpError).ErrorMsg).To(ContainSubstring("cannot unmarshal array into Go value"))
+}
+
 func TestHttpClientError(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte(`{
