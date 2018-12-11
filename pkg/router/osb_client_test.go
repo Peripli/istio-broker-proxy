@@ -5,6 +5,7 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	. "github.com/onsi/gomega"
 	"net/http"
+	"net/url"
 	"testing"
 )
 
@@ -24,7 +25,7 @@ func TestAdaptCredentialsWithProxy(t *testing.T) {
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), make(map[string][]string), *routerConfig}}
+	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
 	binding, err := client.AdaptCredentials("1234-4567", "7654-3210",
 		model.PostgresCredentials{
 			Port:     47637,
@@ -57,7 +58,7 @@ func TestAdaptCredentialsWithBadRequest(t *testing.T) {
 	handlerStub := NewHandlerStub(http.StatusBadRequest, []byte(`{"error" : "myerror", "description" : "mydescription"}`))
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), make(map[string][]string), *routerConfig}}
+	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
 	_, err := client.AdaptCredentials("1234-4567", "7654-3210",
 		model.PostgresCredentials{}.ToCredentials(),
 		[]model.EndpointMapping{})
@@ -74,7 +75,7 @@ func TestAdaptCredentialsWithInvalidJson(t *testing.T) {
 	handlerStub := NewHandlerStub(http.StatusOK, []byte(""))
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), make(map[string][]string), *routerConfig}}
+	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
 	_, err := client.AdaptCredentials("1234-4567", "7654-3210",
 		model.PostgresCredentials{}.ToCredentials(),
 		[]model.EndpointMapping{})
@@ -95,7 +96,7 @@ func TestGetCatalog(t *testing.T) {
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), make(map[string][]string), *routerConfig}}
+	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
 	catalog, err := client.GetCatalog()
 
 	g.Expect(err).NotTo(HaveOccurred())
@@ -115,7 +116,7 @@ func TestGetCatalogWithoutUpstreamServer(t *testing.T) {
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), make(map[string][]string), *routerConfig}}
+	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
 	_, err := client.GetCatalog()
 
 	g.Expect(err).To(HaveOccurred())
@@ -129,7 +130,7 @@ func TestGetCatalogWithInvalidCatalog(t *testing.T) {
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), make(map[string][]string), *routerConfig}}
+	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
 	_, err := client.GetCatalog()
 
 	g.Expect(err).To(HaveOccurred())
@@ -144,7 +145,7 @@ func TestGetCatalogWithBadRequest(t *testing.T) {
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), make(map[string][]string), *routerConfig}}
+	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
 	_, err := client.GetCatalog()
 
 	g.Expect(err).To(HaveOccurred())
@@ -159,7 +160,8 @@ func TestUnbind(t *testing.T) {
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), make(map[string][]string), *routerConfig}}
+	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}),
+		&http.Request{URL: &url.URL{Host: "yyyy:123", Path: "/v2/service_instances/1/service_bindings/2", RawQuery: "query_parameter=value"}}, *routerConfig}}
 	err := client.Unbind("1", "2", "query_parameter=value")
 
 	g.Expect(err).NotTo(HaveOccurred())

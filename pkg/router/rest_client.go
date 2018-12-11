@@ -6,7 +6,7 @@ type RestResponse interface {
 }
 
 type RestRequest interface {
-	Path(path string) RestRequest
+	AppendPath(path string) RestRequest
 	Do() RestResponse
 }
 

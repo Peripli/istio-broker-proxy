@@ -12,8 +12,8 @@ import (
 
 type RouterRestClient struct {
 	*http.Client
-	header http.Header
-	config RouterConfig
+	request *http.Request
+	config  RouterConfig
 }
 
 type RouterRestRequest struct {
@@ -31,25 +31,30 @@ type RouterRestResponse struct {
 }
 
 func (client *RouterRestClient) Get() RestRequest {
-	return &RouterRestRequest{method: http.MethodGet, client: client, request: make([]byte, 0)}
+	return client.createRequest(http.MethodGet, make([]byte, 0), nil)
 }
 
 func (client *RouterRestClient) Delete() RestRequest {
-	return &RouterRestRequest{method: http.MethodDelete, client: client, request: make([]byte, 0)}
+	return client.createRequest(http.MethodDelete, make([]byte, 0), nil)
 }
 
 func (client *RouterRestClient) Post(request interface{}) RestRequest {
 	requestBody, err := json.Marshal(request)
-	return &RouterRestRequest{method: http.MethodPost, client: client, request: requestBody, err: err}
+	return client.createRequest(http.MethodPost, requestBody, err)
 }
 
 func (client *RouterRestClient) Put(request interface{}) RestRequest {
 	requestBody, err := json.Marshal(request)
-	return &RouterRestRequest{method: http.MethodPut, client: client, request: requestBody, err: err}
+	return client.createRequest(http.MethodPut, requestBody, err)
 }
 
-func (o *RouterRestRequest) Path(path string) RestRequest {
-	o.url = o.client.config.ForwardURL + "/" + path
+func (client *RouterRestClient) createRequest(method string, body []byte, err error) *RouterRestRequest {
+	return &RouterRestRequest{method: method, client: client, request: body, url: createNewUrl(client.config.ForwardURL, client.request)}
+}
+
+func (o *RouterRestRequest) AppendPath(path string) RestRequest {
+	// CAUTION: discards query
+	o.url = o.client.config.ForwardURL + "/" + o.client.request.URL.Path + path
 	return o
 }
 
@@ -64,7 +69,7 @@ func (o *RouterRestRequest) Do() RestResponse {
 		log.Printf("ERROR: %s\n", osbResponse.err.Error())
 		return &osbResponse
 	}
-	proxyRequest.Header = o.client.header
+	proxyRequest.Header = o.client.request.Header
 
 	var response *http.Response
 	response, osbResponse.err = o.client.Do(proxyRequest)

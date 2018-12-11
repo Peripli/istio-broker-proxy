@@ -51,7 +51,7 @@ func (client osbProxy) forward(ctx *gin.Context) {
 func (client osbProxy) deleteBinding(ctx *gin.Context) {
 	bindingId := ctx.Params.ByName("binding_id")
 	instanceId := ctx.Params.ByName("instance_id")
-	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, ctx.Request.Header, client.config}}, client.interceptor}
+	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, ctx.Request, client.config}}, client.interceptor}
 	err := osbClient.Unbind(instanceId, bindingId, ctx.Request.URL.RawQuery)
 	if err != nil {
 		httpError(ctx, err, http.StatusBadGateway)
@@ -61,7 +61,7 @@ func (client osbProxy) deleteBinding(ctx *gin.Context) {
 }
 
 func (client osbProxy) forwardCatalog(ctx *gin.Context) {
-	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, ctx.Request.Header, client.config}}, client.interceptor}
+	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, ctx.Request, client.config}}, client.interceptor}
 	catalog, err := osbClient.GetCatalog()
 	if err != nil {
 		httpError(ctx, err, http.StatusBadGateway)
@@ -115,7 +115,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 		return
 	}
 
-	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, request.Header, client.config}}, client.interceptor}
+	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, request, client.config}}, client.interceptor}
 	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
 	bindingId := ctx.Params.ByName("binding_id")
 	instanceId := ctx.Params.ByName("instance_id")

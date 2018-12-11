@@ -4,6 +4,7 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	. "github.com/onsi/gomega"
 	"net/http"
+	"net/url"
 	"testing"
 )
 
@@ -20,7 +21,7 @@ func TestRouterRestClientPut(t *testing.T) {
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), make(map[string][]string), *routerConfig}
+	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
 	testStruct := TestStruct{"s", 10}
 	err := client.Put(&testStruct).Do().Into(&testStruct)
 
@@ -39,7 +40,7 @@ func TestRouterRestClientWithBadRequest(t *testing.T) {
 	handlerStub := NewHandlerStub(http.StatusBadRequest, []byte(`{"error" : "myerror", "description" : "mydescription"}`))
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), make(map[string][]string), *routerConfig}
+	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
 	err := client.Get().Do().Error()
 
 	g.Expect(err).To(HaveOccurred())
@@ -55,7 +56,7 @@ func TestRouterRestClientPostWithInvalidJson(t *testing.T) {
 	handlerStub := NewHandlerStub(http.StatusOK, []byte(""))
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), make(map[string][]string), *routerConfig}
+	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
 	result := TestStruct{}
 	err := client.Post(&result).Do().Into(&result)
 
@@ -72,7 +73,7 @@ func TestRouterRestClientDelete(t *testing.T) {
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), make(map[string][]string), *routerConfig}
+	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
 	err := client.Delete().Do().Error()
 
 	g.Expect(err).NotTo(HaveOccurred())
