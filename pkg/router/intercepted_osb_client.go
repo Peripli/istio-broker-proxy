@@ -34,9 +34,9 @@ func (c *InterceptedOsbClient) Bind(instanceId string, bindingId string, bindReq
 
 }
 
-func (c *InterceptedOsbClient) Unbind(instanceId string, bindId string) error {
+func (c *InterceptedOsbClient) Unbind(instanceId string, bindId string, rawQuery string) error {
 
-	err := c.OsbClient.Unbind(instanceId, bindId)
+	err := c.OsbClient.Unbind(instanceId, bindId, rawQuery)
 	if err != nil {
 		return err
 	}

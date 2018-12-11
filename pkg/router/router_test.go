@@ -520,7 +520,7 @@ func TestDeleteBinding(t *testing.T) {
 
 	defer server.Close()
 
-	request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
+	request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/v2/service_instances/123/service_bindings/456?parameter=true", bytes.NewReader(body))
 
 	response := httptest.NewRecorder()
 	var bindId = ""
@@ -532,6 +532,7 @@ func TestDeleteBinding(t *testing.T) {
 
 	g.Expect(bindId).To(Equal("456"))
 	g.Expect(response.Code).To(Equal(http.StatusOK))
+	g.Expect(handlerStub.spy.url).To(ContainSubstring("parameter=true"))
 }
 
 func TestDeleteBindingNotFound(t *testing.T) {

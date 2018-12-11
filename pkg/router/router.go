@@ -52,7 +52,7 @@ func (client osbProxy) deleteBinding(ctx *gin.Context) {
 	bindingId := ctx.Params.ByName("binding_id")
 	instanceId := ctx.Params.ByName("instance_id")
 	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, ctx.Request.Header, client.config}}, client.interceptor}
-	err := osbClient.Unbind(instanceId, bindingId)
+	err := osbClient.Unbind(instanceId, bindingId, ctx.Request.URL.RawQuery)
 	if err != nil {
 		httpError(ctx, err, http.StatusBadGateway)
 		return

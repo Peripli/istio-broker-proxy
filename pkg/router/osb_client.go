@@ -42,10 +42,10 @@ func (client *OsbClient) Bind(instanceId string, bindId string, request *model.B
 
 }
 
-func (client *OsbClient) Unbind(instanceId string, bindId string) error {
+func (client *OsbClient) Unbind(instanceId string, bindId string, rawQuery string) error {
 
 	return client.Delete().
-		Path(fmt.Sprintf("v2/service_instances/%s/service_bindings/%s", instanceId, bindId)).
+		Path(fmt.Sprintf("v2/service_instances/%s/service_bindings/%s?%s", instanceId, bindId, rawQuery)).
 		Do().
 		Error()
 

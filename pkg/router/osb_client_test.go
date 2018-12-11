@@ -150,3 +150,18 @@ func TestGetCatalogWithBadRequest(t *testing.T) {
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("bad request"))
 }
+
+func TestUnbind(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	handlerStub := NewHandlerStubWithFunc(http.StatusOK, func(body []byte) []byte {
+		return []byte(`{}`)
+	})
+	server, routerConfig := injectClientStub(handlerStub)
+	defer server.Close()
+	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), make(map[string][]string), *routerConfig}}
+	err := client.Unbind("1", "2", "query_parameter=value")
+
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(handlerStub.spy.url).To(Equal("http://xxxxx.xx/v2/service_instances/1/service_bindings/2?query_parameter=value"))
+}
