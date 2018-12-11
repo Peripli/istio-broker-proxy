@@ -54,7 +54,7 @@ func (client *RouterRestClient) createRequest(method string, body []byte, err er
 
 func (o *RouterRestRequest) AppendPath(path string) RestRequest {
 	// CAUTION: discards query
-	o.url = o.client.config.ForwardURL + "/" + o.client.request.URL.Path + path
+	o.url = o.client.config.ForwardURL + o.client.request.URL.Path + path
 	return o
 }
 

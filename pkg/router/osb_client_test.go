@@ -52,6 +52,23 @@ func TestAdaptCredentialsWithProxy(t *testing.T) {
 
 }
 
+func TestAdaptCredentialsCalledWithCorrectPath(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	handlerStub := NewHandlerStub(http.StatusOK, []byte(`{}`))
+	server, routerConfig := injectClientStub(handlerStub)
+	routerConfig.ForwardURL = "https://myhost"
+	defer server.Close()
+	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{Host: "original-host",
+		Path: "/v2/service_instances/552c6306-fd6a-11e8-b5d9-1287e5b96b40/service_bindings/5e58a9a6-fd6a-11e8-b5d9-1287e5b96b40"}}, *routerConfig}}
+	binding, err := client.AdaptCredentials("1234-4567", "7654-3210", model.Credentials{}, []model.EndpointMapping{{}})
+
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(binding).NotTo(BeNil())
+
+	g.Expect(handlerStub.spy.url).To(Equal("https://myhost/v2/service_instances/552c6306-fd6a-11e8-b5d9-1287e5b96b40/service_bindings/5e58a9a6-fd6a-11e8-b5d9-1287e5b96b40/adapt_credentials"))
+}
+
 func TestAdaptCredentialsWithBadRequest(t *testing.T) {
 	g := NewGomegaWithT(t)
 
