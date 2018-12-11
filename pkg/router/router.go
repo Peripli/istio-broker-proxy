@@ -52,7 +52,12 @@ func (client osbProxy) deleteBinding(ctx *gin.Context) {
 	bindingId := ctx.Params.ByName("binding_id")
 	instanceId := ctx.Params.ByName("instance_id")
 	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, ctx.Request.Header, client.config}}, client.interceptor}
-	osbClient.Unbind(instanceId, bindingId)
+	err := osbClient.Unbind(instanceId, bindingId)
+	if err != nil {
+		httpError(ctx, err, http.StatusBadGateway)
+		return
+	}
+	ctx.JSON(http.StatusOK, map[string]string{})
 }
 
 func (client osbProxy) forwardCatalog(ctx *gin.Context) {

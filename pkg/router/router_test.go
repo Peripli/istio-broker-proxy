@@ -531,6 +531,24 @@ func TestDeleteBinding(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(bindId).To(Equal("456"))
+	g.Expect(response.Code).To(Equal(http.StatusOK))
+}
+
+func TestDeleteBindingNotFound(t *testing.T) {
+	g := NewGomegaWithT(t)
+	body := []byte{'{', '}'}
+	handlerStub := NewHandlerStub(http.StatusNotFound, body)
+	server, routerConfig := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
+
+	response := httptest.NewRecorder()
+	router := SetupRouter(&NoOpInterceptor{}, *routerConfig)
+	router.ServeHTTP(response, request)
+
+	g.Expect(response.Code).To(Equal(http.StatusNotFound))
 }
 
 func TestForwardGetCatalog(t *testing.T) {
