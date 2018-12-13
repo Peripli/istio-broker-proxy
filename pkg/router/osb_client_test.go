@@ -26,12 +26,11 @@ func TestAdaptCredentialsWithProxy(t *testing.T) {
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
 	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
-	binding, err := client.AdaptCredentials("1234-4567", "7654-3210",
-		model.PostgresCredentials{
-			Port:     47637,
-			Hostname: "10.11.241.0",
-			Uri:      "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn",
-		}.ToCredentials(),
+	binding, err := client.AdaptCredentials(model.PostgresCredentials{
+		Port:     47637,
+		Hostname: "10.11.241.0",
+		Uri:      "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn",
+	}.ToCredentials(),
 		[]model.EndpointMapping{
 			{
 				Source: model.Endpoint{"10.11.241.0", 47637},
@@ -61,7 +60,7 @@ func TestAdaptCredentialsCalledWithCorrectPath(t *testing.T) {
 	defer server.Close()
 	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{Host: "original-host",
 		Path: "/v2/service_instances/552c6306-fd6a-11e8-b5d9-1287e5b96b40/service_bindings/5e58a9a6-fd6a-11e8-b5d9-1287e5b96b40"}}, *routerConfig}}
-	binding, err := client.AdaptCredentials("1234-4567", "7654-3210", model.Credentials{}, []model.EndpointMapping{{}})
+	binding, err := client.AdaptCredentials(model.Credentials{}, []model.EndpointMapping{{}})
 
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(binding).NotTo(BeNil())
@@ -76,9 +75,7 @@ func TestAdaptCredentialsWithBadRequest(t *testing.T) {
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
 	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
-	_, err := client.AdaptCredentials("1234-4567", "7654-3210",
-		model.PostgresCredentials{}.ToCredentials(),
-		[]model.EndpointMapping{})
+	_, err := client.AdaptCredentials(model.PostgresCredentials{}.ToCredentials(), []model.EndpointMapping{})
 
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*model.HttpError).StatusCode).To(Equal(http.StatusBadRequest))
@@ -93,9 +90,7 @@ func TestAdaptCredentialsWithInvalidJson(t *testing.T) {
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
 	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
-	_, err := client.AdaptCredentials("1234-4567", "7654-3210",
-		model.PostgresCredentials{}.ToCredentials(),
-		[]model.EndpointMapping{})
+	_, err := client.AdaptCredentials(model.PostgresCredentials{}.ToCredentials(), []model.EndpointMapping{})
 
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("Can't unmarshal response from"))
@@ -179,7 +174,7 @@ func TestUnbind(t *testing.T) {
 	defer server.Close()
 	client := OsbClient{&RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}),
 		&http.Request{URL: &url.URL{Host: "yyyy:123", Path: "/v2/service_instances/1/service_bindings/2", RawQuery: "query_parameter=value"}}, *routerConfig}}
-	err := client.Unbind("1", "2", "query_parameter=value")
+	err := client.Unbind()
 
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(handlerStub.spy.url).To(Equal("http://xxxxx.xx/v2/service_instances/1/service_bindings/2?query_parameter=value"))

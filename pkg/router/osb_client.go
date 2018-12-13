@@ -8,15 +8,13 @@ type OsbClient struct {
 	RestClient
 }
 
-func (client *OsbClient) AdaptCredentials(instanceId string, bindId string, credentials model.Credentials, mapping []model.EndpointMapping) (*model.BindResponse, error) {
-
+func (client *OsbClient) AdaptCredentials(credentials model.Credentials, mapping []model.EndpointMapping) (*model.BindResponse, error) {
 	var bindResponse model.BindResponse
 	err := client.Post(&model.AdaptCredentialsRequest{Credentials: credentials, EndpointMappings: mapping}).
 		AppendPath("/adapt_credentials").
 		Do().
 		Into(&bindResponse)
 	return &bindResponse, err
-
 }
 
 func (client *OsbClient) GetCatalog() (*model.Catalog, error) {
@@ -25,10 +23,9 @@ func (client *OsbClient) GetCatalog() (*model.Catalog, error) {
 		Do().
 		Into(&catalog)
 	return &catalog, err
-
 }
 
-func (client *OsbClient) Bind(instanceId string, bindId string, request *model.BindRequest) (*model.BindResponse, error) {
+func (client *OsbClient) Bind(request *model.BindRequest) (*model.BindResponse, error) {
 	var bindResponse model.BindResponse
 
 	err := client.Put(request).
@@ -36,13 +33,10 @@ func (client *OsbClient) Bind(instanceId string, bindId string, request *model.B
 		Into(&bindResponse)
 
 	return &bindResponse, err
-
 }
 
-func (client *OsbClient) Unbind(instanceId string, bindId string, rawQuery string) error {
-
+func (client *OsbClient) Unbind() error {
 	return client.Delete().
 		Do().
 		Error()
-
 }

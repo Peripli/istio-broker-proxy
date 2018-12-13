@@ -50,11 +50,10 @@ func (client osbProxy) forward(ctx *gin.Context) {
 
 func (client osbProxy) deleteBinding(ctx *gin.Context) {
 	bindingId := ctx.Params.ByName("binding_id")
-	instanceId := ctx.Params.ByName("instance_id")
 	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, ctx.Request, client.config}}, client.interceptor}
-	err := osbClient.Unbind(instanceId, bindingId, ctx.Request.URL.RawQuery)
+	err := osbClient.Unbind(bindingId)
 	if err != nil {
-		httpError(ctx, err, http.StatusBadGateway)
+		httpError(ctx, err, http.StatusInternalServerError)
 		return
 	}
 	ctx.JSON(http.StatusOK, map[string]string{})
@@ -64,7 +63,7 @@ func (client osbProxy) forwardCatalog(ctx *gin.Context) {
 	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, ctx.Request, client.config}}, client.interceptor}
 	catalog, err := osbClient.GetCatalog()
 	if err != nil {
-		httpError(ctx, err, http.StatusBadGateway)
+		httpError(ctx, err, http.StatusInternalServerError)
 		return
 	}
 	ctx.JSON(http.StatusOK, catalog)
@@ -92,7 +91,7 @@ func (client osbProxy) forwardWithCallback(ctx *gin.Context, postCallback func(c
 	if (response.StatusCode / 100) == 2 {
 		err = postCallback(ctx)
 		if err != nil {
-			httpError(ctx, err, http.StatusBadGateway)
+			httpError(ctx, err, http.StatusInternalServerError)
 			return
 		}
 	}
@@ -118,14 +117,12 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, request, client.config}}, client.interceptor}
 	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
 	bindingId := ctx.Params.ByName("binding_id")
-	instanceId := ctx.Params.ByName("instance_id")
-	bindResponse, err := osbClient.Bind(instanceId, bindingId, &bindRequest)
+	bindResponse, err := osbClient.Bind(bindingId, &bindRequest)
 	if err != nil {
 		httpError(ctx, err, http.StatusInternalServerError)
 		return
 	}
 	ctx.JSON(http.StatusOK, bindResponse)
-
 }
 
 func httpError(ctx *gin.Context, err error, statusCode int) {

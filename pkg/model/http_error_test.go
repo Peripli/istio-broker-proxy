@@ -21,8 +21,9 @@ func TestHttpErrorFromHttpError(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	httpError := HttpErrorFromError(HttpError{ErrorMsg: "Hello istio", Description: "xxx", StatusCode: http.StatusBadRequest}, http.StatusBadGateway)
-	err := HttpErrorFromError(httpError, http.StatusBadGateway)
+	err := HttpErrorFromError(httpError, http.StatusInternalServerError)
 	g.Expect(err).To(Equal(httpError))
+	g.Expect(err.StatusCode).To(Equal(http.StatusBadRequest))
 }
 
 func TestHttpErrorFromResponseOK(t *testing.T) {

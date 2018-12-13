@@ -14,6 +14,8 @@ func HttpErrorFromError(err error, statusCode int) *HttpError {
 	switch t := err.(type) {
 	case *HttpError:
 		return t
+	case HttpError:
+		return &t
 	default:
 		return &HttpError{err.Error(), "", statusCode}
 	}

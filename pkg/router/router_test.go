@@ -179,7 +179,7 @@ func TestBadGateway(t *testing.T) {
 	response := httptest.NewRecorder()
 	router.ServeHTTP(response, request)
 
-	g.Expect(response.Code).To(Equal(502))
+	g.Expect(response.Code).To(Equal(http.StatusBadGateway))
 	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
 	g.Expect(err.Error()).To(Equal(`Get doesntexist.org/get: unsupported protocol scheme ""`))
 }
