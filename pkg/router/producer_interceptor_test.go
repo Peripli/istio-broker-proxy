@@ -164,6 +164,14 @@ func TestEnrichMetaData(t *testing.T) {
 	g.Expect(string(catalog.Services[0].MetaData["supportedPlattforms"])).To(MatchJSON(`["kubernetes"]`))
 }
 
+func TestEmptyServiceMetaDataDoesntCrash(t *testing.T) {
+	g := NewGomegaWithT(t)
+	interceptor := ProducerInterceptor{ServiceMetaData: ""}
+	catalog := model.Catalog{[]model.Service{{Name: "name"}}}
+	err := interceptor.PostCatalog(&catalog)
+	g.Expect(err).NotTo(HaveOccurred())
+}
+
 func TestEnrichNonEmptyMetaData(t *testing.T) {
 	g := NewGomegaWithT(t)
 	interceptor := ProducerInterceptor{ServiceMetaData: `{"supportedPlattforms": ["kubernetes"]}`}
