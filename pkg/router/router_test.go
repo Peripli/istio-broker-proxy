@@ -554,7 +554,7 @@ func TestDeleteBindingNotFound(t *testing.T) {
 
 func TestForwardGetCatalog(t *testing.T) {
 	g := NewGomegaWithT(t)
-	body := []byte(`{"services": [{ "name" : "abc" } ] }`)
+	body := []byte(`{"services": [{ "name" : "abc", "plans":[{}] } ] }`)
 	handlerStub := NewHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 

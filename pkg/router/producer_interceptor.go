@@ -90,9 +90,11 @@ func (c ProducerInterceptor) PostCatalog(catalog *model.Catalog) error {
 	for i := range catalog.Services {
 		catalog.Services[i].Name = c.ServiceNamePrefix + catalog.Services[i].Name
 		if c.ServiceMetaData != "" {
-			err := json.Unmarshal([]byte(c.ServiceMetaData), &catalog.Services[i].MetaData)
-			if err != nil {
-				return err
+			for j := range catalog.Services[i].Plans {
+				err := json.Unmarshal([]byte(c.ServiceMetaData), &catalog.Services[i].Plans[j].MetaData)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

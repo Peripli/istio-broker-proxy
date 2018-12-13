@@ -137,5 +137,12 @@ func TestCatalogUnmarshal(t *testing.T) {
 	data, err := json.Marshal(&c)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(string(data)).To(MatchJSON(exampleCatalog))
+}
 
+func TestCatalogUnmarshalPlansFromCatalog(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var catalog Catalog
+	err := json.Unmarshal([]byte(exampleCatalog), &catalog)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(len(catalog.Services[0].Plans)).To(Equal(2))
 }

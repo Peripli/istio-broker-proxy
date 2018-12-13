@@ -155,13 +155,22 @@ func TestProducerPostCatalog(t *testing.T) {
 	g.Expect(catalog.Services[0].Name).To(Equal("istio-name"))
 }
 
-func TestEnrichMetaData(t *testing.T) {
+func TestEnrichPlanMetaData(t *testing.T) {
 	g := NewGomegaWithT(t)
 	interceptor := ProducerInterceptor{ServiceMetaData: `{"supportedPlattforms": ["kubernetes"]}`}
-	catalog := model.Catalog{[]model.Service{{Name: "name"}}}
+	catalog := model.Catalog{[]model.Service{{Plans: []model.Plan{model.Plan{}, model.Plan{}}}}}
 	err := interceptor.PostCatalog(&catalog)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(string(catalog.Services[0].MetaData["supportedPlattforms"])).To(MatchJSON(`["kubernetes"]`))
+	g.Expect(string(catalog.Services[0].Plans[0].MetaData["supportedPlattforms"])).To(MatchJSON(`["kubernetes"]`))
+	g.Expect(string(catalog.Services[0].Plans[1].MetaData["supportedPlattforms"])).To(MatchJSON(`["kubernetes"]`))
+}
+
+func TestServiceWithoutPlanDoesNotLeadToCrash(t *testing.T) {
+	g := NewGomegaWithT(t)
+	interceptor := ProducerInterceptor{ServiceMetaData: `{}`}
+	catalog := model.Catalog{[]model.Service{{}}}
+	err := interceptor.PostCatalog(&catalog)
+	g.Expect(err).NotTo(HaveOccurred())
 }
 
 func TestEmptyServiceMetaDataDoesntCrash(t *testing.T) {
@@ -175,17 +184,17 @@ func TestEmptyServiceMetaDataDoesntCrash(t *testing.T) {
 func TestEnrichNonEmptyMetaData(t *testing.T) {
 	g := NewGomegaWithT(t)
 	interceptor := ProducerInterceptor{ServiceMetaData: `{"supportedPlattforms": ["kubernetes"]}`}
-	catalog := model.Catalog{[]model.Service{{Name: "name", MetaData: map[string]json.RawMessage{"testKey": json.RawMessage(`"testvalue"`)}}}}
+	catalog := model.Catalog{[]model.Service{{Plans: []model.Plan{{MetaData: map[string]json.RawMessage{"testKey": json.RawMessage(`"testvalue"`)}}}}}}
 	err := interceptor.PostCatalog(&catalog)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(string(catalog.Services[0].MetaData["supportedPlattforms"])).To(MatchJSON(`["kubernetes"]`))
-	g.Expect(string(catalog.Services[0].MetaData["testKey"])).To(MatchJSON(`"testvalue"`))
+	g.Expect(string(catalog.Services[0].Plans[0].MetaData["supportedPlattforms"])).To(MatchJSON(`["kubernetes"]`))
+	g.Expect(string(catalog.Services[0].Plans[0].MetaData["testKey"])).To(MatchJSON(`"testvalue"`))
 }
 
 func TestEnrichInvalidMetaData(t *testing.T) {
 	g := NewGomegaWithT(t)
 	interceptor := ProducerInterceptor{ServiceMetaData: `{"supportedPlattforms": "invalidJson"]}`}
-	catalog := model.Catalog{[]model.Service{{Name: "name"}}}
+	catalog := model.Catalog{[]model.Service{{Plans: []model.Plan{model.Plan{}}}}}
 	err := interceptor.PostCatalog(&catalog)
 	g.Expect(err).To(HaveOccurred())
 }
