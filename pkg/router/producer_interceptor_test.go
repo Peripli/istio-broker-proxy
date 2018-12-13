@@ -157,7 +157,7 @@ func TestProducerPostCatalog(t *testing.T) {
 
 func TestEnrichPlanMetaData(t *testing.T) {
 	g := NewGomegaWithT(t)
-	interceptor := ProducerInterceptor{ServiceMetaData: `{"supportedPlattforms": ["kubernetes"]}`}
+	interceptor := ProducerInterceptor{PlanMetaData: `{"supportedPlattforms": ["kubernetes"]}`}
 	catalog := model.Catalog{[]model.Service{{Plans: []model.Plan{model.Plan{}, model.Plan{}}}}}
 	err := interceptor.PostCatalog(&catalog)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -167,7 +167,7 @@ func TestEnrichPlanMetaData(t *testing.T) {
 
 func TestServiceWithoutPlanDoesNotLeadToCrash(t *testing.T) {
 	g := NewGomegaWithT(t)
-	interceptor := ProducerInterceptor{ServiceMetaData: `{}`}
+	interceptor := ProducerInterceptor{PlanMetaData: `{}`}
 	catalog := model.Catalog{[]model.Service{{}}}
 	err := interceptor.PostCatalog(&catalog)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -175,7 +175,7 @@ func TestServiceWithoutPlanDoesNotLeadToCrash(t *testing.T) {
 
 func TestEmptyServiceMetaDataDoesntCrash(t *testing.T) {
 	g := NewGomegaWithT(t)
-	interceptor := ProducerInterceptor{ServiceMetaData: ""}
+	interceptor := ProducerInterceptor{PlanMetaData: ""}
 	catalog := model.Catalog{[]model.Service{{Name: "name"}}}
 	err := interceptor.PostCatalog(&catalog)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -183,7 +183,7 @@ func TestEmptyServiceMetaDataDoesntCrash(t *testing.T) {
 
 func TestEnrichNonEmptyMetaData(t *testing.T) {
 	g := NewGomegaWithT(t)
-	interceptor := ProducerInterceptor{ServiceMetaData: `{"supportedPlattforms": ["kubernetes"]}`}
+	interceptor := ProducerInterceptor{PlanMetaData: `{"supportedPlattforms": ["kubernetes"]}`}
 	catalog := model.Catalog{[]model.Service{{Plans: []model.Plan{{MetaData: map[string]json.RawMessage{"testKey": json.RawMessage(`"testvalue"`)}}}}}}
 	err := interceptor.PostCatalog(&catalog)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -193,7 +193,7 @@ func TestEnrichNonEmptyMetaData(t *testing.T) {
 
 func TestEnrichInvalidMetaData(t *testing.T) {
 	g := NewGomegaWithT(t)
-	interceptor := ProducerInterceptor{ServiceMetaData: `{"supportedPlattforms": "invalidJson"]}`}
+	interceptor := ProducerInterceptor{PlanMetaData: `{"supportedPlattforms": "invalidJson"]}`}
 	catalog := model.Catalog{[]model.Service{{Plans: []model.Plan{model.Plan{}}}}}
 	err := interceptor.PostCatalog(&catalog)
 	g.Expect(err).To(HaveOccurred())

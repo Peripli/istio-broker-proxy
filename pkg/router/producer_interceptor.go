@@ -19,7 +19,7 @@ type ProducerInterceptor struct {
 	IstioDirectory    string
 	IpAddress         string
 	ServiceNamePrefix string
-	ServiceMetaData   string
+	PlanMetaData      string
 }
 
 func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) error {
@@ -89,9 +89,9 @@ func (c ProducerInterceptor) writeIstioConfigFiles(fileName string, configuratio
 func (c ProducerInterceptor) PostCatalog(catalog *model.Catalog) error {
 	for i := range catalog.Services {
 		catalog.Services[i].Name = c.ServiceNamePrefix + catalog.Services[i].Name
-		if c.ServiceMetaData != "" {
+		if c.PlanMetaData != "" {
 			for j := range catalog.Services[i].Plans {
-				err := json.Unmarshal([]byte(c.ServiceMetaData), &catalog.Services[i].Plans[j].MetaData)
+				err := json.Unmarshal([]byte(c.PlanMetaData), &catalog.Services[i].Plans[j].MetaData)
 				if err != nil {
 					return err
 				}

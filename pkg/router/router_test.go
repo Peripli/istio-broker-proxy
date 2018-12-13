@@ -563,7 +563,7 @@ func TestForwardGetCatalog(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/v2/catalog", bytes.NewReader(make([]byte, 0)))
 
 	response := httptest.NewRecorder()
-	router := SetupRouter(&ProducerInterceptor{ServiceNamePrefix: "istio-", ServiceMetaData: "{}"}, *routerConfig)
+	router := SetupRouter(&ProducerInterceptor{ServiceNamePrefix: "istio-", PlanMetaData: "{}"}, *routerConfig)
 	router.ServeHTTP(response, request)
 	responseBody := response.Body.String()
 	g.Expect(responseBody).To(ContainSubstring("istio-abc"))
