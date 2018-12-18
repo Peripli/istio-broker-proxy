@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	. "github.com/onsi/gomega"
 	"testing"
 )
@@ -55,7 +56,8 @@ func TestClientEgressDestinationRuleFromGo(t *testing.T) {
 	g.Expect(destinationRuleConfig.Group).To(Equal("networking.istio.io"))
 	g.Expect(destinationRuleConfig.Type).To(Equal("destination-rule"))
 	g.Expect(destinationRuleConfig.Name).To(Equal("egressgateway-mypostgres"))
-	g.Expect(destinationRuleConfig.Spec.String()).To(Equal(`host:"mypostgres.services.cf.dev01.aws.istio.sapcloud.io" subsets:<name:"mypostgres" traffic_policy:<port_level_settings:<port:<number:9000 > tls:<mode:MUTUAL client_certificate:"/etc/istio/egressgateway-certs/client.crt" private_key:"/etc/istio/egressgateway-certs/client.key" ca_certificates:"/etc/istio/egressgateway-certs/ca.crt" subject_alt_names:"cf-service.services.cf.dev01.aws.istio.sapcloud.io" sni:"mypostgres.services.cf.dev01.aws.istio.sapcloud.io" > > > > `))
+	fmt.Println(destinationRuleConfig.Spec.String())
+	g.Expect(destinationRuleConfig.Spec.String()).To(Equal(`host:"mypostgres.services.cf.dev01.aws.istio.sapcloud.io" subsets:<name:"mypostgres" traffic_policy:<port_level_settings:<port:<number:9000 > tls:<mode:MUTUAL client_certificate:"/etc/istio/egressgateway-certs/client.crt" private_key:"/etc/istio/egressgateway-certs/client.key" ca_certificates:"/etc/istio/egressgateway-certs/ca.crt" subject_alt_names:"cf-service.services.cf.dev01.aws.istio.sapcloud.io" subject_alt_names:"istio.cf.dev01.aws.istio.sapcloud.io" sni:"mypostgres.services.cf.dev01.aws.istio.sapcloud.io" > > > > `))
 }
 
 func TestClientExternServiceEntryFromGo(t *testing.T) {
