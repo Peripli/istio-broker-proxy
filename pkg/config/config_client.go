@@ -106,8 +106,7 @@ func createTlsSettings(hostName string) v1alpha3.TLSSettings {
 	privateKey := certPath + "client.key"
 	sni := hostName
 	// TODO. subjectAltName should correspond to  systemdomain: istio.cf.<context.landscape.domain>
-	subjectAltNames := []string{"cf-service.services.cf.dev01.aws.istio.sapcloud.io",
-		"istio.cf.dev01.aws.istio.sapcloud.io"}
+	subjectAltNames := []string{"istio.cf.dev01.aws.istio.sapcloud.io"}
 	mode := v1alpha3.TLSSettings_MUTUAL
 	tls := v1alpha3.TLSSettings{CaCertificates: caCertificate, ClientCertificate: clientCertificate, PrivateKey: privateKey,
 		Sni: sni, SubjectAltNames: subjectAltNames, Mode: mode}
