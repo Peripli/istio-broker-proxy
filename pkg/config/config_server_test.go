@@ -15,7 +15,7 @@ metadata:
 spec:
   servers:
   - hosts:
-    - postgres.services.cf.dev01.aws.istio.sapcloud.io
+    - postgres.istio.my.arbitrary.domain.io
     port:
       name: tls
       number: 9000
@@ -38,7 +38,7 @@ spec:
   gateways:
   - postgres-server-gateway
   hosts:
-  - postgres.services.cf.dev01.aws.istio.sapcloud.io
+  - postgres.istio.my.arbitrary.domain.io
   tcp:
   - route:
     - destination:
@@ -68,7 +68,7 @@ spec:
 func TestServerGatewayFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	gatewaySpec := createIngressGatewayForExternalService("postgres.services.cf.dev01.aws.istio.sapcloud.io",
+	gatewaySpec := createIngressGatewayForExternalService("postgres.istio.my.arbitrary.domain.io",
 		9000,
 		"postgres-server",
 		"client.istio.sapcloud.io")
@@ -81,7 +81,7 @@ func TestServerGatewayFromGo(t *testing.T) {
 func TestServerVirtualServiceFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	virtualServiceSpec := createIngressVirtualServiceForExternalService("postgres.services.cf.dev01.aws.istio.sapcloud.io",
+	virtualServiceSpec := createIngressVirtualServiceForExternalService("postgres.istio.my.arbitrary.domain.io",
 		47637,
 		"postgres-server")
 

@@ -81,9 +81,9 @@ func egressGatewayForExternalService(serviceName string) ServiceId {
 	return ServiceId{model.Gateway.Type, fmt.Sprintf("istio-egressgateway-%s", serviceName)}
 }
 
-func createEgressDestinationRuleForExternalService(hostName string, portNumber uint32, serviceName string, namespace string) model.Config {
+func createEgressDestinationRuleForExternalService(hostName string, portNumber uint32, serviceName string, namespace string, systemDomain string) model.Config {
 	port := v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: portNumber}}
-	tls := createTlsSettings(hostName)
+	tls := createTlsSettings(hostName, systemDomain)
 	portLevelSettings := []*v1alpha3.TrafficPolicy_PortTrafficPolicy{{Tls: &tls, Port: &port}}
 	trafficPolicy := v1alpha3.TrafficPolicy{PortLevelSettings: portLevelSettings}
 	subsets := []*v1alpha3.Subset{{Name: serviceName, TrafficPolicy: &trafficPolicy}}
@@ -99,14 +99,14 @@ func egressDestinationRuleForExternalService(serviceName string) ServiceId {
 	return ServiceId{model.DestinationRule.Type, fmt.Sprintf("egressgateway-%s", serviceName)}
 }
 
-func createTlsSettings(hostName string) v1alpha3.TLSSettings {
+func createTlsSettings(hostName string, systemDomain string) v1alpha3.TLSSettings {
 	certPath := "/etc/istio/egressgateway-certs/"
 	caCertificate := certPath + "ca.crt"
 	clientCertificate := certPath + "client.crt"
 	privateKey := certPath + "client.key"
 	sni := hostName
 	// TODO. subjectAltName should correspond to  systemdomain: istio.cf.<context.landscape.domain>
-	subjectAltNames := []string{"istio.cf.dev01.aws.istio.sapcloud.io"}
+	subjectAltNames := []string{systemDomain}
 	mode := v1alpha3.TLSSettings_MUTUAL
 	tls := v1alpha3.TLSSettings{CaCertificates: caCertificate, ClientCertificate: clientCertificate, PrivateKey: privateKey,
 		Sni: sni, SubjectAltNames: subjectAltNames, Mode: mode}

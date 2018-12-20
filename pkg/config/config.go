@@ -2,9 +2,9 @@ package config
 
 import (
 	"fmt"
-	"github.com/ghodss/yaml"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
+	"github.com/ghodss/yaml"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
 	istioModel "istio.io/istio/pilot/pkg/model"
 	"regexp"
@@ -88,7 +88,7 @@ func DeleteEntriesForExternalServiceClient(serviceName string) []ServiceId {
 	return result
 }
 
-func CreateEntriesForExternalServiceClient(serviceName string, hostName string, serviceIP string, port int, namespace string) []istioModel.Config {
+func CreateEntriesForExternalServiceClient(serviceName string, hostName string, serviceIP string, port int, namespace string, systemDomain string) []istioModel.Config {
 	var configs []istioModel.Config
 
 	serviceEntry := createEgressExternServiceEntryForExternalService(hostName, uint32(port), serviceName, namespace)
@@ -103,7 +103,7 @@ func CreateEntriesForExternalServiceClient(serviceName string, hostName string, 
 	gateway := createEgressGatewayForExternalService(hostName, 443, serviceName, namespace)
 	configs = append(configs, gateway)
 
-	destinationRule := createEgressDestinationRuleForExternalService(hostName, uint32(port), serviceName, namespace)
+	destinationRule := createEgressDestinationRuleForExternalService(hostName, uint32(port), serviceName, namespace, systemDomain)
 	configs = append(configs, destinationRule)
 
 	destinationRule = createSidecarDestinationRuleForExternalService(hostName, serviceName, namespace)

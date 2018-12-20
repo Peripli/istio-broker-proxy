@@ -24,7 +24,7 @@ func TestCompleteEntryNotEmpty(t *testing.T) {
 func TestCompleteClientEntryNotEmpty(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog")
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog", "landscape")
 
 	g.Expect(configObjects).To(HaveLen(6))
 }
@@ -81,7 +81,7 @@ func TestCompleteVirtualService(t *testing.T) {
 func TestCompleteEntryClientGateway(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog")
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog", "landscape")
 
 	gatewaySpec, gatewayMetadata := getSpecAndMetadataFromConfig(g, configObjects, "gateway")
 
@@ -97,7 +97,7 @@ func TestCompleteEntryClientGateway(t *testing.T) {
 func TestCompleteEntryClientEgressDestinationRule(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog")
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog", "landscape")
 
 	ruleSpecs, ruleMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, istio_destinationRule)
 	ruleSpec := ruleSpecs[0]
@@ -113,7 +113,7 @@ func TestCompleteEntryClientEgressDestinationRule(t *testing.T) {
 func TestCompleteEntryClientSidecarDestinationRule(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog")
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog", "landscape")
 
 	ruleSpecs, ruleMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, istio_destinationRule)
 	g.Expect(ruleSpecs).To(HaveLen(2))
@@ -130,7 +130,7 @@ func TestCompleteEntryClientSidecarDestinationRule(t *testing.T) {
 func TestCompleteEntryClientServiceEntry(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog")
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog", "landscape")
 
 	serviceEntriesConfigs := lookupObjectsFromConfigs(configObjects, istio_serviceEntry)
 	g.Expect(serviceEntriesConfigs).To(HaveLen(1))
@@ -150,7 +150,7 @@ func TestCompleteEntryClientServiceEntry(t *testing.T) {
 func TestCompleteEntryClientVirtualServices(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog")
+	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog", "landscape")
 	serviceSpecs, serviceMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, istio_virtualService)
 	g.Expect(serviceSpecs).To(HaveLen(2))
 	g.Expect(serviceMetadatas).To(HaveLen(2))

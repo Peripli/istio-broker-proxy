@@ -39,7 +39,7 @@ var (
 		NetworkData: model.NetworkDataResponse{Data: model.DataResponse{
 			Endpoints: []model.Endpoint{
 				{
-					Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
+					Host: "0.678.istio.my.arbitrary.domain.io",
 					Port: 9001}}}}}
 	bindResponseTwoEndpoints = model.BindResponse{
 		Credentials: model.Credentials{},
@@ -54,10 +54,10 @@ var (
 		NetworkData: model.NetworkDataResponse{Data: model.DataResponse{
 			Endpoints: []model.Endpoint{
 				{
-					Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
+					Host: "0.678.istio.my.arbitrary.domain.io",
 					Port: 9001},
 				{
-					Host: "1.678.services.cf.dev01.aws.istio.sapcloud.io",
+					Host: "1.678.istio.my.arbitrary.domain.io",
 					Port: 9001},
 			},
 		}}}
@@ -178,7 +178,7 @@ func TestConsumerInterceptorCreatesIstioObjects(t *testing.T) {
 	g.Expect(len(configStore.CreatedIstioConfigs)).To(Equal(6))
 	g.Expect(configStore.CreatedIstioConfigs[0].Type).To(Equal("service-entry"))
 	text, _ := json.Marshal(configStore.CreatedIstioConfigs[0])
-	g.Expect(text).To(ContainSubstring("0.678.services.cf.dev01.aws.istio.sapcloud.io"))
+	g.Expect(text).To(ContainSubstring("0.678.istio.my.arbitrary.domain.io"))
 	g.Expect(configStore.CreatedIstioConfigs[1].Type).To(Equal("virtual-service"))
 	text, _ = json.Marshal(configStore.CreatedIstioConfigs[1])
 	g.Expect(text).To(ContainSubstring("svc-0-678"))
@@ -198,7 +198,7 @@ func TestTwoEndpointsCreateTwelveObject(t *testing.T) {
 
 	g.Expect(len(configStore.CreatedIstioConfigs)).To(Equal(12))
 	text, err := json.Marshal(configStore.CreatedIstioConfigs[6])
-	g.Expect(text).To(ContainSubstring("1.678.services.cf.dev01.aws.istio.sapcloud.io"))
+	g.Expect(text).To(ContainSubstring("1.678.istio.my.arbitrary.domain.io"))
 }
 
 func TestTwoEndpointsHasTheCorrcetCount(t *testing.T) {
@@ -210,7 +210,7 @@ func TestTwoEndpointsHasTheCorrcetCount(t *testing.T) {
 		NetworkData: model.NetworkDataResponse{Data: model.DataResponse{
 			Endpoints: []model.Endpoint{
 				{
-					Host: "0.678.services.cf.dev01.aws.istio.sapcloud.io",
+					Host: "0.678.istio.my.arbitrary.domain.io",
 					Port: 9001}}}}}
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
