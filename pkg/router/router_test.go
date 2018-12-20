@@ -254,7 +254,7 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 
 func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAndEndpointIndex(t *testing.T) {
 	producerConfig := ProducerInterceptor{
-		SystemDomain:     "istio.sapcloud.io",
+		SystemDomain:     "my.arbitrary.domain.io",
 		ProviderId:       "your-provider",
 		LoadBalancerPort: 9000,
 		IstioDirectory:   os.TempDir()}
@@ -284,14 +284,14 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 
 	bodyString := response.Body.String()
 	g.Expect(bodyString).To(ContainSubstring("network_data"))
-	g.Expect(bodyString).To(ContainSubstring("istio.sapcloud.io"))
+	g.Expect(bodyString).To(ContainSubstring("my.arbitrary.domain.io"))
 	g.Expect(bodyString).To(ContainSubstring("your-provider"))
 	g.Expect(bodyString).To(ContainSubstring("9000"))
 }
 
 func TestIstioConfigFilesAreWritten(t *testing.T) {
 	producerInterceptor := ProducerInterceptor{
-		SystemDomain:   "services.cf.dev99.sc6.istio.sapcloud.io",
+		SystemDomain:   "services.cf.dev99.sc6.my.arbitrary.domain.io",
 		ProviderId:     "your-provider",
 		IstioDirectory: os.TempDir()}
 	g := NewGomegaWithT(t)
@@ -334,12 +334,12 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(contentAsString).To(ContainSubstring("147"))
 	g.Expect(contentAsString).To(MatchRegexp("number: 9000"))
-	g.Expect(contentAsString).To(MatchRegexp("0.456.services.cf.dev99.sc6.istio.sapcloud.io"))
+	g.Expect(contentAsString).To(MatchRegexp("0.456.services.cf.dev99.sc6.my.arbitrary.domain.io"))
 }
 
 func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 	producerConfig := ProducerInterceptor{
-		SystemDomain:   "services.cf.dev99.sc6.istio.sapcloud.io",
+		SystemDomain:   "services.cf.dev99.sc6.my.arbitrary.domain.io",
 		ProviderId:     "your-provider",
 		IstioDirectory: "/non-existing-directory",
 	}

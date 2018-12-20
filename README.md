@@ -26,7 +26,7 @@ Forward all requests to the service fabrik.
 
 * Create a new service broker with the credentials of the service fabrik and the URL of the pushed app. The credentials are found in deployments/service-fabrik/credentials.yml as credentials.broker.user and credentials.broker.password.
 ```
-cf create-service-broker istio-broker <user> <password> https://istio-broker.cfapps.dev01.aws.istio.sapcloud.io
+cf create-service-broker istio-broker <user> <password> https://istio-broker.cfapps.<landscape-domain>
 ```
 
 * Create an application security group using [sec_group.json](sec_group.json)
@@ -53,5 +53,5 @@ cf delete-service mydb
 
 * Check tracking
 ```
-curl https://istio-broker.cfapps.dev01.aws.istio.sapcloud.io/info
+curl https://istio-broker.cfapps.<landscape-domain>/info
 ```

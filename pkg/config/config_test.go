@@ -16,7 +16,7 @@ import (
 func TestCompleteEntryNotEmpty(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", "client.istio.sapcloud.io", 9000)
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", "client.my.client.domain.io", 9000)
 
 	g.Expect(configObjects).To(HaveLen(3))
 }
@@ -32,7 +32,7 @@ func TestCompleteClientEntryNotEmpty(t *testing.T) {
 func TestCompleteEntryGateway(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", "client.istio.sapcloud.io", 9000)
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", "client.my.client.domain.io", 9000)
 
 	gatewaySpec, gatewayMetadata := getSpecAndMetadataFromConfig(g, configObjects, gateway)
 
@@ -47,7 +47,7 @@ func TestCompleteEntryGateway(t *testing.T) {
 
 	g.Expect(gatewaySpec).To(ContainSubstring("myservice.landscape"))
 	g.Expect(gatewaySpec).To(ContainSubstring("9000"))
-	g.Expect(gatewaySpec).To(ContainSubstring("client.istio.sapcloud.io"))
+	g.Expect(gatewaySpec).To(ContainSubstring("client.my.client.domain.io"))
 	g.Expect(gatewaySpec).To(ContainSubstring("config/certs/cf-service.key"))
 	g.Expect(gatewaySpec).To(ContainSubstring("config/certs/cf-service.crt"))
 
@@ -57,7 +57,7 @@ func TestCompleteEntryGateway(t *testing.T) {
 func TestCompleteServiceEntry(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", "client.istio.sapcloud.io", 9000)
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", "client.my.client.domain.io", 9000)
 
 	serviceEntrySpec, serviceEntryMetadata := getSpecAndMetadataFromConfig(g, configObjects, serviceEntry)
 
@@ -70,7 +70,7 @@ func TestCompleteServiceEntry(t *testing.T) {
 func TestCompleteVirtualService(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", "client.istio.sapcloud.io", 9000)
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", "client.my.client.domain.io", 9000)
 	virtualServiceSpec, _ := getSpecAndMetadataFromConfig(g, configObjects, virtualService)
 
 	g.Expect(virtualServiceSpec).To(ContainSubstring("myservice.landscape"))

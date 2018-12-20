@@ -24,7 +24,7 @@ type ProducerInterceptor struct {
 
 func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) error {
 	return c.writeIstioConfigFiles("istio-broker",
-		config.CreateEntriesForExternalService("istio-broker", string(c.IpAddress), uint32(port), "istio-broker."+c.SystemDomain, "client.istio.sapcloud.io", 9000))
+		config.CreateEntriesForExternalService("istio-broker", string(c.IpAddress), uint32(port), "istio-broker."+c.SystemDomain, "client.my.client.domain.io", 9000))
 }
 
 func (c ProducerInterceptor) PreBind(request model.BindRequest) *model.BindRequest {

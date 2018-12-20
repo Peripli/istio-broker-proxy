@@ -2,8 +2,8 @@ package profiles
 
 import (
 	"encoding/json"
-	. "github.com/onsi/gomega"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
+	. "github.com/onsi/gomega"
 
 	//"os"
 	"testing"
@@ -27,13 +27,13 @@ func TestCreateEndpointHosts(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	serviceId := "postgres-34de6ac"
-	systemDomain := "services.istio.sapcloud.io"
+	systemDomain := "my.arbitrary.domain.io"
 
 	endpointHost := createEndpointHostsBasedOnSystemDomainServiceId(serviceId, systemDomain, 2)
 
 	g.Expect(endpointHost).To(HaveLen(2))
-	g.Expect(endpointHost).To(ContainElement("0.postgres-34de6ac.services.istio.sapcloud.io"))
-	g.Expect(endpointHost).To(ContainElement("1.postgres-34de6ac.services.istio.sapcloud.io"))
+	g.Expect(endpointHost).To(ContainElement("0.postgres-34de6ac.my.arbitrary.domain.io"))
+	g.Expect(endpointHost).To(ContainElement("1.postgres-34de6ac.my.arbitrary.domain.io"))
 }
 
 func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
@@ -41,13 +41,13 @@ func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
 
 	var body model.BindResponse
 	json.Unmarshal([]byte(`{"something_else": "body of response", "endpoints": [{"host": "10.0.0.3"}, {"host" : "10.0.0.4"}]}`), &body)
-	AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "services.istio.sapcloud.io", 9000, &body)
+	AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "my.arbitrary.domain.io", 9000, &body)
 
 	g.Expect(body).NotTo(BeNil())
 
 	g.Expect(body.NetworkData.Data.Endpoints).NotTo(BeNil())
 	g.Expect(body.NetworkData.Data.Endpoints).To(HaveLen(2))
-	g.Expect(body.NetworkData.Data.Endpoints[0].Host).To(ContainSubstring("0.postgres-34de6ac.services.istio.sapcloud.io"))
+	g.Expect(body.NetworkData.Data.Endpoints[0].Host).To(ContainSubstring("0.postgres-34de6ac.my.arbitrary.domain.io"))
 	g.Expect(body.NetworkData.Data.Endpoints[0].Port).To(Equal(9000))
 }
 
@@ -62,7 +62,7 @@ func TestBlueprintServiceDoesntCrash(t *testing.T) {
               }}`)
 	var bindResponse model.BindResponse
 	json.Unmarshal(compareBody, &bindResponse)
-	AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "istio.sapcloud.io", 9000, &bindResponse)
+	AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "my.arbitrary.domain.io", 9000, &bindResponse)
 	body, err := json.Marshal(bindResponse)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(string(body)).To(MatchJSON(compareBody))

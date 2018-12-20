@@ -26,7 +26,7 @@ spec:
       privateKey: /var/vcap/jobs/envoy/config/certs/cf-service.key
       serverCertificate: /var/vcap/jobs/envoy/config/certs/cf-service.crt
       subjectAltNames:
-      - client.istio.sapcloud.io
+      - client.my.client.domain.io
 `
 	virtual_service_ingress_yml = `apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
@@ -71,7 +71,7 @@ func TestServerGatewayFromGo(t *testing.T) {
 	gatewaySpec := createIngressGatewayForExternalService("postgres.istio.my.arbitrary.domain.io",
 		9000,
 		"postgres-server",
-		"client.istio.sapcloud.io")
+		"client.my.client.domain.io")
 
 	text, err := enrichAndtoText(gatewaySpec)
 	g.Expect(err).NotTo(HaveOccurred())
