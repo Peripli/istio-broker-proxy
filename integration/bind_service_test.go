@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"flag"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	. "github.com/onsi/gomega"
 	"istio.io/istio/pilot/pkg/model"
@@ -189,6 +190,12 @@ type ClusterServiceClassSpec struct {
 	ClusterServiceBrokerName string `json:"clusterServiceBrokerName"`
 }
 
+var pgbenchOutput string
+
+func init() {
+	flag.StringVar(&pgbenchOutput, "pgbench-output", "", "Output file of pgbench")
+}
+
 func TestPostgresServiceBinding(t *testing.T) {
 	skipWithoutKubeconfigSet(t)
 
@@ -225,6 +232,48 @@ func TestPostgresServiceBinding(t *testing.T) {
 
 	kubectl.Exec(podName, "-c", "client", "-i", "--", "bash", "test.sh")
 
+}
+
+func TestPostgresBenchmark(t *testing.T) {
+	skipWithoutKubeconfigSet(t)
+
+	g := NewGomegaWithT(t)
+	kubectl := NewKubeCtl(g)
+
+	createServiceBinding(kubectl, g, "postgres", service_instance, service_binding)
+
+	podName := runClientPod(kubectl, client_config_postgres, "client-postgres")
+	g.Expect(podName).To(ContainSubstring("client-postgres"))
+
+	script := `  
+		while true; do
+		  export PGPASSWORD=$(cat /etc/bindings/postgres/password)
+		  HOSTNAME=$(cat /etc/bindings/postgres/hostname)
+		  PORT=$(cat /etc/bindings/postgres/port)
+		  DBNAME=$(cat /etc/bindings/postgres/dbname)
+		  USER=$(cat /etc/bindings/postgres/username)
+		  OUTPUT=$(psql -h $HOSTNAME  -p $PORT -c 'SELECT 1'  $DBNAME $USER 2>&1)
+		  echo $OUTPUT >> /tmp/psql.txt
+		  if [[ $OUTPUT == *"server closed the connection unexpectedly"* ]]; then
+		    echo "Try again!"
+		    sleep 10
+		  elif [[ $OUTPUT == *"(1 row)"* ]]; then
+		    pgbench  -h $HOSTNAME  -p $PORT -U $USER -i -s 10 $DBNAME > /dev/null 2>&1
+            pgbench  -h $HOSTNAME  -p $PORT -c 10 -t 10 -U $USER  $DBNAME | tee /tmp/pgbench.log
+            exit 0
+		  else
+		    echo $OUTPUT
+		    exit 1
+		  fi
+		done
+		`
+	basename := "benchmark.sh"
+	kubeCreateFile(kubectl, g, basename, script, podName)
+	kubectl.Exec(podName, "-c", "client", "-i", "--", "bash", "benchmark.sh")
+
+	if pgbenchOutput != "" {
+		kubectl.run("cp", "default/"+podName+":/tmp/pgbench.log", pgbenchOutput)
+	}
 }
 
 func runClientPod(kubectl *kubectl, config string, appName string) string {
