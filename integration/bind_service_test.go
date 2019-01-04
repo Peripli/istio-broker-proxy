@@ -2,6 +2,7 @@ package integration
 
 import (
 	"flag"
+	"fmt"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	. "github.com/onsi/gomega"
 	"istio.io/istio/pilot/pkg/model"
@@ -191,9 +192,11 @@ type ClusterServiceClassSpec struct {
 }
 
 var pgbenchOutput string
+var pgbenchTime = 10
 
 func init() {
-	flag.StringVar(&pgbenchOutput, "pgbench-output", "", "Output file of pgbench")
+	flag.StringVar(&pgbenchOutput, "pgbench-output", "", "Output file of postgres benchmark")
+	flag.IntVar(&pgbenchTime, "pgbench-time", 10, "Duration of postgres benchmark test in seconds")
 }
 
 func TestPostgresServiceBinding(t *testing.T) {
@@ -245,7 +248,7 @@ func TestPostgresBenchmark(t *testing.T) {
 	podName := runClientPod(kubectl, client_config_postgres, "client-postgres")
 	g.Expect(podName).To(ContainSubstring("client-postgres"))
 
-	script := `  
+	script := fmt.Sprintf(`  
 		while true; do
 		  export PGPASSWORD=$(cat /etc/bindings/postgres/password)
 		  HOSTNAME=$(cat /etc/bindings/postgres/hostname)
@@ -259,14 +262,14 @@ func TestPostgresBenchmark(t *testing.T) {
 		    sleep 10
 		  elif [[ $OUTPUT == *"(1 row)"* ]]; then
 		    pgbench  -h $HOSTNAME  -p $PORT -U $USER -i -s 10 $DBNAME > /dev/null 2>&1
-            pgbench  -h $HOSTNAME  -p $PORT -c 10 -t 10 -U $USER  $DBNAME | tee /tmp/pgbench.log
+            pgbench  -h $HOSTNAME  -p $PORT -c 10 -T %d -j 4 -U $USER  $DBNAME | tee /tmp/pgbench.log
             exit 0
 		  else
 		    echo $OUTPUT
 		    exit 1
 		  fi
 		done
-		`
+		`, pgbenchTime)
 	basename := "benchmark.sh"
 	kubeCreateFile(kubectl, g, basename, script, podName)
 	kubectl.Exec(podName, "-c", "client", "-i", "--", "bash", "benchmark.sh")
