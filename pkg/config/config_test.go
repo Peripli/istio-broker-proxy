@@ -2,7 +2,9 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
+	"io/ioutil"
 	"regexp"
 	"testing"
 
@@ -234,6 +236,26 @@ func TestValidIdentifier(t *testing.T) {
 	g.Expect(createValidIdentifer("ABC-123")).To(Equal("abc-123"))
 
 }
+
+func TestCreateManyServerConfigs(t *testing.T) {
+	t.Skip("Only for mass testing")
+	g := NewGomegaWithT(t)
+	istioConfig := make([]istioModel.Config, 0)
+
+	for i := 0; i < 5000; i++ {
+		serviceName := fmt.Sprintf("servicename%d", i)
+		endpointServiceEntry := fmt.Sprintf("192.168.%d.%d", i/256, i%256)
+		port := uint32(i + 10000)
+		hostVirtualService := fmt.Sprintf("hostvirtualservice%d.nonsense.de", i)
+		istioConfig = append(istioConfig, CreateEntriesForExternalService(serviceName, endpointServiceEntry, port, hostVirtualService, "test.sap.local", 9000)...)
+	}
+
+	content, err := ToYamlDocuments(istioConfig)
+	g.Expect(err).NotTo(HaveOccurred())
+	err = ioutil.WriteFile("test5000.yml", []byte(content), 0775)
+	g.Expect(err).NotTo(HaveOccurred())
+}
+
 func getSpecAndMetadataFromConfig(g *GomegaWithT, configObjects []istioModel.Config, configType string) (string, string) {
 	specs, metadatas := getSpecsAndMetadatasFromConfig(g, configObjects, configType)
 
