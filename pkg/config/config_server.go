@@ -29,13 +29,13 @@ func createServiceHost(serviceName string) string {
 	return serviceHost
 }
 
-func createIngressVirtualServiceForExternalService(hostName string, port uint32, serviceName string) model.Config {
+func createIngressVirtualServiceForExternalService(hostName string, port uint32, serviceName string, gatewayName string) model.Config {
 	destination := v1alpha3.Destination{Host: createServiceHost(serviceName),
 		Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: port}}}
 	route := v1alpha3.TCPRoute{Route: []*v1alpha3.DestinationWeight{&v1alpha3.DestinationWeight{Destination: &destination}}}
 	tcpRoutes := []*v1alpha3.TCPRoute{&route}
 	hosts := []string{hostName}
-	gateways := []string{serviceName + "-gateway"}
+	gateways := []string{gatewayName}
 	virtualServiceSpec := v1alpha3.VirtualService{Tcp: tcpRoutes, Hosts: hosts, Gateways: gateways}
 	config := model.Config{Spec: &virtualServiceSpec}
 	config.Type = virtualService
@@ -44,7 +44,7 @@ func createIngressVirtualServiceForExternalService(hostName string, port uint32,
 	return config
 }
 
-func createIngressGatewayForExternalService(hostName string, portNumber uint32, serviceName string, clientName string) model.Config {
+func createIngressGatewayForExternalService(hostName string, portNumber uint32, clientName string, gatewayName string) model.Config {
 	port := v1alpha3.Port{Number: portNumber, Name: "tls", Protocol: "TLS"}
 	hosts := []string{hostName}
 	certPath := "/var/vcap/jobs/envoy/config/certs/"
@@ -56,7 +56,11 @@ func createIngressGatewayForExternalService(hostName string, portNumber uint32, 
 	gatewaySpec := v1alpha3.Gateway{Servers: []*v1alpha3.Server{&v1alpha3.Server{Port: &port, Hosts: hosts, Tls: &tls}}}
 	config := model.Config{Spec: &gatewaySpec}
 	config.Type = gateway
-	config.Name = serviceName + "-gateway"
+	config.Name = gatewayName
 
 	return config
+}
+
+func gatewayName(serviceName string, domain string) string {
+	return serviceName + "-gateway" + "." + domain
 }

@@ -101,7 +101,7 @@ func (c ConsumerInterceptor) cleanUpConfig(bindId string, endCleanupCondition fu
 		serviceName := serviceName(i, bindId)
 		isFirstIteration := i == 0
 
-		for _, id := range config.DeleteEntriesForExternalServiceClient(serviceName) {
+		for _, id := range config.DeleteEntriesForExternalServiceClient(serviceName, c.ConfigStore.getNamespace()) {
 			ignoredErr := c.ConfigStore.DeleteIstioConfig(id.Type, id.Name)
 			if ignoredErr != nil && isFirstIteration {
 				log.Printf("Ignoring error during removal of configuration %s: %s\n", id, ignoredErr.Error())

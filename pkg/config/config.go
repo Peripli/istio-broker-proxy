@@ -42,11 +42,12 @@ type ServiceId struct {
 	Name string
 }
 
-func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string, clientName string, ingressPort uint32) []istioModel.Config {
+func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string, clientName string, ingressPort uint32, domain string) []istioModel.Config {
 	var configs []istioModel.Config
 
-	configs = append(configs, createIngressGatewayForExternalService(hostVirtualService, ingressPort, serviceName, clientName))
-	configs = append(configs, createIngressVirtualServiceForExternalService(hostVirtualService, portServiceEntry, serviceName))
+	gatewayName := gatewayName(serviceName, domain)
+	configs = append(configs, createIngressGatewayForExternalService(hostVirtualService, ingressPort, clientName, gatewayName))
+	configs = append(configs, createIngressVirtualServiceForExternalService(hostVirtualService, portServiceEntry, serviceName, gatewayName))
 	configs = append(configs, createServiceEntryForExternalService(endpointServiceEntry, portServiceEntry, serviceName))
 
 	return configs
@@ -63,7 +64,7 @@ func CreateIstioConfigForProvider(request *model.BindRequest, response *model.Bi
 		endpointServiceEntry := endpoint.Host
 		hostVirtualService := profiles.CreateEndpointHosts(bindingId, systemDomain, index)
 		istioConfig = append(istioConfig,
-			CreateEntriesForExternalService(serviceName, endpointServiceEntry, portServiceEntry, hostVirtualService, consumerId, ingressPort)...)
+			CreateEntriesForExternalService(serviceName, endpointServiceEntry, portServiceEntry, hostVirtualService, consumerId, ingressPort, systemDomain)...)
 	}
 	return istioConfig
 }
@@ -77,12 +78,12 @@ func createValidIdentifer(identifer string) string {
 
 }
 
-func DeleteEntriesForExternalServiceClient(serviceName string) []ServiceId {
+func DeleteEntriesForExternalServiceClient(serviceName string, namespace string) []ServiceId {
 	result := make([]ServiceId, 0)
 	result = append(result, sidecarDestinationRuleForExternalService(serviceName))
 	result = append(result, egressDestinationRuleForExternalService(serviceName))
-	result = append(result, egressGatewayForExternalService(serviceName))
-	result = append(result, egressVirtualServiceForExternalService(serviceName))
+	result = append(result, egressGatewayForExternalService(serviceName, namespace))
+	result = append(result, egressVirtualServiceForExternalService(serviceName, ""))
 	result = append(result, meshVirtualServiceForExternalService(serviceName))
 	result = append(result, egressExternServiceEntryForExternalService(serviceName))
 	return result

@@ -10,7 +10,7 @@ const (
 kind: Gateway
 metadata:
   creationTimestamp: null
-  name: postgres-server-gateway
+  name: postgres-gateway.name.local
   namespace: default
 spec:
   servers:
@@ -36,7 +36,7 @@ metadata:
   namespace: default
 spec:
   gateways:
-  - postgres-server-gateway
+  - postgres-gateway.name.local
   hosts:
   - postgres.istio.my.arbitrary.domain.io
   tcp:
@@ -68,10 +68,7 @@ spec:
 func TestServerGatewayFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	gatewaySpec := createIngressGatewayForExternalService("postgres.istio.my.arbitrary.domain.io",
-		9000,
-		"postgres-server",
-		"client.my.client.domain.io")
+	gatewaySpec := createIngressGatewayForExternalService("postgres.istio.my.arbitrary.domain.io", 9000, "client.my.client.domain.io", "postgres-gateway.name.local")
 
 	text, err := enrichAndtoText(gatewaySpec)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -83,7 +80,7 @@ func TestServerVirtualServiceFromGo(t *testing.T) {
 
 	virtualServiceSpec := createIngressVirtualServiceForExternalService("postgres.istio.my.arbitrary.domain.io",
 		47637,
-		"postgres-server")
+		"postgres-server", "postgres-gateway.name.local")
 
 	text, err := enrichAndtoText(virtualServiceSpec)
 	g.Expect(err).NotTo(HaveOccurred())

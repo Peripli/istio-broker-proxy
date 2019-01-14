@@ -18,7 +18,7 @@ import (
 func TestCompleteEntryNotEmpty(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", "client.my.client.domain.io", 9000)
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", "client.my.client.domain.io", 9000, "my.client.domain.io")
 
 	g.Expect(configObjects).To(HaveLen(3))
 }
@@ -34,7 +34,7 @@ func TestCompleteClientEntryNotEmpty(t *testing.T) {
 func TestCompleteEntryGateway(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", "client.my.client.domain.io", 9000)
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", "client.my.client.domain.io", 9000, "my.client.domain.io")
 
 	gatewaySpec, gatewayMetadata := getSpecAndMetadataFromConfig(g, configObjects, gateway)
 
@@ -59,7 +59,7 @@ func TestCompleteEntryGateway(t *testing.T) {
 func TestCompleteServiceEntry(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", "client.my.client.domain.io", 9000)
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", "client.my.client.domain.io", 9000, "my.client.domain.io")
 
 	serviceEntrySpec, serviceEntryMetadata := getSpecAndMetadataFromConfig(g, configObjects, serviceEntry)
 
@@ -72,7 +72,7 @@ func TestCompleteServiceEntry(t *testing.T) {
 func TestCompleteVirtualService(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", "client.my.client.domain.io", 9000)
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 156, "myservice.landscape", "client.my.client.domain.io", 9000, "my.client.domain.io")
 	virtualServiceSpec, _ := getSpecAndMetadataFromConfig(g, configObjects, virtualService)
 
 	g.Expect(virtualServiceSpec).To(ContainSubstring("myservice.landscape"))
@@ -247,7 +247,7 @@ func TestCreateManyServerConfigs(t *testing.T) {
 		endpointServiceEntry := fmt.Sprintf("192.168.%d.%d", i/256, i%256)
 		port := uint32(i + 10000)
 		hostVirtualService := fmt.Sprintf("hostvirtualservice%d.nonsense.de", i)
-		istioConfig = append(istioConfig, CreateEntriesForExternalService(serviceName, endpointServiceEntry, port, hostVirtualService, "test.sap.local", 9000)...)
+		istioConfig = append(istioConfig, CreateEntriesForExternalService(serviceName, endpointServiceEntry, port, hostVirtualService, "test.sap.local", 9000, "my.client.domain.io")...)
 	}
 
 	content, err := ToYamlDocuments(istioConfig)

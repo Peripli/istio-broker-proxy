@@ -8,17 +8,20 @@ import (
 )
 
 func createEgressVirtualServiceForExternalService(hostName string, port uint32, serviceName string, gatewayPort uint32, namespace string) model.Config {
-	gatewayName := egressVirtualServiceForExternalService(serviceName).Name
-	gatewayHost := fmt.Sprintf("istio-egressgateway-%s", serviceName)
-	matchGateways := []string{gatewayHost}
+	gatewayName := egressGatewayForExternalService(serviceName, namespace).Name
+	virtualServiceName := fmt.Sprintf("egress-gateway-%s", serviceName)
+	matchGateways := []string{gatewayName}
 	match := v1alpha3.L4MatchAttributes{Gateways: matchGateways, Port: gatewayPort}
-	config := createGeneralVirtualServiceForExternalService(hostName, port, serviceName, gatewayName, gatewayHost, match, hostName)
+
+	//Intentional error to know where we left off. gatewayName is used as virtualServiceName
+	//Moreover, check config_client_test.go:45. Is 'mesh' really no keyword (see https://istio.io/docs/reference/config/istio.networking.v1alpha3/#Gateway)?
+	config := createGeneralVirtualServiceForExternalService(hostName, port, serviceName, virtualServiceName, gatewayName, match, hostName)
 
 	return enrichWithIstioDefaults(config, namespace)
 }
 
-func egressVirtualServiceForExternalService(serviceName string) ServiceId {
-	return ServiceId{model.VirtualService.Type, fmt.Sprintf("egress-gateway-%s", serviceName)}
+func egressVirtualServiceForExternalService(serviceName string, namespace string) ServiceId {
+	return ServiceId{model.VirtualService.Type, fmt.Sprintf("egress-gateway-%s.%s.svc.cluster.local", serviceName, namespace)}
 }
 
 func createMeshVirtualServiceForExternalService(hostName string, port uint32, serviceName string, serviceIP string, namespace string) model.Config {
@@ -42,16 +45,16 @@ func enrichWithIstioDefaults(config model.Config, namespace string) model.Config
 	return *enrichedConfig
 }
 
-func createGeneralVirtualServiceForExternalService(hostName string, port uint32, serviceName string, gatewayName string, gatewayHost string, match v1alpha3.L4MatchAttributes, destinationHost string) model.Config {
+func createGeneralVirtualServiceForExternalService(hostName string, port uint32, serviceName string, virtualServiceName string, gatewayName string, match v1alpha3.L4MatchAttributes, destinationHost string) model.Config {
 	destination := v1alpha3.Destination{Host: destinationHost, Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: port}}, Subset: serviceName}
 	route := v1alpha3.TCPRoute{Route: []*v1alpha3.DestinationWeight{{Destination: &destination}}, Match: []*v1alpha3.L4MatchAttributes{&match}}
 	tcpRoutes := []*v1alpha3.TCPRoute{&route}
 	hosts := []string{hostName}
-	gateways := []string{fmt.Sprintf(gatewayHost)}
+	gateways := []string{fmt.Sprintf(gatewayName)}
 	virtualServiceSpec := v1alpha3.VirtualService{Tcp: tcpRoutes, Hosts: hosts, Gateways: gateways}
 	config := model.Config{Spec: &virtualServiceSpec}
 	config.Type = virtualService
-	config.Name = gatewayName
+	config.Name = virtualServiceName
 
 	return config
 }
@@ -72,13 +75,13 @@ func createEgressGatewayForExternalService(hostName string, portNumber uint32, s
 	config := model.Config{Spec: &gatewaySpec, ConfigMeta: model.ConfigMeta{Labels: map[string]string{"service": serviceName}}}
 
 	config.Type = gateway
-	config.Name = egressGatewayForExternalService(serviceName).Name
+	config.Name = egressGatewayForExternalService(serviceName, namespace).Name
 
 	return enrichWithIstioDefaults(config, namespace)
 }
 
-func egressGatewayForExternalService(serviceName string) ServiceId {
-	return ServiceId{model.Gateway.Type, fmt.Sprintf("istio-egressgateway-%s", serviceName)}
+func egressGatewayForExternalService(serviceName string, namespace string) ServiceId {
+	return ServiceId{model.Gateway.Type, fmt.Sprintf("istio-egressgateway-%s.%s.svc.cluster.local", serviceName, namespace)}
 }
 
 func createEgressDestinationRuleForExternalService(hostName string, portNumber uint32, serviceName string, namespace string, systemDomain string) model.Config {
