@@ -89,7 +89,6 @@ func TestCompleteEntryClientGateway(t *testing.T) {
 
 	g.Expect(gatewaySpec).To(ContainSubstring("myservice.landscape"))
 	g.Expect(gatewaySpec).To(ContainSubstring("443"))
-	g.Expect(gatewaySpec).To(ContainSubstring("spiffe://cluster.local/ns/default/sa/default"))
 	g.Expect(gatewaySpec).To(ContainSubstring("/etc/certs/cert-chain.pem"))
 
 	g.Expect(gatewayMetadata).To(ContainSubstring("name: istio-egressgateway-myservice"))

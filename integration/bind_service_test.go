@@ -91,6 +91,32 @@ spec:
         - mountPath: /etc/bindings/postgres
           name: postgres-binding`
 
+const client_config_postgres_other_namespace = `---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: client-postgres
+  namespace: integration-tests
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: client-postgres
+    spec:
+      volumes:
+      - name: postgres-binding
+        secret:
+          secretName: postgres-binding
+      containers:
+      - name: client
+        image: gcr.io/sap-se-gcp-istio-dev/client:latest
+        command: ["/bin/sleep","infinity"]
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /etc/bindings/postgres
+          name: postgres-binding`
+
 const client_config_rabbitmq = `---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -208,6 +234,48 @@ func TestPostgresServiceBinding(t *testing.T) {
 	createServiceBinding(kubectl, g, "postgres", service_instance, service_binding)
 
 	podName := runClientPod(kubectl, client_config_postgres, "client-postgres")
+	g.Expect(podName).To(ContainSubstring("client-postgres"))
+
+	script := `  
+		while true; do
+		  export PGPASSWORD=$(cat /etc/bindings/postgres/password)
+		  HOSTNAME=$(cat /etc/bindings/postgres/hostname)
+		  PORT=$(cat /etc/bindings/postgres/port)
+		  DBNAME=$(cat /etc/bindings/postgres/dbname)
+		  USER=$(cat /etc/bindings/postgres/username)
+		  OUTPUT=$(psql -h $HOSTNAME  -p $PORT -c 'SELECT 1'  $DBNAME $USER 2>&1)
+		  echo $OUTPUT >> /tmp/psql.txt
+		  if [[ $OUTPUT == *"server closed the connection unexpectedly"* ]]; then
+		    echo "Try again!"
+		    sleep 10
+		  elif [[ $OUTPUT == *"(1 row)"* ]]; then
+		    break
+		  else
+		    echo $OUTPUT
+		    exit 1
+		  fi
+		done
+		`
+	basename := "test.sh"
+	kubeCreateFile(kubectl, g, basename, script, podName)
+
+	kubectl.Exec(podName, "-c", "client", "-i", "--", "bash", "test.sh")
+
+}
+
+func TestPostgresServiceBindingOtherNamespace(t *testing.T) {
+	skipWithoutKubeconfigSet(t)
+
+	g := NewGomegaWithT(t)
+	kubectl := NewKubeCtl(g)
+
+	kubectl.Delete("namespace", "integration-tests")
+	kubectl.CreateNamespace("integration-tests")
+	defer kubectl.Delete("namespace", "integration-tests")
+
+	createServiceBinding(kubectl, g, "postgres", service_instance, service_binding)
+
+	podName := runClientPod(kubectl, client_config_postgres_other_namespace, "client-postgres")
 	g.Expect(podName).To(ContainSubstring("client-postgres"))
 
 	script := `  

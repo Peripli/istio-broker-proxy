@@ -47,6 +47,10 @@ func (self kubectl) run(args ...string) []byte {
 	}
 }
 
+func (self kubectl) CreateNamespace(name string) {
+	self.run("create", "namespace", name)
+}
+
 func (self kubectl) Delete(kind string, name string) {
 	self.run("delete", kind, name, "--ignore-not-found=true")
 }

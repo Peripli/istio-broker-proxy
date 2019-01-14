@@ -14,7 +14,7 @@ func TestClientGatewayFromGo(t *testing.T) {
 	g.Expect(gatewayConfig.Group).To(Equal("networking.istio.io"))
 	g.Expect(gatewayConfig.Type).To(Equal("gateway"))
 	g.Expect(gatewayConfig.Name).To(Equal("istio-egressgateway-mypostgres"))
-	g.Expect(gatewayConfig.Spec.String()).To(Equal(`servers:<port:<number:443 protocol:"TLS" name:"tcp-port-443" > hosts:"mypostgres.istio.my.arbitrary.domain.io" tls:<mode:MUTUAL server_certificate:"/etc/certs/cert-chain.pem" private_key:"/etc/certs/key.pem" ca_certificates:"/etc/certs/root-cert.pem" subject_alt_names:"spiffe://cluster.local/ns/default/sa/default" > > selector:<key:"istio" value:"egressgateway" > `))
+	g.Expect(gatewayConfig.Spec.String()).To(Equal(`servers:<port:<number:443 protocol:"TLS" name:"tcp-port-443" > hosts:"mypostgres.istio.my.arbitrary.domain.io" tls:<mode:MUTUAL server_certificate:"/etc/certs/cert-chain.pem" private_key:"/etc/certs/key.pem" ca_certificates:"/etc/certs/root-cert.pem" > > selector:<key:"istio" value:"egressgateway" > `))
 }
 
 func TestClientVirtualServiceFromGo(t *testing.T) {

@@ -64,8 +64,7 @@ func createEgressGatewayForExternalService(hostName string, portNumber uint32, s
 	tls := v1alpha3.Server_TLSOptions{Mode: v1alpha3.Server_TLSOptions_MUTUAL,
 		ServerCertificate: certPath + "cert-chain.pem",
 		PrivateKey:        certPath + "key.pem",
-		CaCertificates:    certPath + "root-cert.pem",
-		SubjectAltNames:   []string{"spiffe://cluster.local/ns/default/sa/default"}}
+		CaCertificates:    certPath + "root-cert.pem"}
 	selector := make(map[string]string)
 	selector["istio"] = "egressgateway"
 	gatewaySpec := v1alpha3.Gateway{Selector: selector, Servers: []*v1alpha3.Server{{Port: &port, Hosts: hosts, Tls: &tls}}}
