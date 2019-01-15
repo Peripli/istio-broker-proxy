@@ -16,6 +16,7 @@ const (
 
 type RouterConfig struct {
 	ForwardURL         string
+	SkipVerifyTLS      bool
 	Port               int
 	HttpClientFactory  func(tr *http.Transport) *http.Client
 	HttpRequestFactory func(method string, url string, body io.Reader) (*http.Request, error)
@@ -167,7 +168,7 @@ func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig RouterConfig
 
 	mux := gin.Default()
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: routerConfig.SkipVerifyTLS},
 	}
 	client := osbProxy{routerConfig.HttpClientFactory(tr), interceptor, routerConfig}
 	if interceptor.HasAdaptCredentials() {

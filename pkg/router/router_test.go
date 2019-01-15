@@ -44,6 +44,32 @@ const validUpdateCredentialsRequest = `{
 	}]
 }`
 
+func TestDoNotSkipVerifyTLSIfNotConfigured(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	handlerStub := NewHandlerStub(200, []byte(`{}`))
+	_, routerConfig := injectClientStub(handlerStub)
+	routerConfig.SkipVerifyTLS = true
+	SetupRouter(ProducerInterceptor{ProviderId: "x"}, *routerConfig)
+
+	skipVerify := handlerStub.spy.tr.TLSClientConfig.InsecureSkipVerify
+
+	g.Expect(skipVerify).To(BeTrue())
+}
+
+func TestSkipVerifyTLSIfConfigured(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	handlerStub := NewHandlerStub(200, []byte(`{}`))
+	_, routerConfig := injectClientStub(handlerStub)
+	routerConfig.SkipVerifyTLS = false
+	SetupRouter(ProducerInterceptor{ProviderId: "x"}, *routerConfig)
+
+	skipVerify := handlerStub.spy.tr.TLSClientConfig.InsecureSkipVerify
+
+	g.Expect(skipVerify).To(BeFalse())
+}
+
 func TestValidUpdateCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
 	router := SetupRouter(ProducerInterceptor{ProviderId: "x"}, RouterConfig{})

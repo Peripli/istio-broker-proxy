@@ -51,6 +51,7 @@ func SetupConfiguration() {
 	flag.StringVar(&consumerInterceptor.ConsumerId, "consumerId", "", "The subject alternative name of the consumer for which the service has a certificate")
 
 	flag.StringVar(&routerConfig.ForwardURL, "forwardUrl", "", "url for forwarding incoming requests")
+	flag.BoolVar(&routerConfig.SkipVerifyTLS, "skipVerifyTLS", false, "Do not verify the certificate of the forwardUrl")
 	flag.IntVar(&routerConfig.Port, "port", router.DefaultPort, "Server listen port")
 	flag.StringVar(&serviceNamePrefix, "serviceNamePrefix", "", "Service name prefix")
 }

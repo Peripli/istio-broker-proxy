@@ -12,6 +12,7 @@ type requestSpy struct {
 	method string
 	url    string
 	body   []string
+	tr     *http.Transport
 }
 
 type handlerStub struct {
@@ -46,6 +47,7 @@ func injectClientStub(handler *handlerStub) (*httptest.Server, *RouterConfig) {
 	ts := httptest.NewServer(handler)
 	client := ts.Client()
 	routerConfig.HttpClientFactory = func(tr *http.Transport) *http.Client {
+		handler.spy.tr = tr
 		return client
 	}
 	routerConfig.HttpRequestFactory = func(method string, url string, body io.Reader) (*http.Request, error) {
