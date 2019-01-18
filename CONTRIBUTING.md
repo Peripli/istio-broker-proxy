@@ -44,7 +44,7 @@ If you use third party code with your code contribution such as, components, lib
 
 ## License
 
-By contributing to the Service Manager project, you agree that your contributions will be licensed under its [Apache License 2.0][2].
+By contributing to this project, you agree that your contributions will be licensed under its [Apache License 2.0][2].
 
 
 [1]: https://guides.github.com/introduction/flow/index.html
