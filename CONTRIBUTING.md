@@ -1,6 +1,6 @@
 # Contributing
 
-The Service Manager project and all of it's different components are open for contributors to suggest improvements and changes. We want to make contributing easy and transparent, so you can seamlessly:
+The Istio-Broker-Proxy project and all of it's different components are open for contributors to suggest improvements and changes. We want to make contributing easy and transparent, so you can seamlessly:
 
 - Suggest code improvements
 - Submit a fixes to well known issues
