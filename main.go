@@ -17,7 +17,11 @@ var networkProfile string
 func main() {
 	SetupConfiguration()
 	flag.Parse()
+	engine := router.SetupRouter(configureInterceptor(router.NewInClusterConfigStore), routerConfig)
+	engine.Run(fmt.Sprintf(":%d", routerConfig.Port))
+}
 
+func configureInterceptor(configStoreFactory func() router.ConfigStore) router.ServiceBrokerInterceptor {
 	if networkProfile == "" {
 		panic("networkProfile not configured")
 	}
@@ -26,7 +30,7 @@ func main() {
 	if consumerInterceptor.ConsumerId != "" {
 		consumerInterceptor.ServiceNamePrefix = serviceNamePrefix
 		consumerInterceptor.NetworkProfile = networkProfile
-		consumerInterceptor.ConfigStore = router.NewInClusterConfigStore()
+		consumerInterceptor.ConfigStore = configStoreFactory()
 		interceptor = consumerInterceptor
 	} else if producerInterceptor.ProviderId != "" {
 		producerInterceptor.ServiceNamePrefix = serviceNamePrefix
@@ -39,9 +43,7 @@ func main() {
 	} else {
 		interceptor = router.NoOpInterceptor{}
 	}
-
-	engine := router.SetupRouter(interceptor, routerConfig)
-	engine.Run(fmt.Sprintf(":%d", routerConfig.Port))
+	return interceptor
 }
 
 // SetupConfiguration sets up the configuration (e.g. initializing the available command line parameters)
