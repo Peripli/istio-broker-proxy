@@ -12,19 +12,25 @@ var producerInterceptor router.ProducerInterceptor
 var consumerInterceptor router.ConsumerInterceptor
 var routerConfig router.RouterConfig
 var serviceNamePrefix string
+var networkProfile string
 
 func main() {
 	SetupConfiguration()
 	flag.Parse()
 
+	if networkProfile == "" {
+		panic("networkProfile not configured")
+	}
 	log.Printf("Running on port %d\n", routerConfig.Port)
 	var interceptor router.ServiceBrokerInterceptor
 	if consumerInterceptor.ConsumerId != "" {
 		consumerInterceptor.ServiceNamePrefix = serviceNamePrefix
+		consumerInterceptor.NetworkProfile = networkProfile
 		consumerInterceptor.ConfigStore = router.NewInClusterConfigStore()
 		interceptor = consumerInterceptor
 	} else if producerInterceptor.ProviderId != "" {
 		producerInterceptor.ServiceNamePrefix = serviceNamePrefix
+		producerInterceptor.NetworkProfile = networkProfile
 		err := producerInterceptor.WriteIstioConfigFiles(routerConfig.Port)
 		if err != nil {
 			panic(fmt.Sprintf("Unable to write istio-broker provider side configuration file: %v", err))
@@ -47,6 +53,7 @@ func SetupConfiguration() {
 	flag.StringVar(&producerInterceptor.IstioDirectory, "istioDirectory", os.TempDir(), "Directory to store the istio configuration files")
 	flag.StringVar(&producerInterceptor.IpAddress, "ipAddress", "127.0.0.1", "IP address of ingress")
 	flag.StringVar(&producerInterceptor.PlanMetaData, "planMetaData", "{}", "Metadata which is added to each service")
+	flag.StringVar(&networkProfile, "networkProfile", "", "Network profile e.g. urn:local.test:public")
 
 	flag.StringVar(&consumerInterceptor.ConsumerId, "consumerId", "", "The subject alternative name of the consumer for which the service has a certificate")
 

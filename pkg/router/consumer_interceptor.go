@@ -1,10 +1,10 @@
 package router
 
 import (
+	"errors"
 	"fmt"
 	"github.com/Peripli/istio-broker-proxy/pkg/config"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
-	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"log"
@@ -19,12 +19,16 @@ type ConsumerInterceptor struct {
 	ConsumerId        string
 	ConfigStore       ConfigStore
 	ServiceNamePrefix string
+	NetworkProfile    string
 }
 
-func (c ConsumerInterceptor) PreBind(request model.BindRequest) *model.BindRequest {
+func (c ConsumerInterceptor) PreBind(request model.BindRequest) (*model.BindRequest, error) {
+	if c.NetworkProfile == "" {
+		return nil, errors.New("network profile not configured")
+	}
 	request.NetworkData.Data.ConsumerId = c.ConsumerId
-	request.NetworkData.NetworkProfileId = profiles.NetworkProfile
-	return &request
+	request.NetworkData.NetworkProfileId = c.NetworkProfile
+	return &request, nil
 }
 
 func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.BindResponse, bindId string,

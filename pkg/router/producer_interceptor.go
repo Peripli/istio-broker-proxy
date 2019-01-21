@@ -2,6 +2,7 @@ package router
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/Peripli/istio-broker-proxy/pkg/config"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
@@ -20,6 +21,7 @@ type ProducerInterceptor struct {
 	IpAddress         string
 	ServiceNamePrefix string
 	PlanMetaData      string
+	NetworkProfile    string
 }
 
 func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) error {
@@ -27,19 +29,22 @@ func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) error {
 		config.CreateEntriesForExternalService("istio-broker", string(c.IpAddress), uint32(port), "istio-broker."+c.SystemDomain, "client.istio.sapcloud.io", 9000))
 }
 
-func (c ProducerInterceptor) PreBind(request model.BindRequest) *model.BindRequest {
-	return &request
+func (c ProducerInterceptor) PreBind(request model.BindRequest) (*model.BindRequest, error) {
+	return &request, nil
 }
 
 func (c ProducerInterceptor) PostBind(request model.BindRequest, response model.BindResponse, bindingId string,
 	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
+	if c.NetworkProfile == "" {
+		return nil, errors.New("network profile not configured")
+	}
 	systemDomain := c.SystemDomain
 	providerId := c.ProviderId
 	if len(response.Endpoints) == 0 {
 		response.Endpoints = response.Credentials.Endpoints
 	}
 	response.Credentials.Endpoints = nil
-	profiles.AddIstioNetworkDataToResponse(providerId, bindingId, systemDomain, c.LoadBalancerPort, &response)
+	profiles.AddIstioNetworkDataToResponse(providerId, bindingId, systemDomain, c.LoadBalancerPort, &response, c.NetworkProfile)
 
 	err := c.writeIstioFilesForProvider(bindingId, &request, &response)
 	if err != nil {

@@ -5,7 +5,7 @@ import (
 )
 
 type ServiceBrokerInterceptor interface {
-	PreBind(request model.BindRequest) *model.BindRequest
+	PreBind(request model.BindRequest) (*model.BindRequest, error)
 	PostBind(request model.BindRequest, response model.BindResponse, bindId string,
 		adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error)
 	PostDelete(bindId string) error
@@ -16,8 +16,8 @@ type ServiceBrokerInterceptor interface {
 type NoOpInterceptor struct {
 }
 
-func (c NoOpInterceptor) PreBind(request model.BindRequest) *model.BindRequest {
-	return &request
+func (c NoOpInterceptor) PreBind(request model.BindRequest) (*model.BindRequest, error) {
+	return &request, nil
 }
 
 func (c NoOpInterceptor) PostBind(request model.BindRequest, response model.BindResponse, bindingId string,

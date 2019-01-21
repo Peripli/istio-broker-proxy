@@ -71,6 +71,7 @@ func TestEndpointsAreTransferedFromCredentials(t *testing.T) {
 		LoadBalancerPort: 9000,
 		IpAddress:        "10.0.81.0",
 		IstioDirectory:   os.TempDir(),
+		NetworkProfile:   "urn:local.test:public",
 	}
 	endpoints := []model.Endpoint{{"test.local", 5757}}
 	bindResponse, err := interceptor.PostBind(model.BindRequest{}, model.BindResponse{
@@ -91,6 +92,7 @@ func TestConfigFilesAreWrittenAndDeleted(t *testing.T) {
 		LoadBalancerPort: 9000,
 		IpAddress:        "10.0.81.0",
 		IstioDirectory:   os.TempDir(),
+		NetworkProfile:   "urn:local.test:public",
 	}
 	endpoints := []model.Endpoint{{"test.local", 5757}}
 	_, err := interceptor.PostBind(model.BindRequest{}, model.BindResponse{
@@ -125,6 +127,7 @@ func TestConfigFilesBindFailsButFileIsCleanedUp(t *testing.T) {
 		LoadBalancerPort: 9000,
 		IpAddress:        "10.0.81.0",
 		IstioDirectory:   tempDir,
+		NetworkProfile:   "urn:local.test:public",
 	}
 	endpoints := []model.Endpoint{{"test.local", 5757}}
 

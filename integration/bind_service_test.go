@@ -48,24 +48,6 @@ spec:
   instanceRef:
     name: rabbitmq-instance`
 
-const client_config = `---
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: client
-spec:
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: client
-    spec:
-      containers:
-      - name: client
-        image: gcr.io/sap-se-gcp-istio-dev/client:latest
-        command: ["/bin/sleep","infinity"]
-        imagePullPolicy: Always`
-
 const client_config_postgres = `---
 apiVersion: extensions/v1beta1
 kind: Deployment
