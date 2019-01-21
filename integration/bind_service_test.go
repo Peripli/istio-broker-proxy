@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
@@ -13,6 +14,7 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"text/template"
 	"time"
 )
 
@@ -66,7 +68,7 @@ spec:
           secretName: postgres-binding
       containers:
       - name: client
-        image: gcr.io/sap-se-gcp-istio-dev/client:latest
+        image: {{.HUB}}/client:latest
         command: ["/bin/sleep","infinity"]
         imagePullPolicy: Always
         volumeMounts:
@@ -92,7 +94,7 @@ spec:
           secretName: postgres-binding
       containers:
       - name: client
-        image: gcr.io/sap-se-gcp-istio-dev/client:latest
+        image: {{.HUB}}/client:latest
         command: ["/bin/sleep","infinity"]
         imagePullPolicy: Always
         volumeMounts:
@@ -117,7 +119,7 @@ spec:
           secretName: rabbitmq-binding
       containers:
       - name: client
-        image: gcr.io/sap-se-gcp-istio-dev/client:latest
+        image: {{.HUB}}/client:latest
         command: ["/bin/sleep","infinity"]
         imagePullPolicy: Always
         volumeMounts:
@@ -330,10 +332,22 @@ func TestPostgresBenchmark(t *testing.T) {
 }
 
 func runClientPod(kubectl *kubectl, config string, appName string) string {
+	config = replaceHub(kubectl.g, config)
 	clientConfigBody := []byte(config)
 	kubectl.Apply(clientConfigBody)
 	podName := kubectl.GetPod("-l", "app="+appName, "--field-selector=status.phase=Running")
 	return podName
+}
+
+func replaceHub(g *GomegaWithT, config string) string {
+	tmpl, err := template.New("replace-hub").Parse(config)
+	g.Expect(err).NotTo(HaveOccurred())
+	//A docker HUB is required to run these tests
+	hub := os.Getenv("HUB")
+	g.Expect(hub).NotTo(BeEmpty())
+	writer := &bytes.Buffer{}
+	tmpl.Execute(writer, map[string]string{"HUB": hub})
+	return string(writer.Bytes())
 }
 
 func kubeCreateFile(kubectl *kubectl, g *GomegaWithT, basename string, script string, podName string) {
