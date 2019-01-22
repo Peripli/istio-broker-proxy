@@ -14,11 +14,11 @@ func TestAddIstioNetworkDataHasConfigurableProviderId(t *testing.T) {
 
 	var body model.BindResponse
 	json.Unmarshal([]byte(`{"something_else": "body of response", "endpoints": [{}]}`), &body)
-	AddIstioNetworkDataToResponse("my-provider", "", "", 0, &body)
+	AddIstioNetworkDataToResponse("my-provider", "", "", 0, &body, "urn:local.test:public")
 
 	g.Expect(body).NotTo(BeNil())
 
-	g.Expect(body.NetworkData.NetworkProfileId).To(Equal("urn:com.sap.istio:public"))
+	g.Expect(body.NetworkData.NetworkProfileId).To(Equal("urn:local.test:public"))
 	g.Expect(body.NetworkData.Data.ProviderId).To(Equal("my-provider"))
 	g.Expect(string(body.AdditionalProperties["something_else"])).To(Equal(`"body of response"`))
 }
@@ -41,7 +41,7 @@ func TestAddIstioNetworkDataProvidesEndpointHosts(t *testing.T) {
 
 	var body model.BindResponse
 	json.Unmarshal([]byte(`{"something_else": "body of response", "endpoints": [{"host": "10.0.0.3"}, {"host" : "10.0.0.4"}]}`), &body)
-	AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "my.arbitrary.domain.io", 9000, &body)
+	AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "my.arbitrary.domain.io", 9000, &body, "urn:local.test:public")
 
 	g.Expect(body).NotTo(BeNil())
 
@@ -55,14 +55,14 @@ func TestBlueprintServiceDoesntCrash(t *testing.T) {
 	g := NewGomegaWithT(t)
 	compareBody :=
 		[]byte(`{"credentials":{"hosts":["10.11.31.128"],"hostname":"10.11.31.128","port":8080,"uri":"http://50da4fff492a97c635a4bfe4fc64276e:160bbfd6e913f353e6f4ea526e8e58df@10.11.31.128:8080","username":"50da4fff492a97c635a4bfe4fc64276e","password":"160bbfd6e913f353e6f4ea526e8e58df"}, "network_data": {
-                "network_profile_id": "urn:com.sap.istio:public", "data": { 
+                "network_profile_id": "urn:local.test:public", "data": { 
                    "provider_id": "my-provider",
                   "endpoints": []
                 }
               }}`)
 	var bindResponse model.BindResponse
 	json.Unmarshal(compareBody, &bindResponse)
-	AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "my.arbitrary.domain.io", 9000, &bindResponse)
+	AddIstioNetworkDataToResponse("my-provider", "postgres-34de6ac", "my.arbitrary.domain.io", 9000, &bindResponse, "urn:local.test:public")
 	body, err := json.Marshal(bindResponse)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(string(body)).To(MatchJSON(compareBody))

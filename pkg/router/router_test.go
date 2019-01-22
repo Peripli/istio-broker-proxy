@@ -11,7 +11,6 @@ import (
 	"path"
 	"testing"
 
-	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
 	. "github.com/onsi/gomega"
 )
 
@@ -266,7 +265,7 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
 	response := httptest.NewRecorder()
-	router := SetupRouter(ProducerInterceptor{IstioDirectory: os.TempDir()}, *routerConfig)
+	router := SetupRouter(ProducerInterceptor{IstioDirectory: os.TempDir(), NetworkProfile: "urn:local.test:public"}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	var bodyData struct {
@@ -283,7 +282,8 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 		SystemDomain:     "my.arbitrary.domain.io",
 		ProviderId:       "your-provider",
 		LoadBalancerPort: 9000,
-		IstioDirectory:   os.TempDir()}
+		IstioDirectory:   os.TempDir(),
+		NetworkProfile:   "urn:local.test:public"}
 	g := NewGomegaWithT(t)
 	body := []byte(`{
 					"credentials":
@@ -319,7 +319,8 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 	producerInterceptor := ProducerInterceptor{
 		SystemDomain:   "services.cf.dev99.sc6.my.arbitrary.domain.io",
 		ProviderId:     "your-provider",
-		IstioDirectory: os.TempDir()}
+		IstioDirectory: os.TempDir(),
+		NetworkProfile: "urn:local.test:public"}
 	g := NewGomegaWithT(t)
 	responseBody := []byte(`{
 					"credentials":
@@ -368,6 +369,7 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 		SystemDomain:   "services.cf.dev99.sc6.my.arbitrary.domain.io",
 		ProviderId:     "your-provider",
 		IstioDirectory: "/non-existing-directory",
+		NetworkProfile: "urn:local.test:public",
 	}
 	g := NewGomegaWithT(t)
 	responseBody := []byte(`{
@@ -474,13 +476,13 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
 	response := httptest.NewRecorder()
-	router := SetupRouter(ConsumerInterceptor{ConsumerId: "your-consumer"}, *routerConfig)
+	router := SetupRouter(ConsumerInterceptor{ConsumerId: "your-consumer", NetworkProfile: "network-profile"}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	g.Expect(len(handlerStub.spy.body)).To(Equal(2))
 	bodyString := handlerStub.spy.body[0]
 	g.Expect(bodyString).To(ContainSubstring("network_data"))
-	g.Expect(bodyString).To(ContainSubstring(profiles.NetworkProfile))
+	g.Expect(bodyString).To(ContainSubstring("network-profile"))
 	g.Expect(bodyString).To(ContainSubstring("consumer_id"))
 }
 

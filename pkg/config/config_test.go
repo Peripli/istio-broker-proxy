@@ -246,7 +246,7 @@ func TestCreateManyServerConfigs(t *testing.T) {
 		endpointServiceEntry := fmt.Sprintf("192.168.%d.%d", i/256, i%256)
 		port := uint32(i + 10000)
 		hostVirtualService := fmt.Sprintf("hostvirtualservice%d.nonsense.de", i)
-		istioConfig = append(istioConfig, CreateEntriesForExternalService(serviceName, endpointServiceEntry, port, hostVirtualService, "test.sap.local", 9000)...)
+		istioConfig = append(istioConfig, CreateEntriesForExternalService(serviceName, endpointServiceEntry, port, hostVirtualService, "test.local", 9000)...)
 	}
 
 	content, err := ToYamlDocuments(istioConfig)

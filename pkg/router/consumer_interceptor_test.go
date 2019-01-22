@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
-	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
 	"github.com/gin-gonic/gin/json"
 	. "github.com/onsi/gomega"
 	"testing"
@@ -21,11 +20,20 @@ func adaptError(credentials model.Credentials, endpointMappings []model.Endpoint
 func TestConsumerPreBind(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id"}
-	request := consumer.PreBind(model.BindRequest{})
-	g.Expect(request.NetworkData.NetworkProfileId).To(Equal(profiles.NetworkProfile))
+	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", NetworkProfile: "network-profile"}
+	request, err := consumer.PreBind(model.BindRequest{})
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(request.NetworkData.NetworkProfileId).To(Equal("network-profile"))
 	g.Expect(request.NetworkData.Data.ConsumerId).To(Equal("consumer-id"))
 
+}
+
+func TestConsumerPreBindWithoutNetworkProfile(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	consumer := ConsumerInterceptor{ConsumerId: "consumer-id"}
+	_, err := consumer.PreBind(model.BindRequest{})
+	g.Expect(err).To(HaveOccurred())
 }
 
 var (

@@ -19,7 +19,10 @@ func (c *InterceptedOsbClient) GetCatalog() (*model.Catalog, error) {
 }
 
 func (c *InterceptedOsbClient) Bind(bindingId string, bindRequest *model.BindRequest) (*model.BindResponse, error) {
-	bindRequest = c.Interceptor.PreBind(*bindRequest)
+	bindRequest, err := c.Interceptor.PreBind(*bindRequest)
+	if err != nil {
+		return nil, err
+	}
 
 	bindResponse, err := c.OsbClient.Bind(bindRequest)
 	if err != nil {

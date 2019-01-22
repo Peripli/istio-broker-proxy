@@ -5,9 +5,7 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 )
 
-const NetworkProfile = "urn:com.sap.istio:public"
-
-func AddIstioNetworkDataToResponse(providerId string, bindingId string, systemDomain string, portNumber int, body *model.BindResponse) {
+func AddIstioNetworkDataToResponse(providerId string, bindingId string, systemDomain string, portNumber int, body *model.BindResponse, networkProfile string) {
 
 	endpointCount := len(body.Endpoints)
 
@@ -23,7 +21,7 @@ func AddIstioNetworkDataToResponse(providerId string, bindingId string, systemDo
 		)
 	}
 
-	body.NetworkData.NetworkProfileId = NetworkProfile
+	body.NetworkData.NetworkProfileId = networkProfile
 	body.NetworkData.Data.ProviderId = providerId
 	body.NetworkData.Data.Endpoints = newEndpoints
 
