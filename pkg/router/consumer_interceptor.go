@@ -35,6 +35,11 @@ func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.
 	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
 	var endpointMapping []model.EndpointMapping
 
+	//Do not call adapt credentials for service bindings for services that do not use our scenario.
+	if c.NetworkProfile != response.NetworkData.NetworkProfileId {
+		return &response, nil
+	}
+
 	if len(response.NetworkData.Data.Endpoints) != len(response.Endpoints) {
 		return nil, fmt.Errorf("Number of endpoints in NetworkData.Data (%d) doesn't match number of endpoints in root (%d)",
 			len(response.NetworkData.Data.Endpoints), len(response.Endpoints))

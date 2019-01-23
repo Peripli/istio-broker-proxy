@@ -464,11 +464,16 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
 	body := []byte(`{
 					"credentials":
 					{
- 						"hostname": "10.11.241.0",
- 						"port": "47637",
+						"hostname": "10.11.241.0",
+						"port": "47637",
 						"uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
- 					}
+					},
+					"network_data":
+					{
+						"network_profile_id": "network-profile"
+					}
 					}`)
+
 	handlerStub := NewHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 

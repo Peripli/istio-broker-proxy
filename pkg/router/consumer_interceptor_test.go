@@ -106,7 +106,7 @@ func TestEndpointsMappingWorks(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := MockConfigStore{}
 	configStore.ClusterIp = "1.2.3.5"
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore, NetworkProfile: "testprofile"}
 	endpoints := []model.Endpoint{
 		{
 			Host: "10.10.10.11",
@@ -328,4 +328,14 @@ func TestConsumerPostCatalogWithoutPrefix(t *testing.T) {
 	interceptor.PostCatalog(&catalog)
 	g.Expect(catalog.Services[0].Name).To(Equal("test-xxx-name"))
 
+}
+
+func TestBindAdaptEndpointsOnlyIfNetworkProfilesMatch(t *testing.T) {
+	g := NewGomegaWithT(t)
+	configStore := MockConfigStore{}
+
+	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore, NetworkProfile: "urn:my.test:public"}
+	binding, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "555", adaptError)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(*binding).To(Equal(bindResponseSingleEndpoint))
 }
