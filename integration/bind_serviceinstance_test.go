@@ -26,6 +26,12 @@ spec:
   instanceRef:
     name: integration-test-instance`
 
+type ConditionReason string
+
+const (
+	ConditionReasonNonexistentServiceClass ConditionReason = "ReferencesNonexistentServiceClass"
+)
+
 type ServiceInstanceList struct {
 	v1.ServiceList
 }
@@ -55,6 +61,10 @@ func createServiceBindingButNoIstioResources(kubectl *kubectl, g *GomegaWithT, n
 			return false
 		}
 
+		if string(serviceInstance.Status.Conditions[statusLen-1].Reason) == string(ConditionReasonNonexistentServiceClass) {
+			return true
+		}
+
 		if serviceInstance.Status.Conditions[statusLen-1].Status != v1beta1.ConditionTrue {
 			return false
 		}
@@ -63,6 +73,7 @@ func createServiceBindingButNoIstioResources(kubectl *kubectl, g *GomegaWithT, n
 		g.Expect(serviceInstance.Status.Conditions[statusLen-1].Status).To(Equal(v1beta1.ConditionTrue))
 		return true
 	})
+	g.Expect(serviceInstance.Status.Conditions[0].Reason).NotTo(ContainSubstring(string(ConditionReasonNonexistentServiceClass)))
 	kubectl.Apply([]byte(bindingConfig))
 	var serviceBinding v1beta1.ServiceBinding
 	waitForCompletion(g, func() bool {
