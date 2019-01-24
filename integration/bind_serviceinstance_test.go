@@ -30,6 +30,8 @@ type ConditionReason string
 
 const (
 	ConditionReasonNonexistentServiceClass ConditionReason = "ReferencesNonexistentServiceClass"
+	ConditionReasonBindCallFailed          ConditionReason = "BindCallFailed"
+	ConditionReasonSBReturnedFailure       ConditionReason = "ServiceBindingReturnedFailure"
 )
 
 type ServiceInstanceList struct {
@@ -86,7 +88,8 @@ func createServiceBindingButNoIstioResources(kubectl *kubectl, g *GomegaWithT, n
 		if serviceBinding.Status.Conditions[statusLen-1].Status != v1beta1.ConditionTrue {
 			return false
 		}
-
+		g.Expect(serviceBinding.Status.Conditions[statusLen-1].Reason).NotTo(ContainSubstring(string(ConditionReasonBindCallFailed)))
+		g.Expect(serviceBinding.Status.Conditions[statusLen-1].Reason).NotTo(ContainSubstring(string(ConditionReasonSBReturnedFailure)))
 		g.Expect(serviceBinding.Status.Conditions[statusLen-1].Type).To(Equal(v1beta1.ServiceBindingConditionReady))
 		g.Expect(serviceBinding.Status.Conditions[statusLen-1].Status).To(Equal(v1beta1.ConditionTrue))
 		return true
