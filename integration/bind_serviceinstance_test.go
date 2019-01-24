@@ -39,7 +39,6 @@ func TestServiceBindingWithNoMatchingIstioProvider(t *testing.T) {
 	createServiceBindingButNoIstioResources(kubectl, g, "integration-test", service_instance_no_istio_provider, service_instance_config_no_istio_provider)
 }
 
-//TODO Check that no matching istio resources are created!
 func createServiceBindingButNoIstioResources(kubectl *kubectl, g *GomegaWithT, name string, serviceConfig string, bindingConfig string) string {
 	// Test if list of available servicesInstance is not empty
 	var classes v1beta1.ClusterServiceClassList
@@ -86,6 +85,10 @@ func createServiceBindingButNoIstioResources(kubectl *kubectl, g *GomegaWithT, n
 	kubectl.List(&servicesInstance, "--all-namespaces=true")
 	g.Expect(servicesInstance.Items).NotTo(BeEmpty(), "List of available servicesInstance in OSB should not be empty")
 	g.Expect(serviceinstanceExists(servicesInstance, name)).To(BeTrue())
+	var services v1.ServiceList
+	kubectl.List(&services, "--all-namespaces=true")
+	g.Expect(services.Items).NotTo(BeEmpty(), "List of available services in OSB should not be empty")
+	g.Expect(serviceExists(services, bindId)).To(BeFalse())
 	var serviceEntries ServiceEntryList
 	kubectl.List(&serviceEntries, "--all-namespaces=true")
 	matchingServiceEntryExists := false
