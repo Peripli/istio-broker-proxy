@@ -550,7 +550,7 @@ func serviceExists(services v1.ServiceList, bindId string) bool {
 func waitForCompletion(g *GomegaWithT, test func() bool, name string) {
 	valid := false
 	const MAX_WAITING_TIME = time.Duration(10) * time.Minute
-	const ITERATION_WAITING_TIME = time.Duration(5) * time.Second
+	const ITERATION_WAITING_TIME = time.Duration(2) * time.Second
 	expiry := time.Now().Add(MAX_WAITING_TIME)
 	for !valid {
 		valid = test()
