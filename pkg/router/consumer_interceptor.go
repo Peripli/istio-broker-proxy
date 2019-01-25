@@ -35,8 +35,9 @@ func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.
 	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
 	var endpointMapping []model.EndpointMapping
 
-	//Do not call adapt credentials for service bindings for services that do not use our scenario.
-	if c.NetworkProfile != response.NetworkData.NetworkProfileId {
+	networkDataMatches := (c.NetworkProfile == response.NetworkData.NetworkProfileId)
+	if !networkDataMatches {
+		log.Println("Ignoring bind request for network id:", response.NetworkData.NetworkProfileId)
 		return &response, nil
 	}
 
