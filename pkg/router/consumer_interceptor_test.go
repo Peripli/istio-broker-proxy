@@ -78,6 +78,7 @@ func TestConsumerPostBind(t *testing.T) {
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &kubernetes}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(kubernetes.CreatedServices).To(HaveLen(1))
 	g.Expect(kubernetes.CreatedServices[0].Name).To(Equal("svc-0-678"))
 	g.Expect(kubernetes.CreatedServices[0].Spec.Ports[0].Port).To(Equal(int32(5555)))
 }
@@ -148,6 +149,7 @@ func TestBindIdIsPartOfServiceName(t *testing.T) {
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "555", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(configStore.CreatedServices).To(HaveLen(1))
 	g.Expect(configStore.CreatedServices[0].Name).To(Equal("svc-0-555"))
 }
 
@@ -172,6 +174,7 @@ func TestEndpointIndexIsPartOfServiceName(t *testing.T) {
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "adf123", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(configStore.CreatedServices).To(HaveLen(2))
 	g.Expect(configStore.CreatedServices[1].Name).To(Equal("svc-1-adf123"))
 }
 
@@ -235,6 +238,7 @@ func TestClusterIpIsUsed(t *testing.T) {
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 
+	g.Expect(configStore.CreatedIstioConfigs).To(HaveLen(12))
 	text, err := json.Marshal(configStore.CreatedIstioConfigs[1])
 	g.Expect(text).To(ContainSubstring("9.8.7.6"))
 }
@@ -245,6 +249,7 @@ func TestCreateServiceErrorIsHandled(t *testing.T) {
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
+	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("Test service error"))
 }
 
@@ -254,6 +259,7 @@ func TestCreateObjectErrorIsHandled(t *testing.T) {
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
+	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("Test object error"))
 }
 
@@ -288,6 +294,9 @@ func TestConsumerPostDeleteNoResourceLeaks(t *testing.T) {
 
 	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
+
+	g.Expect(configStore.CreatedServices).To(HaveLen(2))
+	g.Expect(configStore.CreatedIstioConfigs).To(HaveLen(12))
 
 	configStore.CreatedServices = configStore.CreatedServices[1:]
 	configStore.CreatedIstioConfigs = append(configStore.CreatedIstioConfigs[0:3], configStore.CreatedIstioConfigs[5:]...)
