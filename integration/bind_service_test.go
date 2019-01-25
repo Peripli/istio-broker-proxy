@@ -473,7 +473,7 @@ func createServiceBinding(kubectl *kubectl, g *GomegaWithT, name string, service
 		g.Expect(serviceInstance.Status.Conditions[statusLen-1].Type).To(Equal(v1beta1.ServiceInstanceConditionReady))
 		g.Expect(serviceInstance.Status.Conditions[statusLen-1].Status).To(Equal(v1beta1.ConditionTrue))
 		return true
-	})
+	}, "serviceinstance")
 	kubectl.Apply([]byte(bindingConfig))
 	var serviceBinding v1beta1.ServiceBinding
 	waitForCompletion(g, func() bool {
@@ -490,7 +490,7 @@ func createServiceBinding(kubectl *kubectl, g *GomegaWithT, name string, service
 		g.Expect(serviceBinding.Status.Conditions[statusLen-1].Type).To(Equal(v1beta1.ServiceBindingConditionReady))
 		g.Expect(serviceBinding.Status.Conditions[statusLen-1].Status).To(Equal(v1beta1.ConditionTrue))
 		return true
-	})
+	}, "servicebinding")
 	bindId := serviceBinding.Spec.ExternalID
 	var services v1.ServiceList
 	kubectl.List(&services, "--all-namespaces=true")
@@ -547,15 +547,17 @@ func serviceExists(services v1.ServiceList, bindId string) bool {
 	return false
 }
 
-func waitForCompletion(g *GomegaWithT, test func() bool) {
+func waitForCompletion(g *GomegaWithT, test func() bool, name string) {
 	valid := false
-	expiry := time.Now().Add(time.Duration(20) * time.Minute)
+	const MAX_WAITING_TIME = time.Duration(10) * time.Minute
+	const ITERATION_WAITING_TIME = time.Duration(5) * time.Second
+	expiry := time.Now().Add(MAX_WAITING_TIME)
 	for !valid {
 		valid = test()
 		if !valid {
-			log.Println("Not ready - waiting 10s...")
-			time.Sleep(time.Duration(10) * time.Second)
-			g.Expect(time.Now().Before(expiry)).To(BeTrue(), "Timeout expired")
+			log.Println("Not ready yet - waiting...")
+			time.Sleep(ITERATION_WAITING_TIME)
+			g.Expect(time.Now().Before(expiry)).To(BeTrue(), fmt.Sprintf("Timeout expired while waiting for: %s", name))
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	. "github.com/onsi/gomega"
 	"k8s.io/api/core/v1"
@@ -26,14 +27,6 @@ spec:
   instanceRef:
     name: integration-test-instance`
 
-type ConditionReason string
-
-const (
-	ConditionReasonNonexistentServiceClass ConditionReason = "ReferencesNonexistentServiceClass"
-	ConditionReasonBindCallFailed          ConditionReason = "BindCallFailed"
-	ConditionReasonSBReturnedFailure       ConditionReason = "ServiceBindingReturnedFailure"
-)
-
 type ServiceInstanceList struct {
 	v1.ServiceList
 }
@@ -47,58 +40,54 @@ func TestServiceBindingWithNoMatchingIstioProvider(t *testing.T) {
 	createServiceBindingButNoIstioResources(kubectl, g, "integration-test", service_instance_no_istio_provider, service_instance_config_no_istio_provider)
 }
 
-func createServiceBindingButNoIstioResources(kubectl *kubectl, g *GomegaWithT, name string, serviceConfig string, bindingConfig string) string {
+//FIXME There is much code duplicated (waiter)
+func createServiceBindingButNoIstioResources(kubectl *kubectl, g *GomegaWithT, namePrefix string, serviceConfig string, bindingConfig string) string {
 	// Test if list of available servicesInstance is not empty
 	var classes v1beta1.ClusterServiceClassList
 	kubectl.List(&classes)
 	g.Expect(classes.Items).NotTo(BeEmpty(), "List of available servicesInstance in OSB should not be empty")
-	kubectl.Delete("ServiceBinding", name+"-binding")
-	kubectl.Delete("ServiceInstance", name+"-instance")
+	kubectl.Delete("ServiceBinding", namePrefix+"-binding")
+	kubectl.Delete("ServiceInstance", namePrefix+"-instance")
 	kubectl.Apply([]byte(serviceConfig))
 	var serviceInstance v1beta1.ServiceInstance
 	waitForCompletion(g, func() bool {
-		kubectl.Read(&serviceInstance, name+"-instance")
+		kubectl.Read(&serviceInstance, namePrefix+"-instance")
 		statusLen := len(serviceInstance.Status.Conditions)
 		if statusLen == 0 {
 			return false
 		}
 
-		if string(serviceInstance.Status.Conditions[statusLen-1].Reason) == string(ConditionReasonNonexistentServiceClass) {
-			return true
-		}
+		condition := serviceInstance.Status.Conditions[statusLen-1]
 
-		if serviceInstance.Status.Conditions[statusLen-1].Status != v1beta1.ConditionTrue {
+		if condition.Status != v1beta1.ConditionTrue {
 			return false
 		}
 
-		g.Expect(serviceInstance.Status.Conditions[statusLen-1].Type).To(Equal(v1beta1.ServiceInstanceConditionReady))
-		g.Expect(serviceInstance.Status.Conditions[statusLen-1].Status).To(Equal(v1beta1.ConditionTrue))
+		g.Expect(condition.Type).To(Equal(v1beta1.ServiceInstanceConditionReady))
 		return true
-	})
-	g.Expect(serviceInstance.Status.Conditions[0].Reason).NotTo(ContainSubstring(string(ConditionReasonNonexistentServiceClass)))
+	}, "serviceinstance")
 	kubectl.Apply([]byte(bindingConfig))
 	var serviceBinding v1beta1.ServiceBinding
 	waitForCompletion(g, func() bool {
-		kubectl.Read(&serviceBinding, name+"-binding")
+		kubectl.Read(&serviceBinding, namePrefix+"-binding")
 		statusLen := len(serviceBinding.Status.Conditions)
 		if statusLen == 0 {
 			return false
 		}
 
-		if serviceBinding.Status.Conditions[statusLen-1].Status != v1beta1.ConditionTrue {
+		condition := serviceBinding.Status.Conditions[statusLen-1]
+		if condition.Status != v1beta1.ConditionTrue {
 			return false
 		}
-		g.Expect(serviceBinding.Status.Conditions[statusLen-1].Reason).NotTo(ContainSubstring(string(ConditionReasonBindCallFailed)))
-		g.Expect(serviceBinding.Status.Conditions[statusLen-1].Reason).NotTo(ContainSubstring(string(ConditionReasonSBReturnedFailure)))
-		g.Expect(serviceBinding.Status.Conditions[statusLen-1].Type).To(Equal(v1beta1.ServiceBindingConditionReady))
-		g.Expect(serviceBinding.Status.Conditions[statusLen-1].Status).To(Equal(v1beta1.ConditionTrue))
+
+		g.Expect(condition.Type).To(Equal(v1beta1.ServiceBindingConditionReady), fmt.Sprintf("Is not ready: %s", string(condition.Reason)))
 		return true
-	})
+	}, "servicebinding")
 	bindId := serviceBinding.Spec.ExternalID
 	var servicesInstance ServiceInstanceList
 	kubectl.List(&servicesInstance, "--all-namespaces=true")
 	g.Expect(servicesInstance.Items).NotTo(BeEmpty(), "List of available servicesInstance in OSB should not be empty")
-	g.Expect(serviceinstanceExists(servicesInstance, name)).To(BeTrue())
+	g.Expect(serviceinstanceExists(servicesInstance, namePrefix)).To(BeTrue())
 	var services v1.ServiceList
 	kubectl.List(&services, "--all-namespaces=true")
 	g.Expect(services.Items).NotTo(BeEmpty(), "List of available services in OSB should not be empty")
