@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"fmt"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	. "github.com/onsi/gomega"
 	"k8s.io/api/core/v1"
@@ -40,7 +39,6 @@ func TestServiceBindingWithNoMatchingIstioProvider(t *testing.T) {
 	createServiceBindingButNoIstioResources(kubectl, g, "integration-test", service_instance_no_istio_provider, service_instance_config_no_istio_provider)
 }
 
-//FIXME There is much code duplicated (waiter)
 func createServiceBindingButNoIstioResources(kubectl *kubectl, g *GomegaWithT, namePrefix string, serviceConfig string, bindingConfig string) string {
 	// Test if list of available servicesInstance is not empty
 	var classes v1beta1.ClusterServiceClassList
@@ -49,40 +47,9 @@ func createServiceBindingButNoIstioResources(kubectl *kubectl, g *GomegaWithT, n
 	kubectl.Delete("ServiceBinding", namePrefix+"-binding")
 	kubectl.Delete("ServiceInstance", namePrefix+"-instance")
 	kubectl.Apply([]byte(serviceConfig))
-	var serviceInstance v1beta1.ServiceInstance
-	waitForCompletion(g, func() bool {
-		kubectl.Read(&serviceInstance, namePrefix+"-instance")
-		statusLen := len(serviceInstance.Status.Conditions)
-		if statusLen == 0 {
-			return false
-		}
-
-		condition := serviceInstance.Status.Conditions[statusLen-1]
-
-		if condition.Status != v1beta1.ConditionTrue {
-			return false
-		}
-
-		g.Expect(condition.Type).To(Equal(v1beta1.ServiceInstanceConditionReady))
-		return true
-	}, "serviceinstance")
+	waitForServiceInstance(kubectl, g, namePrefix)
 	kubectl.Apply([]byte(bindingConfig))
-	var serviceBinding v1beta1.ServiceBinding
-	waitForCompletion(g, func() bool {
-		kubectl.Read(&serviceBinding, namePrefix+"-binding")
-		statusLen := len(serviceBinding.Status.Conditions)
-		if statusLen == 0 {
-			return false
-		}
-
-		condition := serviceBinding.Status.Conditions[statusLen-1]
-		if condition.Status != v1beta1.ConditionTrue {
-			return false
-		}
-
-		g.Expect(condition.Type).To(Equal(v1beta1.ServiceBindingConditionReady), fmt.Sprintf("Is not ready: %s", string(condition.Reason)))
-		return true
-	}, "servicebinding")
+	serviceBinding := waitForServiceBinding(kubectl, g, namePrefix)
 	bindId := serviceBinding.Spec.ExternalID
 	var servicesInstance ServiceInstanceList
 	kubectl.List(&servicesInstance, "--all-namespaces=true")
