@@ -3,8 +3,8 @@ package config
 import (
 	"fmt"
 	"istio.io/api/networking/v1alpha3"
-	"istio.io/istio/pilot/pkg/config/kube/crd"
-	"istio.io/istio/pilot/pkg/model"
+	//"istio.io/istio/pilot/pkg/config/kube/crd"
+	//"istio.io/istio/pilot/pkg/model"
 )
 
 func createEgressVirtualServiceForExternalService(hostName string, port uint32, serviceName string, gatewayPort uint32, namespace string) model.Config {

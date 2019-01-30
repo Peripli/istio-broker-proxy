@@ -3,7 +3,7 @@ package router
 import (
 	"errors"
 	"fmt"
-	istioModel "istio.io/istio/pilot/pkg/model"
+	istioModel "github.com/Peripli/istio-broker-proxy/pkg/istio/model"
 	"k8s.io/api/core/v1"
 )
 

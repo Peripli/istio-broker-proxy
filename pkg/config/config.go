@@ -2,11 +2,11 @@ package config
 
 import (
 	"fmt"
+	"github.com/Peripli/istio-broker-proxy/pkg/istio/config/kube/crd"
+	istioModel "github.com/Peripli/istio-broker-proxy/pkg/istio/model"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
 	"github.com/ghodss/yaml"
-	"istio.io/istio/pilot/pkg/config/kube/crd"
-	istioModel "istio.io/istio/pilot/pkg/model"
 	"regexp"
 	"strings"
 )
@@ -131,6 +131,7 @@ func enrichAndtoText(config istioModel.Config) (string, error) {
 	}
 	bytes, err := yaml.Marshal(kubernetesConf)
 	return string(bytes), err
+	return "", nil
 }
 
 func ToRuntimeObject(config istioModel.Config) (crd.IstioObject, error) {

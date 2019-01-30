@@ -6,7 +6,7 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/config"
 	m "github.com/Peripli/istio-broker-proxy/pkg/model"
 	"github.com/Peripli/istio-broker-proxy/pkg/router"
-	"istio.io/istio/pilot/pkg/model"
+	//"istio.io/istio/pilot/pkg/model"
 	"os"
 )
 

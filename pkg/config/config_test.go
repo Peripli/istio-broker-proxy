@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Peripli/istio-broker-proxy/pkg/istio/config/kube/crd"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"io/ioutil"
 	"regexp"
@@ -11,8 +12,8 @@ import (
 	"github.com/ghodss/yaml"
 	. "github.com/onsi/gomega"
 	"istio.io/api/networking/v1alpha3"
-	"istio.io/istio/pilot/pkg/config/kube/crd"
-	istioModel "istio.io/istio/pilot/pkg/model"
+	// "istio.io/istio/pilot/pkg/config/kube/crd"
+	istioModel "github.com/Peripli/istio-broker-proxy/pkg/istio/model"
 )
 
 func TestCompleteEntryNotEmpty(t *testing.T) {

@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/gogo/protobuf/proto"
-	"istio.io/istio/pilot/pkg/model"
+	//"istio.io/istio/pilot/pkg/model"
 )
 
 func createServiceEntryForExternalService(endpointAddress string, portNumber uint32, serviceName string) model.Config {

@@ -2,14 +2,16 @@ package integration
 
 import (
 	"github.com/Peripli/istio-broker-proxy/pkg/config"
-	"istio.io/istio/pilot/pkg/config/kube/crd"
+	"github.com/Peripli/istio-broker-proxy/pkg/istio/config/kube/crd"
+
+	// "istio.io/istio/pilot/pkg/config/kube/crd"
 	"k8s.io/client-go/tools/clientcmd"
 	"testing"
 
+	"github.com/Peripli/istio-broker-proxy/pkg/istio/model"
 	"github.com/Peripli/istio-broker-proxy/pkg/router"
 	. "github.com/onsi/gomega"
 	"istio.io/api/networking/v1alpha3"
-	"istio.io/istio/pilot/pkg/model"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )

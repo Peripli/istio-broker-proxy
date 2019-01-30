@@ -2,8 +2,8 @@ package router
 
 import (
 	"io/ioutil"
-	"istio.io/istio/pilot/pkg/config/kube/crd"
-	"istio.io/istio/pilot/pkg/model"
+	//"istio.io/istio/pilot/pkg/config/kube/crd"
+	//"istio.io/istio/pilot/pkg/model"
 	"k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

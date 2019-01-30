@@ -40,7 +40,6 @@
 		CorsPolicy
 		HTTPFaultInjection
 		PortSelector
-		Percent
 */
 package v1alpha3
 
@@ -422,17 +421,11 @@ func (m *TrafficPolicy_PortTrafficPolicy) GetTls() *TLSSettings {
 //
 // **Note:** Policies specified for subsets will not take effect until
 // a route rule explicitly sends traffic to this subset.
-//
-// One or more labels are typically required to identify the subset destination,
-// however, when the corresponding DestinationRule represents a host that
-// supports multiple SNI hosts (e.g., an egress gateway), a subset without labels
-// may be meaningful. In this case a traffic policy with [TLSSettings](#TLSSettings)
-// can be used to identify a specific SNI host corresponding to the named subset.
 type Subset struct {
 	// REQUIRED. Name of the subset. The service name and the subset name can
 	// be used for traffic splitting in a route rule.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// Labels apply a filter over the endpoints of a service in the
+	// REQUIRED. Labels apply a filter over the endpoints of a service in the
 	// service registry. See route rules for examples of usage.
 	Labels map[string]string `protobuf:"bytes,2,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Traffic policies that apply to this subset. Subsets inherit the
@@ -1013,8 +1006,8 @@ func (m *ConnectionPoolSettings_HTTPSettings) GetMaxRetries() int32 {
 type OutlierDetection struct {
 	// Number of errors before a host is ejected from the connection
 	// pool. Defaults to 5. When the upstream host is accessed over HTTP, a
-	// 502, 503 or 504 return code qualifies as an error. When the upstream host
-	// is accessed over an opaque TCP connection, connect timeouts and
+	// 5xx return code qualifies as an error. When the upstream host is
+	// accessed over an opaque TCP connection, connect timeouts and
 	// connection error/failure events qualify as an error.
 	ConsecutiveErrors int32 `protobuf:"varint,1,opt,name=consecutive_errors,json=consecutiveErrors,proto3" json:"consecutive_errors,omitempty"`
 	// Time interval between ejection sweep analysis. format:
