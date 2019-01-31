@@ -26,7 +26,7 @@
 
 #ignored = ["github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"]
 
-[[override]]
+[[constraint]]
   name = "github.com/kubernetes-incubator/service-catalog"
   revision =  "9d82b390b96d565e9301fdfe4ac822311e765a3c"
 
