@@ -44,7 +44,7 @@ func enrichWithIstioDefaults(config model.Config, namespace string) model.Config
 
 func createGeneralVirtualServiceForExternalService(hostName string, port uint32, serviceName string, gatewayName string, gatewayHost string, match v1alpha3.L4MatchAttributes, destinationHost string) model.Config {
 	destination := v1alpha3.Destination{Host: destinationHost, Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: port}}, Subset: serviceName}
-	route := v1alpha3.TCPRoute{Route: []*v1alpha3.DestinationWeight{{Destination: &destination}}, Match: []*v1alpha3.L4MatchAttributes{&match}}
+	route := v1alpha3.TCPRoute{Route: []*v1alpha3.RouteDestination{{Destination: &destination}}, Match: []*v1alpha3.L4MatchAttributes{&match}}
 	tcpRoutes := []*v1alpha3.TCPRoute{&route}
 	hosts := []string{hostName}
 	gateways := []string{fmt.Sprintf(gatewayHost)}

@@ -24,27 +24,35 @@
 #   go-tests = true
 #   unused-packages = true
 
-ignored = ["github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"]
+#ignored = ["github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"]
 
-[[override]]
-  name = "github.com/golang/glog"
-  revision = "2cc4b790554d1a0c48fcc3aeb891e3de70cf8de0"
+#[[override]]
+#  name = "github.com/golang/glog"
+#  revision = "2cc4b790554d1a0c48fcc3aeb891e3de70cf8de0"
 
 [[override]]
   name = "k8s.io/client-go"
-  branch = "release-7.0"	# For K8s 1.10.x
+  revision = "08ba23b07bfdaa23cb261e951633f42bb94346b0" 
+
+[[override]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.10.4"
+
+#[[override]]
+#  name = "k8s.io/api"
+#  version = "kubernetes-1.10.4"
 
 [[constraint]]
   name = "github.com/onsi/gomega"
   version = "1.4.1"
 
-[[constraint]]
+[[override]]
   name = "istio.io/api"
-  branch = "master"
+  revision = "6286ff0e63603c77cf7ec30510c39e5cebae65b2"
 
-[[constraint]]
+[[override]]
   name = "istio.io/istio"
-  branch = "master"
+  revision = "26a369eb0d05a4f57f088d63ce54b32ed7a867fe"
 
 [prune]
   go-tests = true

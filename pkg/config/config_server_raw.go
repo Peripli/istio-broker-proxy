@@ -26,7 +26,7 @@ func createServiceHost(serviceName string) string {
 func createRawIngressVirtualServiceForExternalService(hostName string, port uint32, serviceName string) *v1alpha3.VirtualService {
 	destination := v1alpha3.Destination{Host: createServiceHost(serviceName),
 		Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: port}}}
-	route := v1alpha3.TCPRoute{Route: []*v1alpha3.DestinationWeight{{Destination: &destination}}}
+	route := v1alpha3.TCPRoute{Route: []*v1alpha3.RouteDestination{{Destination: &destination}}}
 	tcpRoutes := []*v1alpha3.TCPRoute{&route}
 	hosts := []string{hostName}
 	gateways := []string{serviceName + "-gateway"}

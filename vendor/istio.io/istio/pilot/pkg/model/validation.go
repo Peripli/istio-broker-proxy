@@ -27,7 +27,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
-	"github.com/hashicorp/go-multierror"
+	multierror "github.com/hashicorp/go-multierror"
 
 	authn "istio.io/api/authentication/v1alpha1"
 	meshconfig "istio.io/api/mesh/v1alpha1"
@@ -49,9 +49,6 @@ const (
 
 // Constants for duration fields
 const (
-	discoveryRefreshDelayMax = time.Minute * 10
-	discoveryRefreshDelayMin = time.Second
-
 	connectTimeoutMax = time.Second * 30
 	connectTimeoutMin = time.Millisecond
 
@@ -68,6 +65,26 @@ var (
 	tagRegexp            = regexp.MustCompile("^" + qualifiedNameFmt + "$")
 	wildcardPrefixRegexp = regexp.MustCompile("^" + wildcardPrefix + "$")
 )
+
+// envoy supported retry on header values
+var supportedRetryOnPolicies = map[string]bool{
+	// 'x-envoy-retry-on' supported policies:
+	// https://www.envoyproxy.io/docs/envoy/latest/configuration/http_filters/router_filter#x-envoy-retry-on
+	"5xx":                    true,
+	"gateway-error":          true,
+	"connect-failure":        true,
+	"retriable-4xx":          true,
+	"refused-stream":         true,
+	"retriable-status-codes": true,
+
+	// 'x-envoy-retry-grpc-on' supported policies:
+	// https://www.envoyproxy.io/docs/envoy/latest/configuration/http_filters/router_filter#x-envoy-retry-grpc-on
+	"cancelled":          true,
+	"deadline-exceeded":  true,
+	"internal":           true,
+	"resource-exhausted": true,
+	"unavailable":        true,
+}
 
 // golang supported methods: https://golang.org/src/net/http/method.go
 var supportedMethods = map[string]bool{
@@ -217,7 +234,10 @@ func (l Labels) Validate() error {
 
 // ValidateFQDN checks a fully-qualified domain name
 func ValidateFQDN(fqdn string) error {
-	return appendErrors(checkDNS1123Preconditions(fqdn), validateDNS1123Labels(fqdn))
+	if err := checkDNS1123Preconditions(fqdn); err != nil {
+		return err
+	}
+	return validateDNS1123Labels(fqdn)
 }
 
 // ValidateWildcardDomain checks that a domain is a valid FQDN, but also allows wildcard prefixes.
@@ -247,7 +267,12 @@ func checkDNS1123Preconditions(name string) error {
 }
 
 func validateDNS1123Labels(domain string) error {
-	for _, label := range strings.Split(domain, ".") {
+	parts := strings.Split(domain, ".")
+	topLevelDomain := parts[len(parts)-1]
+	if _, err := strconv.Atoi(topLevelDomain); err == nil {
+		return fmt.Errorf("domain name %q invalid (top level domain %q cannot be all-numeric)", domain, topLevelDomain)
+	}
+	for _, label := range parts {
 		if !IsDNS1123Label(label) {
 			return fmt.Errorf("domain name %q invalid (label %q invalid)", domain, label)
 		}
@@ -371,10 +396,16 @@ func ValidateUnixAddress(addr string) error {
 	if len(addr) == 0 {
 		return errors.New("unix address must not be empty")
 	}
+
+	// Allow unix abstract domain sockets whose names start with @
+	if strings.HasPrefix(addr, "@") {
+		return nil
+	}
+
 	// Note that we use path, not path/filepath even though a domain socket path is a file path.  We don't want the
 	// Pilot output to depend on which OS Pilot is run on, so we always use Unix-style forward slashes.
-	if !path.IsAbs(addr) {
-		return fmt.Errorf("%s is not an absolute path", addr)
+	if !path.IsAbs(addr) || strings.HasSuffix(addr, "/") {
+		return fmt.Errorf("%s is not an absolute path to a file", addr)
 	}
 	return nil
 }
@@ -399,10 +430,12 @@ func ValidateGateway(name, namespace string, msg proto.Message) (errs error) {
 	portNames := make(map[string]bool)
 
 	for _, s := range value.Servers {
-		if portNames[s.Port.Name] {
-			errs = appendErrors(errs, fmt.Errorf("port names in servers must be unique: duplicate name %s", s.Port.Name))
+		if s.Port != nil {
+			if portNames[s.Port.Name] {
+				errs = appendErrors(errs, fmt.Errorf("port names in servers must be unique: duplicate name %s", s.Port.Name))
+			}
+			portNames[s.Port.Name] = true
 		}
-		portNames[s.Port.Name] = true
 	}
 
 	return errs
@@ -417,9 +450,7 @@ func validateServer(server *networking.Server) (errs error) {
 			if host != "*" && !strings.Contains(host, ".") {
 				errs = appendErrors(errs, fmt.Errorf("short names (non FQDN) are not allowed in Gateway server hosts"))
 			}
-			if err := ValidateWildcardDomain(host); err != nil {
-				errs = appendErrors(errs, err)
-			}
+			errs = appendErrors(errs, validateNamespaceSlashWildcardHostname(host, true))
 		}
 	}
 	portErr := validateServerPort(server.Port)
@@ -436,7 +467,7 @@ func validateServer(server *networking.Server) (errs error) {
 		} else if !protocol.IsTLS() && server.Tls != nil {
 			// only tls redirect is allowed if this is a HTTP server
 			if protocol.IsHTTP() {
-				if server.Tls.Mode != networking.Server_TLSOptions_PASSTHROUGH ||
+				if !IsPassThroughServer(server) ||
 					server.Tls.CaCertificates != "" || server.Tls.PrivateKey != "" || server.Tls.ServerCertificate != "" {
 					errs = appendErrors(errs, fmt.Errorf("server cannot have TLS settings for plain text HTTP ports"))
 				}
@@ -453,7 +484,7 @@ func validateServerPort(port *networking.Port) (errs error) {
 		return appendErrors(errs, fmt.Errorf("port is required"))
 	}
 	if ParseProtocol(port.Protocol) == ProtocolUnsupported {
-		errs = appendErrors(errs, fmt.Errorf("invalid protocol %q, supported protocols are HTTP, HTTP2, GRPC, MONGO, REDIS, TCP", port.Protocol))
+		errs = appendErrors(errs, fmt.Errorf("invalid protocol %q, supported protocols are HTTP, HTTP2, GRPC, MONGO, REDIS, MYSQL, TCP", port.Protocol))
 	}
 	if port.Number > 0 {
 		errs = appendErrors(errs, ValidatePort(int(port.Number)))
@@ -470,11 +501,7 @@ func validateTLSOptions(tls *networking.Server_TLSOptions) (errs error) {
 		// no tls config at all is valid
 		return
 	}
-	if tls.Mode == networking.Server_TLSOptions_SIMPLE {
-		if tls.ServerCertificate == "" {
-			errs = appendErrors(errs, fmt.Errorf("SIMPLE TLS requires a server certificate"))
-		}
-	} else if tls.Mode == networking.Server_TLSOptions_MUTUAL {
+	if tls.Mode == networking.Server_TLSOptions_MUTUAL {
 		if tls.ServerCertificate == "" {
 			errs = appendErrors(errs, fmt.Errorf("MUTUAL TLS requires a server certificate"))
 		}
@@ -538,6 +565,204 @@ func ValidateEnvoyFilter(name, namespace string, msg proto.Message) (errs error)
 	return
 }
 
+// validates that hostname in ns/<hostname> is a valid hostname according to
+// API specs
+func validateSidecarOrGatewayHostnamePart(host string, isGateway bool) (errs error) {
+	// short name hosts are not allowed
+	if host != "*" && !strings.Contains(host, ".") {
+		errs = appendErrors(errs, fmt.Errorf("short names (non FQDN) are not allowed"))
+	}
+
+	if err := ValidateWildcardDomain(host); err != nil {
+		if !isGateway {
+			errs = appendErrors(errs, err)
+		}
+
+		// Gateway allows IP as the host string, as well
+		ipAddr := net.ParseIP(host)
+		if ipAddr == nil {
+			errs = appendErrors(errs, err)
+		}
+	}
+	return
+}
+
+func validateNamespaceSlashWildcardHostname(host string, isGateway bool) (errs error) {
+	parts := strings.SplitN(host, "/", 2)
+	if len(parts) != 2 {
+		if isGateway {
+			// Old style host in the gateway
+			return validateSidecarOrGatewayHostnamePart(host, true)
+		}
+		errs = appendErrors(errs, fmt.Errorf("host must be of form namespace/dnsName"))
+		return
+	}
+
+	if len(parts[0]) == 0 || len(parts[1]) == 0 {
+		errs = appendErrors(errs, fmt.Errorf("config namespace and dnsName in host entry cannot be empty"))
+	}
+
+	// namespace can be * or . or a valid DNS label
+	if parts[0] != "*" && parts[0] != "." {
+		if !IsDNS1123Label(parts[0]) {
+			errs = appendErrors(errs, fmt.Errorf("invalid namespace value %q", parts[0]))
+		}
+	}
+	errs = appendErrors(errs, validateSidecarOrGatewayHostnamePart(parts[1], isGateway))
+	return
+}
+
+// ValidateSidecar checks sidecar config supplied by user
+func ValidateSidecar(name, namespace string, msg proto.Message) (errs error) {
+	rule, ok := msg.(*networking.Sidecar)
+	if !ok {
+		return fmt.Errorf("cannot cast to Sidecar")
+	}
+
+	if rule.WorkloadSelector != nil {
+		if rule.WorkloadSelector.GetLabels() == nil {
+			errs = appendErrors(errs, fmt.Errorf("sidecar: workloadSelector cannot have empty labels"))
+		}
+	}
+
+	// TODO: pending discussion on API default behavior.
+	if len(rule.Ingress) == 0 && len(rule.Egress) == 0 {
+		return fmt.Errorf("sidecar: missing ingress/egress")
+	}
+
+	portMap := make(map[uint32]struct{})
+	udsMap := make(map[string]struct{})
+	for _, i := range rule.Ingress {
+		if i.Port == nil {
+			errs = appendErrors(errs, fmt.Errorf("sidecar: port is required for ingress listeners"))
+			continue
+		}
+
+		bind := i.GetBind()
+		captureMode := i.GetCaptureMode()
+		errs = appendErrors(errs, validateSidecarPortBindAndCaptureMode(i.Port, bind, captureMode))
+
+		if i.Port.Number == 0 {
+			if _, found := udsMap[bind]; found {
+				errs = appendErrors(errs, fmt.Errorf("sidecar: unix domain socket values for listeners must be unique"))
+			}
+			udsMap[bind] = struct{}{}
+		} else {
+			if _, found := portMap[i.Port.Number]; found {
+				errs = appendErrors(errs, fmt.Errorf("sidecar: ports on IP bound listeners must be unique"))
+			}
+			portMap[i.Port.Number] = struct{}{}
+		}
+
+		if len(i.DefaultEndpoint) == 0 {
+			errs = appendErrors(errs, fmt.Errorf("sidecar: default endpoint must be set for all ingress listeners"))
+		} else {
+			if strings.HasPrefix(i.DefaultEndpoint, UnixAddressPrefix) {
+				errs = appendErrors(errs, ValidateUnixAddress(strings.TrimPrefix(i.DefaultEndpoint, UnixAddressPrefix)))
+			} else {
+				// format should be 127.0.0.1:port or :port
+				parts := strings.Split(i.DefaultEndpoint, ":")
+				if len(parts) < 2 {
+					errs = appendErrors(errs, fmt.Errorf("sidecar: defaultEndpoint must be of form 127.0.0.1:<port>"))
+				} else {
+					if len(parts[0]) > 0 && parts[0] != "127.0.0.1" {
+						errs = appendErrors(errs, fmt.Errorf("sidecar: defaultEndpoint must be of form 127.0.0.1:<port>"))
+					}
+
+					port, err := strconv.Atoi(parts[1])
+					if err != nil {
+						errs = appendErrors(errs, fmt.Errorf("sidecar: defaultEndpoint port (%s) is not a number: %v", parts[1], err))
+					} else {
+						errs = appendErrors(errs, ValidatePort(port))
+					}
+				}
+			}
+		}
+	}
+
+	// TODO: complete bind address+port or UDS uniqueness across ingress and egress
+	// after the whole listener implementation is complete
+	portMap = make(map[uint32]struct{})
+	udsMap = make(map[string]struct{})
+	catchAllEgressListenerFound := false
+	for index, i := range rule.Egress {
+		// there can be only one catch all egress listener with empty port, and it should be the last listener.
+		if i.Port == nil {
+			if !catchAllEgressListenerFound {
+				if index == len(rule.Egress)-1 {
+					catchAllEgressListenerFound = true
+				} else {
+					errs = appendErrors(errs, fmt.Errorf("sidecar: the egress listener with empty port should be the last listener in the list"))
+				}
+			} else {
+				errs = appendErrors(errs, fmt.Errorf("sidecar: egress can have only one listener with empty port"))
+				continue
+			}
+		} else {
+			bind := i.GetBind()
+			captureMode := i.GetCaptureMode()
+			errs = appendErrors(errs, validateSidecarPortBindAndCaptureMode(i.Port, bind, captureMode))
+
+			if i.Port.Number == 0 {
+				if _, found := udsMap[bind]; found {
+					errs = appendErrors(errs, fmt.Errorf("sidecar: unix domain socket values for listeners must be unique"))
+				}
+				udsMap[bind] = struct{}{}
+			} else {
+				if _, found := portMap[i.Port.Number]; found {
+					errs = appendErrors(errs, fmt.Errorf("sidecar: ports on IP bound listeners must be unique"))
+				}
+				portMap[i.Port.Number] = struct{}{}
+			}
+		}
+
+		// validate that the hosts field is a slash separated value
+		// of form ns1/host, or */host, or */*, or ns1/*, or ns1/*.example.com
+		if len(i.Hosts) == 0 {
+			errs = appendErrors(errs, fmt.Errorf("sidecar: egress listener must contain at least one host"))
+		} else {
+			for _, host := range i.Hosts {
+				errs = appendErrors(errs, validateNamespaceSlashWildcardHostname(host, false))
+			}
+		}
+	}
+
+	return
+}
+
+func validateSidecarPortBindAndCaptureMode(port *networking.Port, bind string,
+	captureMode networking.CaptureMode) (errs error) {
+
+	// Handle Unix domain sockets
+	if port.Number == 0 {
+		// require bind to be a unix domain socket
+		errs = appendErrors(errs,
+			validatePortName(port.Name),
+			validateProtocol(port.Protocol))
+
+		if !strings.HasPrefix(bind, UnixAddressPrefix) {
+			errs = appendErrors(errs, fmt.Errorf("sidecar: ports with 0 value must have a unix domain socket bind address"))
+		} else {
+			errs = appendErrors(errs, ValidateUnixAddress(strings.TrimPrefix(bind, UnixAddressPrefix)))
+		}
+
+		if captureMode != networking.CaptureMode_DEFAULT && captureMode != networking.CaptureMode_NONE {
+			errs = appendErrors(errs, fmt.Errorf("sidecar: captureMode must be DEFAULT/NONE for unix domain socket listeners"))
+		}
+	} else {
+		errs = appendErrors(errs,
+			validatePortName(port.Name),
+			validateProtocol(port.Protocol),
+			ValidatePort(int(port.Number)))
+
+		if len(bind) != 0 {
+			errs = appendErrors(errs, ValidateIPv4Address(bind))
+		}
+	}
+
+	return
+}
+
 func validateTrafficPolicy(policy *networking.TrafficPolicy) error {
 	if policy == nil {
 		return nil
@@ -567,7 +792,7 @@ func validateOutlierDetection(outlier *networking.OutlierDetection) (errs error)
 	if outlier.Interval != nil {
 		errs = appendErrors(errs, ValidateDurationGogo(outlier.Interval))
 	}
-	errs = appendErrors(errs, ValidatePercent(outlier.MaxEjectionPercent))
+	errs = appendErrors(errs, ValidatePercent(outlier.MaxEjectionPercent), ValidatePercent(outlier.MinHealthPercent))
 
 	return
 }
@@ -784,15 +1009,27 @@ func ValidateParentAndDrain(drainTime, parentShutdown *types.Duration) (errs err
 	return
 }
 
-// ValidateRefreshDelay validates the discovery refresh delay time
-func ValidateRefreshDelay(refresh *types.Duration) error {
-	if err := ValidateDuration(refresh); err != nil {
-		return err
+// ValidateLightstepCollector validates the configuration for sending envoy spans to LightStep
+func ValidateLightstepCollector(ls *meshconfig.Tracing_Lightstep) error {
+	var errs error
+	if ls.GetAddress() == "" {
+		errs = multierror.Append(errs, errors.New("address is required"))
 	}
+	if err := ValidateProxyAddress(ls.GetAddress()); err != nil {
+		errs = multierror.Append(errs, multierror.Prefix(err, "invalid lightstep address:"))
+	}
+	if ls.GetAccessToken() == "" {
+		errs = multierror.Append(errs, errors.New("access token is required"))
+	}
+	if ls.GetSecure() && (ls.GetCacertPath() == "") {
+		errs = multierror.Append(errs, errors.New("cacertPath is required"))
+	}
+	return errs
+}
 
-	refreshDuration, _ := types.DurationFromProto(refresh)
-	err := ValidateDurationRange(refreshDuration, discoveryRefreshDelayMin, discoveryRefreshDelayMax)
-	return err
+// ValidateZipkinCollector validates the configuration for sending envoy spans to Zipkin
+func ValidateZipkinCollector(z *meshconfig.Tracing_Zipkin) error {
+	return ValidateProxyAddress(z.GetAddress())
 }
 
 // ValidateConnectTimeout validates the envoy conncection timeout
@@ -828,10 +1065,6 @@ func ValidateMeshConfig(mesh *meshconfig.MeshConfig) (errs error) {
 		errs = multierror.Append(errs, multierror.Prefix(err, "invalid connect timeout:"))
 	}
 
-	if err := ValidateRefreshDelay(mesh.RdsRefreshDelay); err != nil {
-		errs = multierror.Append(errs, multierror.Prefix(err, "invalid rds refresh delay:"))
-	}
-
 	if mesh.DefaultConfig == nil {
 		errs = multierror.Append(errs, errors.New("missing default config"))
 	} else if err := ValidateProxyConfig(mesh.DefaultConfig); err != nil {
@@ -859,10 +1092,6 @@ func ValidateProxyConfig(config *meshconfig.ProxyConfig) (errs error) {
 		errs = multierror.Append(errs, multierror.Prefix(err, "invalid parent and drain time combination"))
 	}
 
-	if err := ValidateRefreshDelay(config.DiscoveryRefreshDelay); err != nil {
-		errs = multierror.Append(errs, multierror.Prefix(err, "invalid refresh delay:"))
-	}
-
 	// discovery address is mandatory since mutual TLS relies on CDS.
 	// strictly speaking, proxies can operate without RDS/CDS and with hot restarts
 	// but that requires additional test validation
@@ -872,9 +1101,15 @@ func ValidateProxyConfig(config *meshconfig.ProxyConfig) (errs error) {
 		errs = multierror.Append(errs, multierror.Prefix(err, "invalid discovery address:"))
 	}
 
-	if config.ZipkinAddress != "" {
-		if err := ValidateProxyAddress(config.ZipkinAddress); err != nil {
-			errs = multierror.Append(errs, multierror.Prefix(err, "invalid zipkin address:"))
+	if tracer := config.GetTracing().GetLightstep(); tracer != nil {
+		if err := ValidateLightstepCollector(tracer); err != nil {
+			errs = multierror.Append(errs, multierror.Prefix(err, "invalid lightstep config:"))
+		}
+	}
+
+	if tracer := config.GetTracing().GetZipkin(); tracer != nil {
+		if err := ValidateZipkinCollector(tracer); err != nil {
+			errs = multierror.Append(errs, multierror.Prefix(err, "invalid zipkin config:"))
 		}
 	}
 
@@ -1219,15 +1454,14 @@ func ValidateServiceRoleBinding(name, namespace string, msg proto.Message) error
 	return errs
 }
 
-// ValidateRbacConfig checks that RbacConfig is well-formed.
-func ValidateRbacConfig(name, namespace string, msg proto.Message) error {
+func checkRbacConfig(name, typ string, msg proto.Message) error {
 	in, ok := msg.(*rbac.RbacConfig)
 	if !ok {
-		return errors.New("cannot cast to RbacConfig")
+		return errors.New("cannot cast to " + typ)
 	}
 
 	if name != DefaultRbacConfigName {
-		return fmt.Errorf("rbacConfig has invalid name(%s), name must be %s", name, DefaultRbacConfigName)
+		return fmt.Errorf("%s has invalid name(%s), name must be %q", typ, name, DefaultRbacConfigName)
 	}
 
 	if in.Mode == rbac.RbacConfig_ON_WITH_INCLUSION && in.Inclusion == nil {
@@ -1239,6 +1473,17 @@ func ValidateRbacConfig(name, namespace string, msg proto.Message) error {
 	}
 
 	return nil
+}
+
+// ValidateClusterRbacConfig checks that ClusterRbacConfig is well-formed.
+func ValidateClusterRbacConfig(name, namespace string, msg proto.Message) error {
+	return checkRbacConfig(name, "ClusterRbacConfig", msg)
+}
+
+// ValidateRbacConfig checks that RbacConfig is well-formed.
+func ValidateRbacConfig(name, namespace string, msg proto.Message) error {
+	log.Warnf("RbacConfig is deprecated, use ClusterRbacConfig instead.")
+	return checkRbacConfig(name, "RbacConfig", msg)
 }
 
 func validateJwt(jwt *authn.Jwt) (errs error) {
@@ -1303,12 +1548,11 @@ func ValidateVirtualService(name, namespace string, msg proto.Message) (errs err
 		appliesToMesh = true
 	}
 
+	errs = appendErrors(errs, validateGatewayNames(virtualService.Gateways))
 	for _, gateway := range virtualService.Gateways {
-		if err := ValidateFQDN(gateway); err != nil {
-			errs = appendErrors(errs, err)
-		}
 		if gateway == IstioMeshGateway {
 			appliesToMesh = true
+			break
 		}
 	}
 
@@ -1319,8 +1563,11 @@ func ValidateVirtualService(name, namespace string, msg proto.Message) (errs err
 	allHostsValid := true
 	for _, host := range virtualService.Hosts {
 		if err := ValidateWildcardDomain(host); err != nil {
-			errs = appendErrors(errs, err)
-			allHostsValid = false
+			ipAddr := net.ParseIP(host) // Could also be an IP
+			if ipAddr == nil {
+				errs = appendErrors(errs, err)
+				allHostsValid = false
+			}
 		} else if appliesToMesh && host == "*" {
 			errs = appendErrors(errs, fmt.Errorf("wildcard host * is not allowed for virtual services bound to the mesh gateway"))
 			allHostsValid = false
@@ -1362,17 +1609,13 @@ func validateTLSRoute(tls *networking.TLSRoute, context *networking.VirtualServi
 	if tls == nil {
 		return nil
 	}
-
 	if len(tls.Match) == 0 {
 		errs = appendErrors(errs, errors.New("TLS route must have at least one match condition"))
 	}
 	for _, match := range tls.Match {
 		errs = appendErrors(errs, validateTLSMatch(match, context))
 	}
-	if len(tls.Route) != 1 {
-		errs = appendErrors(errs, errors.New("TLS route must have exactly one destination"))
-	}
-	errs = appendErrors(errs, validateDestinationWeights(tls.Route))
+	errs = appendErrors(errs, validateRouteDestinations(tls.Route))
 	return
 }
 
@@ -1401,9 +1644,11 @@ func validateTLSMatch(match *networking.TLSMatchAttributes, context *networking.
 }
 
 func validateSniHost(sniHost string, context *networking.VirtualService) error {
-	err := ValidateWildcardDomain(sniHost)
-	if err != nil {
-		return err
+	if err := ValidateWildcardDomain(sniHost); err != nil {
+		ipAddr := net.ParseIP(sniHost) // Could also be an IP
+		if ipAddr == nil {
+			return err
+		}
 	}
 	sniHostname := Hostname(sniHost)
 	for _, host := range context.Hosts {
@@ -1411,8 +1656,7 @@ func validateSniHost(sniHost string, context *networking.VirtualService) error {
 			return nil
 		}
 	}
-	err = fmt.Errorf("SNI host is not a compatible subset of the virtual service hosts: %s", sniHost)
-	return err
+	return fmt.Errorf("SNI host is not a compatible subset of the virtual service hosts: %s", sniHost)
 }
 
 func validateTCPRoute(tcp *networking.TCPRoute) (errs error) {
@@ -1422,10 +1666,7 @@ func validateTCPRoute(tcp *networking.TCPRoute) (errs error) {
 	for _, match := range tcp.Match {
 		errs = appendErrors(errs, validateTCPMatch(match))
 	}
-	if len(tcp.Route) != 1 {
-		errs = appendErrors(errs, errors.New("TCP route must have exactly one destination"))
-	}
-	errs = appendErrors(errs, validateDestinationWeights(tcp.Route))
+	errs = appendErrors(errs, validateRouteDestinations(tcp.Route))
 	return
 }
 
@@ -1433,7 +1674,6 @@ func validateTCPMatch(match *networking.L4MatchAttributes) (errs error) {
 	for _, destinationSubnet := range match.DestinationSubnets {
 		errs = appendErrors(errs, ValidateIPv4Subnet(destinationSubnet))
 	}
-
 	if len(match.SourceSubnet) > 0 {
 		errs = appendErrors(errs, ValidateIPv4Subnet(match.SourceSubnet))
 	}
@@ -1467,12 +1707,43 @@ func validateHTTPRoute(http *networking.HTTPRoute) (errs error) {
 		errs = appendErrors(errs, errors.New("HTTP route or redirect is required"))
 	}
 
+	// deprecated
 	for name := range http.AppendHeaders {
+		errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+	}
+	for name := range http.AppendRequestHeaders {
+		errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+	}
+	for _, name := range http.RemoveRequestHeaders {
+		errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+	}
+	for name := range http.AppendResponseHeaders {
 		errs = appendErrors(errs, ValidateHTTPHeaderName(name))
 	}
 	for _, name := range http.RemoveResponseHeaders {
 		errs = appendErrors(errs, ValidateHTTPHeaderName(name))
 	}
+
+	// header manipulation
+	for name := range http.Headers.GetRequest().GetAdd() {
+		errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+	}
+	for name := range http.Headers.GetRequest().GetSet() {
+		errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+	}
+	for _, name := range http.Headers.GetRequest().GetRemove() {
+		errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+	}
+	for name := range http.Headers.GetResponse().GetAdd() {
+		errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+	}
+	for name := range http.Headers.GetResponse().GetSet() {
+		errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+	}
+	for _, name := range http.Headers.GetResponse().GetRemove() {
+		errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+	}
+
 	errs = appendErrors(errs, validateCORSPolicy(http.CorsPolicy))
 	errs = appendErrors(errs, validateHTTPFaultInjection(http.Fault))
 
@@ -1491,7 +1762,7 @@ func validateHTTPRoute(http *networking.HTTPRoute) (errs error) {
 	errs = appendErrors(errs, validateHTTPRedirect(http.Redirect))
 	errs = appendErrors(errs, validateHTTPRetry(http.Retries))
 	errs = appendErrors(errs, validateHTTPRewrite(http.Rewrite))
-	errs = appendErrors(errs, validateDestinationWeights(http.Route))
+	errs = appendErrors(errs, validateHTTPRouteDestinations(http.Route))
 	if http.Timeout != nil {
 		errs = appendErrors(errs, ValidateDurationGogo(http.Timeout))
 	}
@@ -1501,14 +1772,84 @@ func validateHTTPRoute(http *networking.HTTPRoute) (errs error) {
 
 func validateGatewayNames(gateways []string) (errs error) {
 	for _, gateway := range gateways {
-		if err := ValidateFQDN(gateway); err != nil {
-			errs = appendErrors(errs, err)
+		parts := strings.SplitN(gateway, "/", 2)
+		if len(parts) != 2 {
+			// deprecated
+			log.Warn("Gateway names with FQDN format or short forms are deprecated. " +
+				"Use namespace/name format instead")
+			// Old style spec with FQDN gateway name
+			errs = appendErrors(errs, ValidateFQDN(gateway))
+			return
+		}
+
+		if len(parts[0]) == 0 || len(parts[1]) == 0 {
+			errs = appendErrors(errs, fmt.Errorf("config namespace and gateway name cannot be empty"))
+		}
+
+		// namespace and name must be DNS labels
+		if !IsDNS1123Label(parts[0]) {
+			errs = appendErrors(errs, fmt.Errorf("invalid value for namespace: %q", parts[0]))
+		}
+
+		if !IsDNS1123Label(parts[1]) {
+			errs = appendErrors(errs, fmt.Errorf("invalid value for gateway name: %q", parts[1]))
 		}
 	}
 	return
 }
 
-func validateDestinationWeights(weights []*networking.DestinationWeight) (errs error) {
+func validateHTTPRouteDestinations(weights []*networking.HTTPRouteDestination) (errs error) {
+	var totalWeight int32
+	for _, weight := range weights {
+		if weight.Destination == nil {
+			errs = multierror.Append(errs, errors.New("destination is required"))
+		}
+
+		// deprecated
+		for name := range weight.AppendRequestHeaders {
+			errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+		}
+		for name := range weight.AppendResponseHeaders {
+			errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+		}
+		for _, name := range weight.RemoveRequestHeaders {
+			errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+		}
+		for _, name := range weight.RemoveResponseHeaders {
+			errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+		}
+
+		// header manipulations
+		for name := range weight.Headers.GetRequest().GetAdd() {
+			errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+		}
+		for name := range weight.Headers.GetRequest().GetSet() {
+			errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+		}
+		for _, name := range weight.Headers.GetRequest().GetRemove() {
+			errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+		}
+		for name := range weight.Headers.GetResponse().GetAdd() {
+			errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+		}
+		for name := range weight.Headers.GetResponse().GetSet() {
+			errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+		}
+		for _, name := range weight.Headers.GetResponse().GetRemove() {
+			errs = appendErrors(errs, ValidateHTTPHeaderName(name))
+		}
+
+		errs = appendErrors(errs, validateDestination(weight.Destination))
+		errs = appendErrors(errs, ValidatePercent(weight.Weight))
+		totalWeight += weight.Weight
+	}
+	if len(weights) > 1 && totalWeight != 100 {
+		errs = appendErrors(errs, fmt.Errorf("total destination weight %v != 100", totalWeight))
+	}
+	return
+}
+
+func validateRouteDestinations(weights []*networking.RouteDestination) (errs error) {
 	var totalWeight int32
 	for _, weight := range weights {
 		if weight.Destination == nil {
@@ -1694,6 +2035,18 @@ func validateHTTPRetry(retries *networking.HTTPRetry) (errs error) {
 	if retries.PerTryTimeout != nil {
 		errs = appendErrors(errs, ValidateDurationGogo(retries.PerTryTimeout))
 	}
+	if retries.RetryOn != "" {
+		retryOnPolicies := strings.Split(retries.RetryOn, ",")
+		for _, policy := range retryOnPolicies {
+			// Try converting it to an integer to see if it's a valid HTTP status code.
+			i, _ := strconv.Atoi(policy)
+
+			if http.StatusText(i) == "" && !supportedRetryOnPolicies[policy] {
+				errs = appendErrors(errs, fmt.Errorf("%q is not a valid retryOn policy", policy))
+			}
+		}
+	}
+
 	return
 }
 
@@ -1722,8 +2075,8 @@ func ValidateServiceEntry(name, namespace string, config proto.Message) (errs er
 		errs = appendErrors(errs, fmt.Errorf("service entry must have at least one host"))
 	}
 	for _, host := range serviceEntry.Hosts {
-		// Full wildcard or short names are not allowed in the service entry.
-		if host == "*" || !strings.Contains(host, ".") {
+		// Full wildcard is not allowed in the service entry.
+		if host == "*" {
 			errs = appendErrors(errs, fmt.Errorf("invalid host %s", host))
 		} else {
 			errs = appendErrors(errs, ValidateWildcardDomain(host))
@@ -1801,10 +2154,15 @@ func ValidateServiceEntry(name, namespace string, config proto.Message) (errs er
 		}
 
 		for _, endpoint := range serviceEntry.Endpoints {
+			ipAddr := net.ParseIP(endpoint.Address) // Typically it is an IP address
+			if ipAddr == nil {
+				if err := ValidateFQDN(endpoint.Address); err != nil { // Otherwise could be an FQDN
+					errs = appendErrors(errs,
+						fmt.Errorf("endpoint address %q is not a valid FQDN or an IP address", endpoint.Address))
+				}
+			}
 			errs = appendErrors(errs,
-				ValidateFQDN(endpoint.Address),
 				Labels(endpoint.Labels).Validate())
-
 			for name, port := range endpoint.Ports {
 				if !servicePorts[name] {
 					errs = appendErrors(errs, fmt.Errorf("endpoint port %v is not defined by the service entry", port))
@@ -1888,9 +2246,11 @@ func appendErrors(err error, errs ...error) error {
 func ValidateNetworkEndpointAddress(n *NetworkEndpoint) error {
 	switch n.Family {
 	case AddressFamilyTCP:
-		ipAddr := net.ParseIP(n.Address)
+		ipAddr := net.ParseIP(n.Address) // Typically it is an IP address
 		if ipAddr == nil {
-			return errors.New("invalid IP address " + n.Address)
+			if err := ValidateFQDN(n.Address); err != nil { // Otherwise could be an FQDN
+				return errors.New("invalid address " + n.Address)
+			}
 		}
 	case AddressFamilyUnix:
 		return ValidateUnixAddress(n.Address)
