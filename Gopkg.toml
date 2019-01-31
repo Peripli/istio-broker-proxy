@@ -50,11 +50,12 @@
   name = "github.com/onsi/gomega"
   version = "1.4.1"
 
+# We need the override as istio.io/istio has a constraints it to branch release-1.1
 [[override]]
   name = "istio.io/api"
   revision = "6286ff0e63603c77cf7ec30510c39e5cebae65b2"
 
-[[override]]
+[[constraint]]
   name = "istio.io/istio"
   revision = "26a369eb0d05a4f57f088d63ce54b32ed7a867fe"
 
