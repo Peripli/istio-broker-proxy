@@ -228,7 +228,7 @@
   version = "v1.1.5"
 
 [[projects]]
-  digest = "1:54807670e7c10a093eade9a7e55a2eff5cc506fb59e95db291de74dc68f80cf3"
+  digest = "1:e411f1812108d5dc3f688a202c794f188cb2167941312880855a0d92cd44dad6"
   name = "github.com/kubernetes-incubator/service-catalog"
   packages = [
     "pkg/apis/servicecatalog",
@@ -236,8 +236,7 @@
     "pkg/filter",
   ]
   pruneopts = "UT"
-  revision = "d65a0d7078ef12a3f36d971b17988ae4db6abc21"
-  version = "v0.1.40"
+  revision = "9d82b390b96d565e9301fdfe4ac822311e765a3c"
 
 [[projects]]
   digest = "1:dfe5159383dfcd370555c35374ac99022906f987b55cc65a830fb9ced970b4b1"
