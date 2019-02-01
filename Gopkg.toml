@@ -30,9 +30,9 @@
   name = "github.com/kubernetes-incubator/service-catalog"
   revision =  "9d82b390b96d565e9301fdfe4ac822311e765a3c"
 
-#[[override]]
-#  name = "github.com/golang/glog"
-#  revision = "2cc4b790554d1a0c48fcc3aeb891e3de70cf8de0"
+[[override]]
+  name = "github.com/golang/glog"
+  source = "github.com/istio/glog"
 
 [[override]]
   name = "k8s.io/client-go"
