@@ -28,23 +28,32 @@
 
 [[constraint]]
   name = "github.com/kubernetes-incubator/service-catalog"
-  revision =  "9d82b390b96d565e9301fdfe4ac822311e765a3c"
+  version = "0.1.36"
 
 [[override]]
   name = "github.com/golang/glog"
   source = "github.com/istio/glog"
 
+# We override the k8s packages as required by service-catalog 0.1.36
 [[override]]
-  name = "k8s.io/client-go"
-  revision = "08ba23b07bfdaa23cb261e951633f42bb94346b0" 
+  branch = "release-1.12"
+  name = "k8s.io/api"
 
 [[override]]
+  branch = "release-1.12"
+  name = "k8s.io/apiextensions-apiserver"
+
+[[override]]
+  branch = "release-1.12"
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.10.4"
 
-#[[override]]
-#  name = "k8s.io/api"
-#  version = "kubernetes-1.10.4"
+[[override]]
+  branch = "release-1.12"
+  name = "k8s.io/apiserver"
+
+[[override]]
+  branch = "release-9.0"
+  name = "k8s.io/client-go"
 
 [[constraint]]
   name = "github.com/onsi/gomega"

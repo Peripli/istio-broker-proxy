@@ -221,7 +221,7 @@
   version = "v1.1.5"
 
 [[projects]]
-  digest = "1:e411f1812108d5dc3f688a202c794f188cb2167941312880855a0d92cd44dad6"
+  digest = "1:54807670e7c10a093eade9a7e55a2eff5cc506fb59e95db291de74dc68f80cf3"
   name = "github.com/kubernetes-incubator/service-catalog"
   packages = [
     "pkg/apis/servicecatalog",
@@ -229,8 +229,8 @@
     "pkg/filter",
   ]
   pruneopts = "UT"
-  revision = "9d82b390b96d565e9301fdfe4ac822311e765a3c"
-  version = "v0.1.31"
+  revision = "d65a0d7078ef12a3f36d971b17988ae4db6abc21"
+  version = "v0.1.40"
 
 [[projects]]
   digest = "1:fd54bf7b2ed868354f34178c1d81930250bf978901ad7b0dc649223d79356ae7"
@@ -650,8 +650,8 @@
   revision = "26a369eb0d05a4f57f088d63ce54b32ed7a867fe"
 
 [[projects]]
-  branch = "release-1.11"
-  digest = "1:d937c84b21107b248846522386d8813a47537f28d60f1d7685cd15c1afe20ea6"
+  branch = "release-1.12"
+  digest = "1:faf52d216e0d651ee48a5ee8fb43f818a6c36bf4246282a5e30b8985da5581ff"
   name = "k8s.io/api"
   packages = [
     "admissionregistration/v1alpha1",
@@ -665,10 +665,12 @@
     "authorization/v1beta1",
     "autoscaling/v1",
     "autoscaling/v2beta1",
+    "autoscaling/v2beta2",
     "batch/v1",
     "batch/v1beta1",
     "batch/v2alpha1",
     "certificates/v1beta1",
+    "coordination/v1beta1",
     "core/v1",
     "events/v1beta1",
     "extensions/v1beta1",
@@ -685,11 +687,11 @@
     "storage/v1beta1",
   ]
   pruneopts = "UT"
-  revision = "912cbe2bfef3d832db29f9d3125307fe907102e9"
+  revision = "6db15a15d2d3874a6c3ddb2140ac9f3bc7058428"
 
 [[projects]]
-  branch = "release-1.11"
-  digest = "1:758efcf9cc97ed132a9f9f9e2b638a0cd401a2b1b9a98e91d037de46a84d2f5e"
+  branch = "release-1.12"
+  digest = "1:d9e9a6062217111c1b7c548a47bd67b2b518c8da05d124dbca74e246565c76a6"
   name = "k8s.io/apiextensions-apiserver"
   packages = [
     "pkg/apis/apiextensions",
@@ -699,10 +701,11 @@
     "pkg/client/clientset/clientset/typed/apiextensions/v1beta1",
   ]
   pruneopts = "UT"
-  revision = "e419c5771cdcec16d68b632a451dab1d383168a8"
+  revision = "1f84094d7e8e3ad85431881fc572cbafd80ee4d4"
 
 [[projects]]
-  digest = "1:4eb18e76260e368b61e89c6da8b846f2d93ce6ce868785d5e2f00994b52b2e8b"
+  branch = "release-1.12"
+  digest = "1:8ac09f65b981094596b127b71f6767867c90e097568e0006b83e963f0363011b"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -733,6 +736,7 @@
     "pkg/util/framer",
     "pkg/util/intstr",
     "pkg/util/json",
+    "pkg/util/naming",
     "pkg/util/net",
     "pkg/util/runtime",
     "pkg/util/sets",
@@ -745,11 +749,11 @@
     "third_party/forked/golang/reflect",
   ]
   pruneopts = "UT"
-  revision = "17529ec7eadb8de8e7dc835201455f53571f655a"
-  version = "kubernetes-1.10.4"
+  revision = "bebe27e40fb7d8c4b00cb024a4dda98194466229"
 
 [[projects]]
-  digest = "1:4ec91ab6e3b0f4d52587618b9feae1f55d81f6b2e95510426ae28480a979789a"
+  branch = "release-9.0"
+  digest = "1:4490d27c0b6ef243fb8b1f44593d4bf83276f81b24eb50019d4963a08f5eecdf"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -764,12 +768,15 @@
     "informers/autoscaling",
     "informers/autoscaling/v1",
     "informers/autoscaling/v2beta1",
+    "informers/autoscaling/v2beta2",
     "informers/batch",
     "informers/batch/v1",
     "informers/batch/v1beta1",
     "informers/batch/v2alpha1",
     "informers/certificates",
     "informers/certificates/v1beta1",
+    "informers/coordination",
+    "informers/coordination/v1beta1",
     "informers/core",
     "informers/core/v1",
     "informers/events",
@@ -807,10 +814,12 @@
     "kubernetes/typed/authorization/v1beta1",
     "kubernetes/typed/autoscaling/v1",
     "kubernetes/typed/autoscaling/v2beta1",
+    "kubernetes/typed/autoscaling/v2beta2",
     "kubernetes/typed/batch/v1",
     "kubernetes/typed/batch/v1beta1",
     "kubernetes/typed/batch/v2alpha1",
     "kubernetes/typed/certificates/v1beta1",
+    "kubernetes/typed/coordination/v1beta1",
     "kubernetes/typed/core/v1",
     "kubernetes/typed/events/v1beta1",
     "kubernetes/typed/extensions/v1beta1",
@@ -832,10 +841,12 @@
     "listers/apps/v1beta2",
     "listers/autoscaling/v1",
     "listers/autoscaling/v2beta1",
+    "listers/autoscaling/v2beta2",
     "listers/batch/v1",
     "listers/batch/v1beta1",
     "listers/batch/v2alpha1",
     "listers/certificates/v1beta1",
+    "listers/coordination/v1beta1",
     "listers/core/v1",
     "listers/events/v1beta1",
     "listers/extensions/v1beta1",
@@ -880,7 +891,7 @@
     "util/retry",
   ]
   pruneopts = "UT"
-  revision = "08ba23b07bfdaa23cb261e951633f42bb94346b0"
+  revision = "701b913670036511e3d752318272c97f1a2a2edd"
 
 [solve-meta]
   analyzer-name = "dep"
