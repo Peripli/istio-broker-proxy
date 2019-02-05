@@ -40,7 +40,12 @@ package = args.go_package
 command = "go test -cover %s/..." % package
 print(command)
 
-test = subprocess.check_output(command, shell=True)
+try:
+    test = subprocess.check_output(command, shell=True)
+except subprocess.CalledProcessError as e:
+    print(e.output.decode("unicode_escape"))
+    raise
+
 test_output = test.decode("utf-8")
 print( test_output)
 #should look like this:
