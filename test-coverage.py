@@ -24,7 +24,7 @@ parser = ArgumentParser()
 parser.add_argument("-w", "--write-new-ref", dest="write_new_ref", default=False,
                     help="write new reference file")
 
-parser.add_argument("-p", "--push-better-ref", dest="push_better_ref", default=True,
+parser.add_argument("-p", "--push-better-ref", dest="push_better_ref", default=False,
                     help="push new reference file if coverage got better")
 
 parser.add_argument("-g", "--go-package", dest="go_package", default="github.com/Peripli/istio-broker-proxy",
