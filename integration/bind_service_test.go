@@ -66,6 +66,8 @@ spec:
       - name: postgres-binding
         secret:
           secretName: postgres-binding
+      imagePullSecrets:
+      - name: image-pull-secret
       containers:
       - name: client
         image: {{.HUB}}/client:latest
@@ -92,6 +94,8 @@ spec:
       - name: postgres-binding
         secret:
           secretName: postgres-binding
+      imagePullSecrets:
+      - name: image-pull-secret
       containers:
       - name: client
         image: {{.HUB}}/client:latest
@@ -117,6 +121,8 @@ spec:
       - name: rabbitmq-binding
         secret:
           secretName: rabbitmq-binding
+      imagePullSecrets:
+      - name: image-pull-secret
       containers:
       - name: client
         image: {{.HUB}}/client:latest
