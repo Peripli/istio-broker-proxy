@@ -24,11 +24,11 @@ parser = ArgumentParser()
 parser.add_argument("-w", "--write-new-ref", dest="write_new_ref", default=False,
                     help="write new reference file")
 
-parser.add_argument("-p", "--push-better-ref", dest="push_better_ref", default=False,
-                    help="push new reference file if coverage got better")
+parser.add_argument("-c", "--commit-better-ref", dest="commit_better_ref", default=True,
+                    help="commit new reference file if coverage got better")
 
 parser.add_argument("-g", "--go-package", dest="go_package", default="github.com/Peripli/istio-broker-proxy",
-                    help="push new reference file if coverage got better")
+                    help="the go package to check the coverage for")
 
 args = parser.parse_args()
 go_path = os.environ['GOPATH']
@@ -96,10 +96,10 @@ if coverage_better:
         print("Coverage got better. Writing new reference.")
         write_coverage(coverage_map, filename)
                 
-        if args.push_better_ref:
+        if args.commit_better_ref:
                 os.chdir(src_path)
-                subprocess.call(["git", "commit", "-a", "-m", "Update coverage reference."])
-                subprocess.call(["git", "push", "origin", "HEAD:master"])
+                subprocess.call(["git", "add", "coverage.csv"])
+                subprocess.call(["git", "commit", "-m", "Update coverage reference.", "--author", "Concourse Build <istio-concourse@sap.com>"])
 
 if not coverage_worse and not coverage_better:
         print("Coverage stayed the same.")
