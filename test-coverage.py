@@ -99,7 +99,7 @@ if coverage_better:
         if args.commit_better_ref:
                 os.chdir(src_path)
                 subprocess.call(["git", "add", "coverage.csv"])
-                subprocess.call(["git", "commit", "-m", "Update coverage reference.", "--author", "Concourse Build <istio-concourse@sap.com>"])
+                subprocess.call(["git", "-c", "user.name=Concourse Build", "-c", "user.email=istio-concourse@sap.com", "commit", "-m", "Update coverage reference."])
 
 if not coverage_worse and not coverage_better:
         print("Coverage stayed the same.")
