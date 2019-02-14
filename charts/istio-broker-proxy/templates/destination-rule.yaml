@@ -1,0 +1,21 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  creationTimestamp: null
+  name: egressgateway-istiobroker
+spec:
+  host: istio-broker.istio.{{.Values.destination.landscape_domain}}
+  subsets:
+  - name: istiobroker
+    trafficPolicy:
+      portLevelSettings:
+      - port:
+          number: 9000
+        tls:
+          caCertificates: /etc/istio/egressgateway-certs/ca.crt
+          clientCertificate: /etc/istio/egressgateway-certs/client.crt
+          mode: MUTUAL
+          privateKey: /etc/istio/egressgateway-certs/client.key
+          sni: istio-broker.istio.{{.Values.destination.landscape_domain}}
+          subjectAltNames:
+          - istio.cf.{{.Values.destination.landscape_domain}}

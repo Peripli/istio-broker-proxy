@@ -1,0 +1,13 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  creationTimestamp: null
+  name: istiobroker-serviceentry
+spec:
+  hosts:
+  - istio-broker.istio.{{.Values.destination.landscape_domain}}
+  ports:
+  - name: tcp-port-{{.Values.destination.port}}
+    number: {{.Values.destination.port}}
+    protocol: TLS
+  resolution: DNS

@@ -1,0 +1,27 @@
+# Default values for istio-broker-proxy.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: gcr.io/sap-se-gcp-istio-dev/istio-broker
+  tag: 0.2.1
+  pullPolicy: Always
+  pullsecret: image-pull-secret
+
+config:
+  forward_url: http://istiobroker-egress.istio-system.svc.cluster.local:80
+  container_port: 8888
+  consumer_id: 
+  network_profile: urn:com.sap.istio:public
+  service_port: 9999
+
+destination:
+  landscape_domain: cf.landscape.com
+  port: 9000
+
+broker:
+  url: istiobroker.catalog.svc.cluster.local
+  user:
+  password:

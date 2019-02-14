@@ -1,0 +1,21 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  creationTimestamp: null
+  name: egress-gateway-istiobroker
+spec:
+  gateways:
+  - istio-egressgateway-istiobroker
+  hosts:
+  - istiobroker-egress.istio-system.svc.cluster.local
+  http:
+  - match:
+    - gateways:
+      - istio-egressgateway-istiobroker
+      port: 80
+    route:
+    - destination:
+        host: istio-broker.{{.Values.destination.landscape_domain}}
+        port:
+          number: {{.Values.destination.port}}
+        subset: istiobroker

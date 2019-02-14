@@ -1,0 +1,32 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "istio-broker-proxy.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "istio-broker-proxy.fullname" . }}
+        version: v1
+    spec:
+      imagePullSecrets:
+      - name: {{ .Values.image.pullsecret }}
+      containers:
+      - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        name: istiobroker
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.config.container_port }}
+        args:
+        - "--port"
+        - "{{ .Values.config.container_port }}"
+        - "--forwardUrl"
+        - "{{ .Values.config.forward_url }}"
+        - "--consumerId"
+        - "{{ .Values.config.consumer_id }}"
+        - "--serviceNamePrefix"
+        - "istio-"
+        - "--networkProfile"
+        - "{{ .Values.config.network_profile }}"
+        

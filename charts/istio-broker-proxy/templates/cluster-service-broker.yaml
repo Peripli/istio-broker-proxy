@@ -1,0 +1,7 @@
+apiVersion: servicecatalog.k8s.io/v1beta1
+kind: ClusterServiceBroker
+metadata:
+  name: istiobroker
+spec:
+  url:  http://{{ .Values.broker.user }}:{{ .Values.broker.password }}@{{ template "istio-broker-proxy.fullname" . }}.{{.Release.Namespace}}.svc.cluster.local:{{ .Values.config.service_port }}
+  
