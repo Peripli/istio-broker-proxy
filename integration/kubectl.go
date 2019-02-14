@@ -47,6 +47,15 @@ func (self kubectl) run(args ...string) []byte {
 	}
 }
 
+func (self kubectl) runTailingOutput(args ...string) {
+	log.Println("kubectl ", strings.Join(args, " "))
+	command := exec.Command("kubectl", args...)
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
+	err := command.Run()
+	self.g.Expect(err).NotTo(HaveOccurred(), "Error running kubectl")
+}
+
 func (self kubectl) CreateNamespace(name string) {
 	self.run("create", "namespace", name)
 }
@@ -79,9 +88,9 @@ func (self kubectl) Read(result interface{}, name string) {
 	self.g.Expect(err).ShouldNot(HaveOccurred())
 }
 
-func (self kubectl) Exec(podName string, args ...string) string {
+func (self kubectl) Exec(podName string, args ...string) {
 	cmd := append([]string{"exec", podName}, args...)
-	return string(self.run(cmd...))
+	self.runTailingOutput(cmd...)
 }
 
 func (self kubectl) List(result interface{}, args ...string) {
