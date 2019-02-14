@@ -16,6 +16,7 @@ config:
   consumer_id: 
   network_profile: urn:com.sap.istio:public
   service_port: 9999
+  istio_prefix: istio-
 
 destination:
   landscape_domain: cf.landscape.com

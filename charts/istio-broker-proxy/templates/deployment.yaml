@@ -26,7 +26,7 @@ spec:
         - "--consumerId"
         - "{{ .Values.config.consumer_id }}"
         - "--serviceNamePrefix"
-        - "istio-"
+        - "{{ .Values.config.istio_prefix }}"
         - "--networkProfile"
         - "{{ .Values.config.network_profile }}"
         
