@@ -14,7 +14,11 @@ spec:
       - name: {{.Values.image.pullsecret}}
       {{- end }}
       containers:
+      {{- if .Values.image.digest }}
+      - image: "{{ .Values.image.repository }}@{{ .Values.image.digest }}"
+      {{- else}}
       - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+      {{- end}}
         name: istiobroker
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:

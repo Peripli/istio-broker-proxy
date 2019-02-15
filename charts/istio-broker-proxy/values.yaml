@@ -6,7 +6,8 @@ replicaCount: 1
 
 image:
   repository: gcr.io/sap-se-gcp-istio-dev/istio-broker
-  tag: 0.2.1
+  digest:
+  tag: latest
   pullPolicy: Always
   pullsecret: image-pull-secret
 
