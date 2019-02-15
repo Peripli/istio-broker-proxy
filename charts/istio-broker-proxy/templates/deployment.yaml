@@ -8,10 +8,11 @@ spec:
     metadata:
       labels:
         app: {{ template "istio-broker-proxy.fullname" . }}
-        version: v1
     spec:
+      {{- if .Values.image.pullsecret }}
       imagePullSecrets:
-      - name: {{ .Values.image.pullsecret }}
+      - name: {{.Values.image.pullsecret}}
+      {{- end }}
       containers:
       - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         name: istiobroker
@@ -26,7 +27,7 @@ spec:
         - "--consumerId"
         - "{{ .Values.config.consumer_id }}"
         - "--serviceNamePrefix"
-        - "{{ .Values.config.istio_prefix }}"
+        - "{{ .Values.config.service_prefix }}"
         - "--networkProfile"
         - "{{ .Values.config.network_profile }}"
         

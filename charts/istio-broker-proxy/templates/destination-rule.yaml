@@ -18,4 +18,4 @@ spec:
           privateKey: /etc/istio/egressgateway-certs/client.key
           sni: istio-broker.istio.{{.Values.destination.landscape_domain}}
           subjectAltNames:
-          - istio.cf.{{.Values.destination.landscape_domain}}
+          - istio.{{.Values.destination.landscape_domain}}

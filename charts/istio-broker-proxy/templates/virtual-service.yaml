@@ -15,7 +15,7 @@ spec:
       port: 80
     route:
     - destination:
-        host: istio-broker.{{.Values.destination.landscape_domain}}
+        host: istio-broker.istio.{{.Values.destination.landscape_domain}}
         port:
           number: {{.Values.destination.port}}
         subset: istiobroker
