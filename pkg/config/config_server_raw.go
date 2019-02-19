@@ -40,7 +40,9 @@ func createRawIngressGatewayForExternalService(hostName string, portNumber uint3
 	tls := v1alpha3.Server_TLSOptions{Mode: v1alpha3.Server_TLSOptions_MUTUAL,
 		ServerCertificate: certPath + ingressCertName + ".crt",
 		PrivateKey:        certPath + ingressCertName + ".key",
-		CaCertificates:    certPath + "ca.crt",
-		SubjectAltNames:   []string{clientName}}
+		CaCertificates:    certPath + "ca.crt"}
+	if clientName != "" {
+		tls.SubjectAltNames = []string{clientName}
+	}
 	return &v1alpha3.Gateway{Servers: []*v1alpha3.Server{{Port: &port, Hosts: hosts, Tls: &tls}}}
 }

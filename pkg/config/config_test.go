@@ -56,6 +56,15 @@ func TestCompleteEntryGateway(t *testing.T) {
 	g.Expect(gatewayMetadata).To(ContainSubstring("name: myservice-gateway"))
 }
 
+func TestGatewayWithoutSAN(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	configObjects := CreateEntriesForExternalService("myservice", "10.10.10.10", 10, "myservice.landscape", "", 9000)
+
+	gatewaySpec, _ := getSpecAndMetadataFromConfig(g, configObjects, gateway)
+	g.Expect(gatewaySpec).NotTo(ContainSubstring("subjectAltNames"))
+}
+
 func TestCompleteServiceEntry(t *testing.T) {
 	g := NewGomegaWithT(t)
 
