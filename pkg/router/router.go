@@ -155,6 +155,12 @@ func createNewPath(req *http.Request) string {
 	return path
 }
 
+func registerConsumerRelevantRoutes(prefix string, mux *gin.Engine, client *osbProxy) {
+	mux.PUT(prefix+"/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardBindRequest)
+	mux.DELETE(prefix+"/v2/service_instances/:instance_id/service_bindings/:binding_id", client.deleteBinding)
+	mux.GET(prefix+"/v2/catalog", client.forwardCatalog)
+}
+
 func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig RouterConfig) *gin.Engine {
 	if routerConfig.HttpClientFactory == nil {
 		routerConfig.HttpClientFactory = httpClientFactory
@@ -174,9 +180,8 @@ func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig RouterConfig
 	if interceptor.HasAdaptCredentials() {
 		mux.POST("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
 	}
-	mux.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardBindRequest)
-	mux.DELETE("/v2/service_instances/:instance_id/service_bindings/:binding_id", client.deleteBinding)
-	mux.GET("/v2/catalog", client.forwardCatalog)
+	registerConsumerRelevantRoutes("", mux, &client)
+	registerConsumerRelevantRoutes("/v1/osb/:broker_id", mux, &client)
 	mux.NoRoute(client.forward)
 
 	return mux

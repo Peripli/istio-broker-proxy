@@ -491,6 +491,30 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
 	g.Expect(bodyString).To(ContainSubstring("consumer_id"))
 }
 
+func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumerForBrokerAPI(t *testing.T) {
+	g := NewGomegaWithT(t)
+	body := []byte(`{
+					"network_data":
+					{
+						"network_profile_id": "my-network-profile"
+					}
+					}`)
+
+	handlerStub := NewHandlerStub(http.StatusOK, body)
+	server, routerConfig := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v1/osb/2324552-34535345-34534535/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
+	response := httptest.NewRecorder()
+	router := SetupRouter(ConsumerInterceptor{ConsumerId: "your-consumer", NetworkProfile: "my-network-profile"}, *routerConfig)
+	router.ServeHTTP(response, request)
+
+	g.Expect(len(handlerStub.spy.body)).To(Equal(2))
+	bodyString := handlerStub.spy.body[0]
+	g.Expect(bodyString).To(ContainSubstring("consumer_id"))
+}
+
 func TestErrorCodeOfForwardIsReturned(t *testing.T) {
 	g := NewGomegaWithT(t)
 	handlerStub := NewHandlerStub(http.StatusServiceUnavailable, []byte(`{ "error": "xxx", "description": "yyy"}`))
@@ -568,6 +592,29 @@ func TestDeleteBinding(t *testing.T) {
 	g.Expect(handlerStub.spy.url).To(ContainSubstring("parameter=true"))
 }
 
+func TestDeleteBindingForBrokerAPI(t *testing.T) {
+	g := NewGomegaWithT(t)
+	body := []byte{'{', '}'}
+	handlerStub := NewHandlerStub(http.StatusOK, body)
+	server, routerConfig := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/v1/osb/23234234-324234234-234234/v2/service_instances/123/service_bindings/321?parameter=false", bytes.NewReader(body))
+
+	response := httptest.NewRecorder()
+	var bindId = ""
+	router := SetupRouter(&DeleteInterceptor{deleteCallback: func(innerBindId string) error {
+		bindId = innerBindId
+		return nil
+	}}, *routerConfig)
+	router.ServeHTTP(response, request)
+
+	g.Expect(bindId).To(Equal("321"))
+	g.Expect(response.Code).To(Equal(http.StatusOK))
+	g.Expect(handlerStub.spy.url).To(ContainSubstring("parameter=false"))
+}
+
 func TestDeleteBindingNotFound(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
@@ -600,6 +647,23 @@ func TestForwardGetCatalog(t *testing.T) {
 	router.ServeHTTP(response, request)
 	responseBody := response.Body.String()
 	g.Expect(responseBody).To(ContainSubstring("istio-abc"))
+}
+
+func TestForwardGetCatalogForBrokerAPI(t *testing.T) {
+	g := NewGomegaWithT(t)
+	body := []byte(`{"services": [{ "name" : "name", "plans":[{}] } ] }`)
+	handlerStub := NewHandlerStub(http.StatusOK, body)
+	server, routerConfig := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/v1/osb/23-34534534-453/v2/catalog", bytes.NewReader(make([]byte, 0)))
+
+	response := httptest.NewRecorder()
+	router := SetupRouter(&ProducerInterceptor{ServiceNamePrefix: "prefix-", PlanMetaData: "{}"}, *routerConfig)
+	router.ServeHTTP(response, request)
+	responseBody := response.Body.String()
+	g.Expect(responseBody).To(ContainSubstring("prefix-name"))
 }
 
 func TestCorrectRequestParamForDelete(t *testing.T) {
