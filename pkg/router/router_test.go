@@ -14,6 +14,20 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+func TestHealthEndpoint(t *testing.T) {
+	g := NewGomegaWithT(t)
+	router := SetupRouter(NoOpInterceptor{}, RouterConfig{})
+
+	emptyBody := bytes.NewReader([]byte(""))
+	request, _ := http.NewRequest(http.MethodGet, "https://blablub.org/health", emptyBody)
+	response := httptest.NewRecorder()
+
+	router.ServeHTTP(response, request)
+	code := response.Code
+
+	g.Expect(code).To(Equal(http.StatusOK))
+}
+
 func TestInvalidUpdateCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
 	router := SetupRouter(ProducerInterceptor{ProviderId: "x"}, RouterConfig{})

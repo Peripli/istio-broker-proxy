@@ -177,6 +177,9 @@ func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig RouterConfig
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: routerConfig.SkipVerifyTLS},
 	}
 	client := osbProxy{routerConfig.HttpClientFactory(tr), interceptor, routerConfig}
+	mux.GET("/health", func(ctx *gin.Context) {
+		ctx.Status(http.StatusOK)
+	})
 	if interceptor.HasAdaptCredentials() {
 		mux.POST("/v2/service_instances/:instance_id/service_bindings/:binding_id/adapt_credentials", client.updateCredentials)
 	}
