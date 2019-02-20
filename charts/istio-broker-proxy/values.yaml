@@ -24,6 +24,7 @@ destination:
   port: 9000
 
 broker:
+  enabled: true
   url: istiobroker.catalog.svc.cluster.local
   user:
   password:
