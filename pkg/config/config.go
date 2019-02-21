@@ -42,17 +42,17 @@ type ServiceId struct {
 	Name string
 }
 
-func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string, clientName string, ingressPort uint32) []istioModel.Config {
+func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string, clientName string, ingressPort uint32, providerSAN string) []istioModel.Config {
 	var configs []istioModel.Config
 
-	configs = append(configs, createIngressGatewayForExternalService(hostVirtualService, ingressPort, serviceName, clientName))
+	configs = append(configs, createIngressGatewayForExternalService(hostVirtualService, ingressPort, serviceName, clientName, providerSAN))
 	configs = append(configs, createIngressVirtualServiceForExternalService(hostVirtualService, portServiceEntry, serviceName))
 	configs = append(configs, createServiceEntryForExternalService(endpointServiceEntry, portServiceEntry, serviceName))
 
 	return configs
 }
 
-func CreateIstioConfigForProvider(request *model.BindRequest, response *model.BindResponse, bindingId string, systemDomain string) []istioModel.Config {
+func CreateIstioConfigForProvider(request *model.BindRequest, response *model.BindResponse, bindingId string, systemDomain string, providerSAN string) []istioModel.Config {
 	var istioConfig []istioModel.Config
 	for index, endpoint := range response.Endpoints {
 		portServiceEntry := uint32(endpoint.Port)
@@ -63,7 +63,7 @@ func CreateIstioConfigForProvider(request *model.BindRequest, response *model.Bi
 		endpointServiceEntry := endpoint.Host
 		hostVirtualService := profiles.CreateEndpointHosts(bindingId, systemDomain, index)
 		istioConfig = append(istioConfig,
-			CreateEntriesForExternalService(serviceName, endpointServiceEntry, portServiceEntry, hostVirtualService, consumerId, ingressPort)...)
+			CreateEntriesForExternalService(serviceName, endpointServiceEntry, portServiceEntry, hostVirtualService, consumerId, ingressPort, providerSAN)...)
 	}
 	return istioConfig
 }

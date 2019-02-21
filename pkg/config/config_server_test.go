@@ -23,8 +23,8 @@ spec:
     tls:
       caCertificates: /var/vcap/jobs/envoy/config/certs/ca.crt
       mode: MUTUAL
-      privateKey: /var/vcap/jobs/envoy/config/certs/cf-service.key
-      serverCertificate: /var/vcap/jobs/envoy/config/certs/cf-service.crt
+      privateKey: /etc/istio/san/tls.key
+      serverCertificate: /etc/istio/san/tls.crt
       subjectAltNames:
       - client.my.client.domain.io
 `
@@ -71,7 +71,8 @@ func TestServerGatewayFromGo(t *testing.T) {
 	gatewaySpec := createIngressGatewayForExternalService("postgres.istio.my.arbitrary.domain.io",
 		9000,
 		"postgres-server",
-		"client.my.client.domain.io")
+		"client.my.client.domain.io",
+		"san")
 
 	text, err := enrichAndtoText(gatewaySpec)
 	g.Expect(err).NotTo(HaveOccurred())

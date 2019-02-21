@@ -26,7 +26,7 @@ type ProducerInterceptor struct {
 
 func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) error {
 	return c.writeIstioConfigFiles("istio-broker",
-		config.CreateEntriesForExternalService("istio-broker", string(c.IpAddress), uint32(port), "istio-broker."+c.SystemDomain, "", 9000))
+		config.CreateEntriesForExternalService("istio-broker", string(c.IpAddress), uint32(port), "istio-broker."+c.SystemDomain, "", 9000, c.ProviderId))
 }
 
 func (c ProducerInterceptor) PreBind(request model.BindRequest) (*model.BindRequest, error) {
@@ -68,7 +68,7 @@ func (c ProducerInterceptor) PostDelete(bindId string) error {
 }
 
 func (c ProducerInterceptor) writeIstioFilesForProvider(bindingId string, request *model.BindRequest, response *model.BindResponse) error {
-	return c.writeIstioConfigFiles(bindingId, config.CreateIstioConfigForProvider(request, response, bindingId, c.SystemDomain))
+	return c.writeIstioConfigFiles(bindingId, config.CreateIstioConfigForProvider(request, response, bindingId, c.SystemDomain, c.ProviderId))
 }
 
 func (c ProducerInterceptor) writeIstioConfigFiles(fileName string, configuration []istioModel.Config) error {

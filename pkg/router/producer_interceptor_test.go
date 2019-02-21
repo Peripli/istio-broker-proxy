@@ -44,7 +44,7 @@ func TestYmlFileIsCorrectlyWritten(t *testing.T) {
 	// --systemdomain istio.my.arbitrary.domain.io --ProviderId cf-service.istio.my.arbitrary.domain.io
 	// --LoadBalancerPort 9000 --istioDirectory /var/vcap/store/istio-config --ipAddress 10.0.81.0
 	interceptor := ProducerInterceptor{
-		ProviderId:       "istio.my.arbitrary.domain.io",
+		ProviderId:       "prefix.istio.my.arbitrary.domain.io",
 		SystemDomain:     "istio.my.arbitrary.domain.io",
 		LoadBalancerPort: 9000,
 		IpAddress:        "10.0.81.0",
@@ -59,6 +59,7 @@ func TestYmlFileIsCorrectlyWritten(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(contentAsString).To(ContainSubstring("8000"))
 	g.Expect(contentAsString).To(ContainSubstring("istio-broker.istio.my.arbitrary.domain.io"))
+	g.Expect(contentAsString).To(ContainSubstring("/etc/istio/prefix.istio.my.arbitrary.domain.io/tls.crt"))
 	g.Expect(contentAsString).To(MatchRegexp("number: 9000"))
 
 }
