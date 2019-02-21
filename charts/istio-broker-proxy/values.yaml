@@ -28,3 +28,6 @@ broker:
   url: istiobroker.catalog.svc.cluster.local
   user:
   password:
+
+istio-config:
+  enabled: false
