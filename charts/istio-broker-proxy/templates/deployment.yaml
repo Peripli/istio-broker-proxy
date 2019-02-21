@@ -15,9 +15,9 @@ spec:
       {{- end }}
       containers:
       {{- if .Values.image.digest }}
-      - image: "{{ .Values.image.repository }}@{{ .Values.image.digest }}"
+      - image: "{{ .Values.image.repository }}/istio-broker@{{ .Values.image.digest }}"
       {{- else}}
-      - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+      - image: "{{ .Values.image.repository }}/istio-broker:{{ .Values.image.tag }}"
       {{- end}}
         name: istiobroker
         imagePullPolicy: {{ .Values.image.pullPolicy }}

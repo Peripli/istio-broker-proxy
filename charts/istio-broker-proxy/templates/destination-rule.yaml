@@ -4,7 +4,7 @@ metadata:
   creationTimestamp: null
   name: egressgateway-istiobroker
 spec:
-  host: istio-broker.istio.{{.Values.destination.landscape_domain}}
+  host: istio-broker.istio.{{.Values.global.destination.landscape_domain}}
   subsets:
   - name: istiobroker
     trafficPolicy:
@@ -16,6 +16,6 @@ spec:
           clientCertificate: /etc/istio/egressgateway-certs/client.crt
           mode: MUTUAL
           privateKey: /etc/istio/egressgateway-certs/client.key
-          sni: istio-broker.istio.{{.Values.destination.landscape_domain}}
+          sni: istio-broker.istio.{{.Values.global.destination.landscape_domain}}
           subjectAltNames:
-          - istio.{{.Values.destination.landscape_domain}}
+          - istio.{{.Values.global.destination.landscape_domain}}

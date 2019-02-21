@@ -5,9 +5,9 @@ metadata:
   name: istiobroker-serviceentry
 spec:
   hosts:
-  - istio-broker.istio.{{.Values.destination.landscape_domain}}
+  - istio-broker.istio.{{.Values.global.destination.landscape_domain}}
   ports:
-  - name: tcp-port-{{.Values.destination.port}}
-    number: {{.Values.destination.port}}
+  - name: tcp-port-{{.Values.galobal.destination.port}}
+    number: {{.Values.global.destination.port}}
     protocol: TLS
   resolution: DNS

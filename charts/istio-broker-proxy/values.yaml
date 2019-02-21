@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: gcr.io/sap-se-gcp-istio-dev/istio-broker
+  repository:
   digest:
   tag: latest
   pullPolicy: Always
@@ -19,9 +19,7 @@ config:
   service_port: 9999
   service_prefix: istio-
 
-destination:
-  landscape_domain: cf.landscape.com
-  port: 9000
+
 
 broker:
   enabled: true
@@ -31,3 +29,9 @@ broker:
 
 istio-config:
   enabled: false
+  pinger_port: 9000
+
+global:
+  destination:
+    landscape_domain: cf.landscape.com
+    port: 9000
