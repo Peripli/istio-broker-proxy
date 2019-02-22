@@ -22,13 +22,13 @@ pinger:
 
 standalone:
   enabled: false
-  service_port: 9999
   broker:
     url: istiobroker.catalog.svc.cluster.local
     user:
     password:
 
 global:
+  service_port: 9999
   container_port: 8888
   destination:
     landscape_domain: cf.landscape.com

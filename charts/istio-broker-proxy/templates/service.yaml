@@ -6,7 +6,7 @@ metadata:
     app: {{ template "istio-broker-proxy.fullname" . }}
 spec:
   ports:
-  - port: {{ .Values.service_port }}
+  - port: {{ .Values.global.service_port }}
     targetPort: {{ .Values.global.container_port }}
     name: http
   selector:
