@@ -526,20 +526,20 @@ func serviceExists(services v1.ServiceList, bindId string) bool {
 func waitForServiceBinding(kubectl *kubectl, g *GomegaWithT, namePrefix string) v1beta1.ServiceBinding {
 	var serviceBinding v1beta1.ServiceBinding
 
-	waitForCompletion(g, func() bool {
+	waitForCompletion(g, func() (bool, string) {
 		kubectl.Read(&serviceBinding, namePrefix+"-binding")
 		statusLen := len(serviceBinding.Status.Conditions)
 		if statusLen == 0 {
-			return false
+			return false, ""
 		}
-
 		condition := serviceBinding.Status.Conditions[statusLen-1]
+		reason := string(condition.Reason)
 		if condition.Status != v1beta1.ConditionTrue {
-			return false
+			return false, reason
 		}
 
-		g.Expect(condition.Type).To(Equal(v1beta1.ServiceBindingConditionReady), fmt.Sprintf("Is not ready: %s", string(condition.Reason)))
-		return true
+		g.Expect(condition.Type).To(Equal(v1beta1.ServiceBindingConditionReady), string(condition.Reason))
+		return true, reason
 	}, "servicebinding")
 
 	return serviceBinding
@@ -548,37 +548,41 @@ func waitForServiceBinding(kubectl *kubectl, g *GomegaWithT, namePrefix string) 
 func waitForServiceInstance(kubectl *kubectl, g *GomegaWithT, namePrefix string) v1beta1.ServiceInstance {
 	var serviceInstance v1beta1.ServiceInstance
 
-	waitForCompletion(g, func() bool {
+	waitForCompletion(g, func() (bool, string) {
 		kubectl.Read(&serviceInstance, namePrefix+"-instance")
 		statusLen := len(serviceInstance.Status.Conditions)
 		if statusLen == 0 {
-			return false
+			return false, ""
 		}
 
 		condition := serviceInstance.Status.Conditions[statusLen-1]
-
+		reason := string(condition.Reason)
+		log.Printf("reason: %s", reason)
 		if condition.Status != v1beta1.ConditionTrue {
-			return false
+			return false, reason
 		}
 
 		g.Expect(condition.Type).To(Equal(v1beta1.ServiceInstanceConditionReady))
-		return true
+		return true, reason
 	}, "serviceinstance")
-
 	return serviceInstance
 }
 
-func waitForCompletion(g *GomegaWithT, test func() bool, name string) {
+func waitForCompletion(g *GomegaWithT, test func() (bool, string), name string) {
 	valid := false
-	const MAX_WAITING_TIME = time.Duration(10) * time.Minute
-	const ITERATION_WAITING_TIME = time.Duration(2) * time.Second
+	const MAX_WAITING_TIME = time.Duration(30) * time.Second
+	const ITERATION_WAITING_TIME = time.Duration(5) * time.Second
 	expiry := time.Now().Add(MAX_WAITING_TIME)
 	for !valid {
-		valid = test()
+		var lastReason string
+		valid, lastReason = test()
 		if !valid {
-			log.Println("Not ready yet - waiting...")
+			log.Printf("Not ready yet - waiting...")
+			if lastReason != "" {
+				log.Printf("Reason: %s", lastReason)
+			}
 			time.Sleep(ITERATION_WAITING_TIME)
-			g.Expect(time.Now().Before(expiry)).To(BeTrue(), fmt.Sprintf("Timeout expired while waiting for: %s", name))
+			g.Expect(time.Now().Before(expiry)).To(BeTrue(), fmt.Sprintf("Timeout expired while waiting for: %s.\n Reason: %s", name, lastReason))
 		}
 	}
 }
