@@ -12,26 +12,25 @@ image:
   pullsecret: image-pull-secret
 
 config:
-  forward_url: http://istiobroker-egress.istio-system.svc.cluster.local:80
-  container_port: 8888
-  consumer_id: 
-  network_profile: urn:com.sap.istio:public
-  service_port: 9999
+  forward_url:
+  consumer_id:
+  network_profile:
   service_prefix: istio-
 
+pinger:
+  port: 9000
 
-
-broker:
-  enabled: true
-  url: istiobroker.catalog.svc.cluster.local
-  user:
-  password:
-
-istio-config:
+standalone:
   enabled: false
-  pinger_port: 9000
+  service_port: 9999
+  broker:
+    url: istiobroker.catalog.svc.cluster.local
+    user:
+    password:
 
 global:
+  container_port: 8888
   destination:
     landscape_domain: cf.landscape.com
     port: 9000
+
