@@ -341,6 +341,7 @@ func runClientPod(kubectl *kubectl, config string, appName string) string {
 	config = replaceHub(kubectl.g, config)
 	clientConfigBody := []byte(config)
 	kubectl.Apply(clientConfigBody)
+	kubectl.RolloutStatus(appName)
 	podName := kubectl.GetPod("-l", "app="+appName, "--field-selector=status.phase=Running")
 	return podName
 }

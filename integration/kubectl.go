@@ -121,3 +121,7 @@ func (self kubectl) GetPodIfExists(args ...string) string {
 	podName := pods.Items[0].Name
 	return podName
 }
+
+func (self kubectl) RolloutStatus(appName string) {
+	self.runTailingOutput("rollout", "status", "deployment.v1.apps/"+appName)
+}
