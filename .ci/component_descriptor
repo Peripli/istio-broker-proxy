@@ -1,0 +1,9 @@
+#!/bin/bash -eu
+
+SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
+VERSION=$(awk '/version:/ { print($2); }' "$SCRIPTDIR/../charts/istio-broker-proxy/Chart.yaml" )
+NAME=istio-broker-proxy
+DEPENDENCY=" --container-image-dependencies '{ \"name\": \"peripli/${NAME}\", \"version\": \"${VERSION}\", \"image_reference\": \"peripli/${NAME}:${VERSION}\" }' "
+eval ${ADD_DEPENDENCIES_CMD}  ${DEPENDENCY}
+cp "${BASE_DEFINITION_PATH}" "${COMPONENT_DESCRIPTOR_PATH}"
