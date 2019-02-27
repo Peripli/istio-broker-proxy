@@ -1,0 +1,27 @@
+config:
+  platform: linux
+  image_resource:
+    type: docker-image
+    source:
+      repository: gcr.io/peripli/ci-image
+
+  inputs:
+    - name: istio-broker-proxy
+      path: go/src/github.com/Peripli/istio-broker-proxy
+    - name: istio-deployments
+    - name: release-version
+  run:
+    path: /bin/sh
+    args:
+      - -cex
+      - |
+        gcloud auth activate-service-account gcr-admin@sap-se-gcp-istio-dev.iam.gserviceaccount.com --key-file=istio-deployments/gcr-setup/gcr-admin-credentials.json
+        gcloud config set project peripli
+        # gsutil mb gs://peripli-helm-repo
+        VERSION=$(cat release-version/version)$VERSION_POSTFIX
+        cd go/src/github.com/Peripli/istio-broker-proxy/charts
+        helm init --client-only
+        helm plugin install https://github.com/viglesiasce/helm-gcs.git --version v0.2.0
+        helm package istio-broker-proxy --version $VERSION
+        # helm gcs init gs://peripli-helm-repo
+        helm gcs push "istio-broker-proxy-$VERSION.tgz" gs://peripli-helm-repo
