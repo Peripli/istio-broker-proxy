@@ -15,9 +15,9 @@ spec:
       {{- end }}
       containers:
       {{- if .Values.image.digest }}
-      - image: "{{ .Values.image.repository }}/istio-broker@{{ .Values.image.digest }}"
+      - image: "{{ required "A valid image.repository entry required!" .Values.image.repository }}/istio-broker@{{ .Values.image.digest }}"
       {{- else}}
-      - image: "{{ .Values.image.repository }}/istio-broker:{{ .Values.image.tag }}"
+      - image: "{{ required "A valid image.repository entry required!" .Values.image.repository }}/istio-broker:{{ .Values.image.tag }}"
       {{- end}}
         name: istiobroker
         imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -27,11 +27,11 @@ spec:
         - "--port"
         - "{{ .Values.global.container_port }}"
         - "--forwardUrl"
-        - "{{ .Values.config.forward_url }}"
+        - "{{ required "A valid config.forward_url entry required!" .Values.config.forward_url }}"
         - "--consumerId"
-        - "{{ .Values.config.consumer_id }}"
+        - "{{ required "A valid config.consumer_id entry required!" .Values.config.consumer_id }}"
         - "--serviceNamePrefix"
         - "{{ .Values.config.service_prefix }}"
         - "--networkProfile"
-        - "{{ .Values.config.network_profile }}"
+        - "{{ required "A valid config.network_profile entry required!" .Values.config.network_profile }}"
         

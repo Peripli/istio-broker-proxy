@@ -3,4 +3,4 @@ kind: ClusterServiceBroker
 metadata:
   name: istiobroker
 spec:
-  url:  http://{{ .Values.broker.user }}:{{ .Values.broker.password }}@{{ template "istio-broker-proxy.fullname" . }}.{{.Release.Namespace}}.svc.cluster.local:{{ .Values.global.service_port }}
+  url:  http://{{ required "A valid standalone.broker.user entry required!" .Values.broker.user }}:{{ required "A valid standalone.broker.password entry required!" .Values.broker.password }}@{{ template "istio-broker-proxy.fullname" . }}.{{.Release.Namespace}}.svc.cluster.local:{{ .Values.global.service_port }}
