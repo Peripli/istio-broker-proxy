@@ -351,6 +351,7 @@ func replaceHub(g *GomegaWithT, config string) string {
 	g.Expect(err).NotTo(HaveOccurred())
 	//A docker HUB is required to run these tests
 	hub := os.Getenv("HUB")
+	fmt.Printf("Using HUB=%s", hub)
 	g.Expect(hub).NotTo(BeEmpty())
 	writer := &bytes.Buffer{}
 	tmpl.Execute(writer, map[string]string{"HUB": hub})
@@ -571,8 +572,6 @@ func waitForServiceInstance(kubectl *kubectl, g *GomegaWithT, namePrefix string)
 
 func waitForCompletion(g *GomegaWithT, test func() (bool, string), name string) {
 	valid := false
-	const MAX_WAITING_TIME = time.Duration(30) * time.Second
-	const ITERATION_WAITING_TIME = time.Duration(5) * time.Second
 	expiry := time.Now().Add(MAX_WAITING_TIME)
 	for !valid {
 		var lastReason string

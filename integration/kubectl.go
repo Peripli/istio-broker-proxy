@@ -14,6 +14,9 @@ import (
 	"time"
 )
 
+const MAX_WAITING_TIME = time.Duration(180) * time.Second // delete namespace might take long
+const ITERATION_WAITING_TIME = time.Duration(5) * time.Second
+
 func NewKubeCtl(g *GomegaWithT) *kubectl {
 	kubeconfig := os.Getenv("KUBECONFIG")
 	g.Expect(kubeconfig).NotTo(BeEmpty(), "KUBECONFIG not set")
@@ -26,24 +29,20 @@ type kubectl struct {
 }
 
 func (self kubectl) run(args ...string) []byte {
-	expiry := time.Now().Add(time.Duration(300) * time.Second)
+	expiry := time.Now().Add(MAX_WAITING_TIME)
 	for {
+		self.g.Expect(time.Now().Before(expiry)).To(BeTrue(),
+			fmt.Sprintf("Timeout expired."))
+
 		log.Println("kubectl ", strings.Join(args, " "))
 		out, err := exec.Command("kubectl", args...).CombinedOutput()
 		if err == nil {
 			return out
 		}
 
-		self.g.Expect(time.Now().Before(expiry)).To(BeTrue(),
-			fmt.Sprintf("Timeout expired: %s", string(out)))
+		log.Printf("retry because of error: %s(%s) ", string(out), err.Error())
 
-		if strings.Contains(string(out), "ServiceUnavailable") {
-			log.Println("ServiceUnavailable: retry... ")
-			time.Sleep(10 * time.Second)
-		} else {
-			self.g.Expect(err).NotTo(HaveOccurred(),
-				fmt.Sprintf("Error running kubectl: %s", string(out)))
-		}
+		time.Sleep(ITERATION_WAITING_TIME)
 	}
 }
 
@@ -107,7 +106,8 @@ func (self kubectl) List(result interface{}, args ...string) {
 func (self kubectl) GetPod(args ...string) string {
 	var pods v1.PodList
 	self.List(&pods, args...)
-	self.g.Expect(pods.Items).To(HaveLen(1), "Pod not found")
+	length := len(pods.Items)
+	self.g.Expect(length).Should(BeNumerically(">=", 1), "Pod not found")
 	podName := pods.Items[0].Name
 	return podName
 }
