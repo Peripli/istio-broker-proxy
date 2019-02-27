@@ -25,3 +25,6 @@ run:
       helm package istio-broker-proxy --version $VERSION
       # helm gcs init gs://peripli-helm-repo
       helm gcs push "istio-broker-proxy-$VERSION.tgz" gs://peripli-helm-repo
+      gsutil -qm cp gs://peripli-helm-repo/index.yaml index.yaml
+      sed 's/gs:\/\/peripli-helm-repo\///' index.yaml > index.yaml.new
+      gsutil -qm cp index.yaml.new gs://peripli-helm-repo/index.yaml
