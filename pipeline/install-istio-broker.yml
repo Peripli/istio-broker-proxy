@@ -1,0 +1,53 @@
+
+platform: linux
+image_resource:
+  type: docker-image
+  source:
+    repository: gcr.io/peripli/ci-image
+inputs:
+  - name: istio-broker-docker-image
+  - name: istio-deployments
+  - name: release-version
+run:
+  path: /bin/sh
+  args:
+    - -cex
+    - |
+      # ***** DEV *****
+      export KUBECONFIG=`pwd`/istio-deployments/gardener/canary/dev.kubeconfig
+      export DIGEST=`cat istio-broker-docker-image/digest`
+      VERSION=$(cat release-version/version)${VERSION_POSTFIX:-}
+
+      helm del --purge istio-broker-proxy
+
+      helm repo add peripli https://www.googleapis.com/storage/v1/b/peripli-helm-repo/o?alt=media
+
+      helm install --name istio-broker-proxy --namespace catalog \
+       --set image.repository=gcr.io/sap-se-gcp-istio-dev \
+       --set image.digest=$DIGEST \
+       --set config.consumer_id=client.istio.cf.dev01.aws.istio.sapcloud.io \
+       --set config.network_profile=urn:com.sap.istio:public \
+       --set config.forward_url=http://istiobroker-egress.istio-system.svc.cluster.local:80 \
+       --set global.destination.landscape_domain=cf.dev01.aws.istio.sapcloud.io  \
+       --set standalone.enabled=true \
+       --set standalone.broker.user=broker \
+       --set standalone.broker.password=VoJniQuzmenuhsowelbahenhukejd755 \
+       --version $VERSION \
+         peripli/istio-broker-proxy
+
+      kubectl -n catalog rollout status deployment istio-broker-proxy
+      # *** Simple example broker ***
+      EXAMPLE_DEPLOYMENT=/tmp/example-broker-deploy.yaml
+      cat > $EXAMPLE_DEPLOYMENT <<EOF
+      ---
+      apiVersion: servicecatalog.k8s.io/v1beta1
+      kind: ClusterServiceBroker
+      metadata:
+        name: examplebroker
+        namespace: catalog
+      spec:
+        url:  https://alex:bigsecret@cf-service-broker.cfapps.dev01.aws.istio.sapcloud.io
+      EOF
+      kubectl apply -f $EXAMPLE_DEPLOYMENT
+      kubectl get clusterservicebroker -n catalog
+      kubectl get pods -n catalog
