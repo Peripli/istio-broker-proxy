@@ -19,7 +19,7 @@ run:
       VERSION=$(cat release-version/version)${VERSION_POSTFIX:-}
 
       helm init --client-only
-      helm del --purge istio-broker-proxy
+      helm del --purge istio-broker-proxy || echo "istio-broker-proxy not installed"
 
       helm repo add peripli https://www.googleapis.com/storage/v1/b/peripli-helm-repo/o?alt=media
 
