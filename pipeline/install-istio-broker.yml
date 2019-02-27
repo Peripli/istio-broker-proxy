@@ -26,13 +26,13 @@ run:
       helm install --name istio-broker-proxy --namespace catalog \
        --set image.repository=gcr.io/sap-se-gcp-istio-dev \
        --set image.digest=$DIGEST \
-       --set config.consumer_id=client.istio.cf.dev01.aws.istio.sapcloud.io \
-       --set config.network_profile=urn:com.sap.istio:public \
-       --set config.forward_url=http://istiobroker-egress.istio-system.svc.cluster.local:80 \
-       --set global.destination.landscape_domain=cf.dev01.aws.istio.sapcloud.io  \
+       --set config.consumer_id=$CONSUMER_ID \
+       --set config.network_profile=$NETWORK_PROFILE \
+       --set config.forward_url=$FORWARD_URL \
+       --set global.destination.landscape_domain=$LANDSCAPE_DOMAIN  \
        --set standalone.enabled=true \
-       --set standalone.broker.user=broker \
-       --set standalone.broker.password=VoJniQuzmenuhsowelbahenhukejd755 \
+       --set standalone.broker.user=$BROKER_USER \
+       --set standalone.broker.password=BROKER_PASSWORD \
        --version $VERSION \
          peripli/istio-broker-proxy
 
@@ -54,3 +54,9 @@ run:
       kubectl get pods -n catalog
 params:
   VERSION_POSTFIX: ""
+  CONSUMER_ID: ""
+  NETWORK_PROFILE: ""
+  FORWARD_URL: ""
+  LANDSCAPE_DOMAIN: ""
+  BROKER_USER: ""
+  BROKER_PASSWORD: ""
