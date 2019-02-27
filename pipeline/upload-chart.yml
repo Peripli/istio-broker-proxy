@@ -28,3 +28,5 @@ run:
       gsutil -qm cp gs://peripli-helm-repo/index.yaml index.yaml
       sed 's/gs:\/\/peripli-helm-repo\///' index.yaml > index.yaml.new
       gsutil -qm cp index.yaml.new gs://peripli-helm-repo/index.yaml
+params:
+  VERSION_POSTFIX: ""
