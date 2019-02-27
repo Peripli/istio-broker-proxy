@@ -32,7 +32,7 @@ run:
        --set global.destination.landscape_domain=$LANDSCAPE_DOMAIN  \
        --set standalone.enabled=true \
        --set standalone.broker.user=$BROKER_USER \
-       --set standalone.broker.password=BROKER_PASSWORD \
+       --set standalone.broker.password=$BROKER_PASSWORD \
        --version $VERSION \
          peripli/istio-broker-proxy
 
