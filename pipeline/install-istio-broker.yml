@@ -14,7 +14,11 @@ run:
     - -cex
     - |
       # ***** DEV *****
-      export KUBECONFIG=`pwd`/istio-deployments/gardener/canary/dev.kubeconfig
+      if [[ "$STANDALONE" == true ]]; then
+        export KUBECONFIG=`pwd`/istio-deployments/gardener/canary/dev.kubeconfig
+      else
+        export KUBECONFIG=`pwd`/istio-deployments/eps/canary/dev.kubeconfig
+      fi
       export DIGEST=`cat istio-broker-docker-image/digest`
       VERSION=$(cat release-version/version)${VERSION_POSTFIX:-}
 
@@ -38,7 +42,7 @@ run:
        --wait \
          peripli/istio-broker-proxy
 
-      kubectl -n catalog rollout status deployment istio-broker-proxy
+      kubectl -n $NAMESPACE rollout status deployment istio-broker-proxy
       # *** Simple example broker ***
       EXAMPLE_DEPLOYMENT=/tmp/example-broker-deploy.yaml
       cat > $EXAMPLE_DEPLOYMENT <<EOF
@@ -47,13 +51,13 @@ run:
       kind: ClusterServiceBroker
       metadata:
         name: examplebroker
-        namespace: catalog
+        namespace: $NAMESPACE
       spec:
         url:  https://alex:bigsecret@cf-service-broker.cfapps.dev01.aws.istio.sapcloud.io
       EOF
       kubectl apply -f $EXAMPLE_DEPLOYMENT
-      kubectl get clusterservicebroker -n catalog
-      kubectl get pods -n catalog
+      kubectl get clusterservicebroker -n $NAMESPACE
+      kubectl get pods -n $NAMESPACE
 params:
   VERSION_POSTFIX: ""
   CONSUMER_ID: ""
