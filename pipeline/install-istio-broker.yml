@@ -20,6 +20,7 @@ run:
 
       helm init --client-only
       helm del --purge istio-broker-proxy || echo "istio-broker-proxy not installed"
+      kubectl delete ClusterServiceBroker istiobroker --ignore-not-found=true #waits for deletion
 
       helm repo add peripli https://www.googleapis.com/storage/v1/b/peripli-helm-repo/o?alt=media
 
@@ -34,6 +35,7 @@ run:
        --set standalone.broker.user=$BROKER_USER \
        --set standalone.broker.password=$BROKER_PASSWORD \
        --version $VERSION \
+       --wait \
          peripli/istio-broker-proxy
 
       kubectl -n catalog rollout status deployment istio-broker-proxy
