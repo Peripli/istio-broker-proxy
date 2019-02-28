@@ -25,7 +25,7 @@ run:
       helm repo add peripli https://www.googleapis.com/storage/v1/b/peripli-helm-repo/o?alt=media
 
       helm install --name istio-broker-proxy --namespace $NAMESPACE \
-       --set image.repository=gcr.io/sap-se-gcp-istio-dev \
+       --set image.repository=gcr.io/peripli \
        --set image.digest=$DIGEST \
        --set config.consumer_id=$CONSUMER_ID \
        --set config.network_profile=$NETWORK_PROFILE \
