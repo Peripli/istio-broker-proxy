@@ -23,6 +23,15 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - containerPort: {{ .Values.global.container_port }}
+          name: http-port
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http-port
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http-port
         args:
         - "--port"
         - "{{ .Values.global.container_port }}"
