@@ -17,7 +17,7 @@ run:
       if [[ "$STANDALONE" == true ]]; then
         export KUBECONFIG=`pwd`/istio-deployments/gardener/canary/dev.kubeconfig
       else
-        export KUBECONFIG=`pwd`/istio-deployments/eps/canary/dev.kubeconfig
+        export KUBECONFIG=`pwd`/istio-deployments/eps/canary/dev-chaining.kubeconfig
       fi
       export DIGEST=`cat istio-broker-docker-image/digest`
       VERSION=$(cat release-version/version)${VERSION_POSTFIX:-}
