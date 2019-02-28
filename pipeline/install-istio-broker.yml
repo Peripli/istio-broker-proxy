@@ -24,14 +24,14 @@ run:
 
       helm repo add peripli https://www.googleapis.com/storage/v1/b/peripli-helm-repo/o?alt=media
 
-      helm install --name istio-broker-proxy --namespace catalog \
+      helm install --name istio-broker-proxy --namespace $NAMESPACE \
        --set image.repository=gcr.io/sap-se-gcp-istio-dev \
        --set image.digest=$DIGEST \
        --set config.consumer_id=$CONSUMER_ID \
        --set config.network_profile=$NETWORK_PROFILE \
        --set config.forward_url=$FORWARD_URL \
        --set global.destination.landscape_domain=$LANDSCAPE_DOMAIN  \
-       --set standalone.enabled=true \
+       --set standalone.enabled=$STANDALONE \
        --set standalone.broker.user=$BROKER_USER \
        --set standalone.broker.password=$BROKER_PASSWORD \
        --version $VERSION \
@@ -62,3 +62,5 @@ params:
   LANDSCAPE_DOMAIN: ""
   BROKER_USER: ""
   BROKER_PASSWORD: ""
+  NAMESPACE: "catalog"
+  STANDALONE: true
