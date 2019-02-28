@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository:
+  repository: gcr.io/peripli
   digest:
   tag: latest
   pullPolicy: Always
