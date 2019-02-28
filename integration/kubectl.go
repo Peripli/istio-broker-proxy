@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const MAX_WAITING_TIME = time.Duration(180) * time.Second // delete namespace might take long
+const MAX_WAITING_TIME = time.Duration(3) * time.Minute // delete namespace might take long
 const ITERATION_WAITING_TIME = time.Duration(5) * time.Second
 
 func NewKubeCtl(g *GomegaWithT) *kubectl {
@@ -29,6 +29,7 @@ type kubectl struct {
 }
 
 func (self kubectl) run(args ...string) []byte {
+	start := time.Now()
 	expiry := time.Now().Add(MAX_WAITING_TIME)
 	for {
 		self.g.Expect(time.Now().Before(expiry)).To(BeTrue(),
@@ -38,6 +39,10 @@ func (self kubectl) run(args ...string) []byte {
 		out, err := exec.Command("kubectl", args...).CombinedOutput()
 		if err == nil {
 			return out
+		}
+
+		if strings.Contains(err.Error(), "ServiceUnavailable") {
+			expiry = start.Add(time.Duration(15) * time.Minute)
 		}
 
 		log.Printf("retry because of error: %s(%s) ", string(out), err.Error())
