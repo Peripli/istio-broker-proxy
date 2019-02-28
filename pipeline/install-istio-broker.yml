@@ -13,7 +13,7 @@ run:
     - -cex
     - |
       # ***** DEV *****
-      if [ "$STANDALONE" == true ]; then
+      if [ "$STANDALONE" = true ]; then
         export KUBECONFIG=`pwd`/istio-deployments/gardener/canary/dev.kubeconfig
       else
         export KUBECONFIG=`pwd`/istio-deployments/eps/canary/dev-chaining.kubeconfig
