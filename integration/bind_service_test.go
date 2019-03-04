@@ -450,7 +450,7 @@ while True:
   except (pika.exceptions.IncompatibleProtocolError, IOError, pika.exceptions.ConnectionClosed), e:
     print "Try again"
     time.sleep(10)
-print "Connection to rqabbitmq was successful"
+print "Connection to rabbitmq was successful"
 `
 	basename := "test.py"
 	kubeCreateFile(kubectl, g, basename, script, podName)
@@ -581,6 +581,7 @@ func waitForCompletion(g *GomegaWithT, test func() (bool, string), name string) 
 			if lastReason != "" {
 				log.Printf("Reason: %s", lastReason)
 			}
+			g.Expect(lastReason).NotTo(ContainSubstring("Failed"))
 			time.Sleep(ITERATION_WAITING_TIME)
 			g.Expect(time.Now().Before(expiry)).To(BeTrue(), fmt.Sprintf("Timeout expired while waiting for: %s.\n Reason: %s", name, lastReason))
 		}
