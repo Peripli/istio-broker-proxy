@@ -9,6 +9,15 @@ spec:
       labels:
         app: {{ template "istio-broker-proxy.fullname" . }}
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: {{ template "istio-broker-proxy.fullname" . }}
+              topologyKey: kubernetes.io/hostname
       {{- if .Values.image.pullsecret }}
       imagePullSecrets:
       - name: {{.Values.image.pullsecret}}
