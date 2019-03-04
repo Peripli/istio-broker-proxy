@@ -7,8 +7,8 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 2
+      maxUnavailable: {{ .Values.maxUnavailable }}
+      maxSurge: {{ .Values.maxSurge }}
   template:
     metadata:
       labels:
