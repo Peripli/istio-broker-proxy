@@ -59,7 +59,7 @@ func TestYmlFileIsCorrectlyWritten(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(contentAsString).To(ContainSubstring("8000"))
 	g.Expect(contentAsString).To(ContainSubstring("istio-broker.istio.my.arbitrary.domain.io"))
-	g.Expect(contentAsString).To(ContainSubstring("/var/vcap/jobs/envoy-certificates/config/certs/cf-service.crt"))
+	g.Expect(contentAsString).To(ContainSubstring("/etc/istio/certs/cf-service.crt"))
 	g.Expect(contentAsString).To(MatchRegexp("number: 9000"))
 
 }

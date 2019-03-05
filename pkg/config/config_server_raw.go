@@ -36,7 +36,7 @@ func createRawIngressVirtualServiceForExternalService(hostName string, port uint
 func createRawIngressGatewayForExternalService(hostName string, portNumber uint32, clientName string, san string) *v1alpha3.Gateway {
 	port := v1alpha3.Port{Number: portNumber, Name: "tls", Protocol: "TLS"}
 	hosts := []string{hostName}
-	certPath := "/var/vcap/jobs/envoy-certificates/config/certs/"
+	certPath := "/etc/istio/certs/"
 	tls := v1alpha3.Server_TLSOptions{Mode: v1alpha3.Server_TLSOptions_MUTUAL,
 		ServerCertificate: certPath + ingressCertName + ".crt",
 		PrivateKey:        certPath + ingressCertName + ".key",

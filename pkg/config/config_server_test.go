@@ -21,10 +21,10 @@ spec:
       number: 9000
       protocol: TLS
     tls:
-      caCertificates: /var/vcap/jobs/envoy-certificates/config/certs/ca.crt
+      caCertificates: /etc/istio/certs/ca.crt
       mode: MUTUAL
-      privateKey: /var/vcap/jobs/envoy-certificates/config/certs/cf-service.key
-      serverCertificate: /var/vcap/jobs/envoy-certificates/config/certs/cf-service.crt
+      privateKey: /etc/istio/certs/cf-service.key
+      serverCertificate: /etc/istio/certs/cf-service.crt
       subjectAltNames:
       - client.my.client.domain.io
 `

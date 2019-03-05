@@ -376,7 +376,7 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 	g.Expect(contentAsString).To(ContainSubstring("147"))
 	g.Expect(contentAsString).To(MatchRegexp("number: 9000"))
 	g.Expect(contentAsString).To(MatchRegexp("0.456.services.cf.dev99.sc6.my.arbitrary.domain.io"))
-	g.Expect(contentAsString).To(MatchRegexp("/var/vcap/jobs/envoy-certificates/config/certs/cf-service.crt"))
+	g.Expect(contentAsString).To(MatchRegexp("/etc/istio/certs/cf-service.crt"))
 }
 
 func TestIstioConfigFilesAreNotWritable(t *testing.T) {
