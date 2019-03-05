@@ -5,7 +5,7 @@ import (
 	"istio.io/api/networking/v1alpha3"
 )
 
-const ingressCertName = "tls"
+const ingressCertName = "cf-service"
 
 func createRawServiceEntryForExternalService(endpointAddress string, portNumber uint32, serviceName string) *v1alpha3.ServiceEntry {
 	hosts := []string{createServiceHost(serviceName)}
@@ -36,12 +36,11 @@ func createRawIngressVirtualServiceForExternalService(hostName string, port uint
 func createRawIngressGatewayForExternalService(hostName string, portNumber uint32, clientName string, san string) *v1alpha3.Gateway {
 	port := v1alpha3.Port{Number: portNumber, Name: "tls", Protocol: "TLS"}
 	hosts := []string{hostName}
-	caPath := "/var/vcap/jobs/envoy/config/certs/"
-	certPath := fmt.Sprintf("/etc/istio/%s/", san)
+	certPath := "/var/vcap/jobs/envoy-certificates/config/certs/"
 	tls := v1alpha3.Server_TLSOptions{Mode: v1alpha3.Server_TLSOptions_MUTUAL,
 		ServerCertificate: certPath + ingressCertName + ".crt",
 		PrivateKey:        certPath + ingressCertName + ".key",
-		CaCertificates:    caPath + "ca.crt"}
+		CaCertificates:    certPath + "ca.crt"}
 	if clientName != "" {
 		tls.SubjectAltNames = []string{clientName}
 	}

@@ -50,8 +50,8 @@ func TestCompleteEntryGateway(t *testing.T) {
 	g.Expect(gatewaySpec).To(ContainSubstring("myservice.landscape"))
 	g.Expect(gatewaySpec).To(ContainSubstring("9000"))
 	g.Expect(gatewaySpec).To(ContainSubstring("client.my.client.domain.io"))
-	g.Expect(gatewaySpec).To(ContainSubstring("/etc/istio/mysan/tls.key"))
-	g.Expect(gatewaySpec).To(ContainSubstring("/etc/istio/mysan/tls.crt"))
+	g.Expect(gatewaySpec).To(ContainSubstring("/var/vcap/jobs/envoy-certificates/config/certs/cf-service.key"))
+	g.Expect(gatewaySpec).To(ContainSubstring("/var/vcap/jobs/envoy-certificates/config/certs/cf-service.crt"))
 
 	g.Expect(gatewayMetadata).To(ContainSubstring("name: myservice-gateway"))
 }
