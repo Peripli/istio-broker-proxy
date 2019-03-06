@@ -220,7 +220,7 @@ func TestBadGateway(t *testing.T) {
 
 	g.Expect(response.Code).To(Equal(http.StatusBadGateway))
 	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
-	g.Expect(err.Error()).To(Equal(`Get doesntexist.org/get: unsupported protocol scheme ""`))
+	g.Expect(err.(*model.HttpError).Description).To(Equal(`Get doesntexist.org/get: unsupported protocol scheme ""`))
 }
 
 func TestAdaptCredentials(t *testing.T) {
@@ -421,7 +421,7 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 	g.Expect(response.Code).To(Equal(500))
 	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HttpError).ErrorMsg).To(ContainSubstring("Unable to write istio configuration to file"))
+	g.Expect(err.(*model.HttpError).Description).To(ContainSubstring("Unable to write istio configuration to file"))
 }
 
 func TestBindWithInvalidRequest(t *testing.T) {
@@ -439,7 +439,7 @@ func TestBindWithInvalidRequest(t *testing.T) {
 	g.Expect(response.Code).To(Equal(http.StatusBadRequest))
 	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HttpError).ErrorMsg).To(ContainSubstring("cannot unmarshal array into Go value"))
+	g.Expect(err.(*model.HttpError).Description).To(ContainSubstring("cannot unmarshal array into Go value"))
 }
 
 func TestHttpClientError(t *testing.T) {

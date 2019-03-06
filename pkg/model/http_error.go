@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"net/http"
 )
 
 type HttpError struct {
@@ -17,7 +18,12 @@ func HttpErrorFromError(err error, statusCode int) *HttpError {
 	case HttpError:
 		return &t
 	default:
-		return &HttpError{err.Error(), "", statusCode}
+		switch statusCode {
+		case http.StatusBadGateway:
+			return &HttpError{"BadGateway", err.Error(), statusCode}
+		default:
+			return &HttpError{"InternalServerError", err.Error(), statusCode}
+		}
 	}
 }
 
