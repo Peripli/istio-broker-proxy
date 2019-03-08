@@ -13,13 +13,13 @@ func TestHttpErrorFromError(t *testing.T) {
 	err := HttpErrorFromError(fmt.Errorf("Hello Test"), http.StatusInternalServerError)
 	g.Expect(err.ErrorMsg).To(Equal("InternalServerError"))
 	g.Expect(err.Description).To(Equal("Hello Test"))
-	g.Expect(err.Error()).To(Equal("InternalServerError"))
+	g.Expect(err.Error()).To(Equal("error: 'InternalServerError', description: 'Hello Test'"))
 	g.Expect(err.StatusCode).To(Equal(http.StatusInternalServerError))
 
 	err = HttpErrorFromError(fmt.Errorf("Hello Test"), http.StatusBadGateway)
 	g.Expect(err.ErrorMsg).To(Equal("BadGateway"))
 	g.Expect(err.Description).To(Equal("Hello Test"))
-	g.Expect(err.Error()).To(Equal("BadGateway"))
+	g.Expect(err.Error()).To(Equal("error: 'BadGateway', description: 'Hello Test'"))
 	g.Expect(err.StatusCode).To(Equal(http.StatusBadGateway))
 }
 

@@ -44,5 +44,5 @@ func HttpErrorFromResponse(statusCode int, body []byte, url string, method strin
 }
 
 func (e HttpError) Error() string {
-	return e.ErrorMsg
+	return fmt.Sprintf("error: '%s', description: '%s'", e.ErrorMsg, e.Description)
 }

@@ -153,7 +153,7 @@ func TestGetCatalogWithBadRequest(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	handlerStub := NewHandlerStubWithFunc(http.StatusBadRequest, func(body []byte) []byte {
-		return []byte(`{ "error" : "bad request"}`)
+		return []byte(`{ "error" : "BadRequest"}`)
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
@@ -161,7 +161,7 @@ func TestGetCatalogWithBadRequest(t *testing.T) {
 	_, err := client.GetCatalog()
 
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.Error()).To(Equal("bad request"))
+	g.Expect(err.Error()).To(Equal("error: 'BadRequest', description: ': from call to GET http://xxxxx.xx'"))
 }
 
 func TestUnbind(t *testing.T) {

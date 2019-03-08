@@ -113,7 +113,7 @@ func TestConsumerForwardsAdpotCredentials(t *testing.T) {
 
 	g.Expect(code).To(Equal(499))
 	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
-	g.Expect(err.Error()).To(Equal("abc"))
+	g.Expect(err.Error()).To(Equal("error: 'abc', description: ': from call to  '"))
 
 }
 
