@@ -87,7 +87,7 @@ func (o *RouterRestRequest) Do() RestResponse {
 		return &osbResponse
 	}
 
-	osbResponse.err = model.HttpErrorFromResponse(response.StatusCode, osbResponse.response)
+	osbResponse.err = model.HttpErrorFromResponse(response.StatusCode, osbResponse.response, o.url, o.method)
 	if osbResponse.err != nil {
 		return &osbResponse
 	}

@@ -112,7 +112,7 @@ func TestConsumerForwardsAdpotCredentials(t *testing.T) {
 	code := response.Code
 
 	g.Expect(code).To(Equal(499))
-	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
+	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
 	g.Expect(err.Error()).To(Equal("abc"))
 
 }
@@ -219,8 +219,8 @@ func TestBadGateway(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusBadGateway))
-	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
-	g.Expect(err.(*model.HttpError).Description).To(Equal(`Get doesntexist.org/get: unsupported protocol scheme ""`))
+	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
+	g.Expect(err.(*model.HttpError).Description).To(ContainSubstring(`Get doesntexist.org/get: unsupported protocol scheme ""`))
 }
 
 func TestAdaptCredentials(t *testing.T) {
@@ -419,7 +419,7 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 	router := SetupRouter(producerConfig, *routerConfig)
 	router.ServeHTTP(response, request)
 	g.Expect(response.Code).To(Equal(500))
-	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
+	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*model.HttpError).Description).To(ContainSubstring("Unable to write istio configuration to file"))
 }
@@ -437,7 +437,7 @@ func TestBindWithInvalidRequest(t *testing.T) {
 	router := SetupRouter(producerConfig, *routerConfig)
 	router.ServeHTTP(response, request)
 	g.Expect(response.Code).To(Equal(http.StatusBadRequest))
-	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
+	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*model.HttpError).Description).To(ContainSubstring("cannot unmarshal array into Go value"))
 }
@@ -468,10 +468,10 @@ func TestHttpClientError(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusNotFound))
-	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
+	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("Not found"))
-	g.Expect(err.(*model.HttpError).Description).To(Equal("Unable to find entry"))
+	g.Expect(err.(*model.HttpError).Description).To(ContainSubstring("Unable to find entry"))
 }
 
 func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
@@ -544,10 +544,10 @@ func TestErrorCodeOfForwardIsReturned(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(503))
-	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes())
+	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("xxx"))
-	g.Expect(err.(*model.HttpError).Description).To(Equal("yyy"))
+	g.Expect(err.(*model.HttpError).Description).To(ContainSubstring("yyy"))
 }
 
 func TestReturnCodeOfGet(t *testing.T) {

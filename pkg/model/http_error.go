@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -27,15 +28,16 @@ func HttpErrorFromError(err error, statusCode int) *HttpError {
 	}
 }
 
-func HttpErrorFromResponse(statusCode int, body []byte) error {
+func HttpErrorFromResponse(statusCode int, body []byte, url string, method string) error {
 	okResponse := statusCode/100 == 2
 	if !okResponse {
 		var httpError HttpError
 		err := json.Unmarshal(body, &httpError)
 		if err != nil {
-			return &HttpError{StatusCode: statusCode, ErrorMsg: string(body)}
+			return &HttpError{StatusCode: statusCode, ErrorMsg: string(body), Description: fmt.Sprintf("invalid JSON: from call to %s %s", method, url)}
 		}
 		httpError.StatusCode = statusCode
+		httpError.Description = httpError.Description + fmt.Sprintf(": from call to %s %s", method, url)
 		return &httpError
 	}
 	return nil

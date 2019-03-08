@@ -35,24 +35,25 @@ func TestHttpErrorFromHttpError(t *testing.T) {
 func TestHttpErrorFromResponseOK(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	g.Expect(HttpErrorFromResponse(200, []byte(""))).NotTo(HaveOccurred())
+	g.Expect(HttpErrorFromResponse(200, []byte(""), "", "")).NotTo(HaveOccurred())
 }
 
 func TestHttpErrorFromResponseNotOKInvalidBody(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	err := HttpErrorFromResponse(401, []byte("Invalid body"))
+	err := HttpErrorFromResponse(401, []byte("Invalid body"), "http://localhost", "GET")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*HttpError).StatusCode).To(Equal(401))
 	g.Expect(err.(*HttpError).ErrorMsg).To(Equal("Invalid body"))
+	g.Expect(err.(*HttpError).Description).To(Equal("invalid JSON: from call to GET http://localhost"))
 }
 
 func TestHttpErrorFromResponseNotOK(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	err := HttpErrorFromResponse(504, []byte(`{ "error": "my-error", "description": "my-description"}`))
+	err := HttpErrorFromResponse(504, []byte(`{ "error": "my-error", "description": "my-description"}`), "http://localhost", "GET")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*HttpError).StatusCode).To(Equal(504))
 	g.Expect(err.(*HttpError).ErrorMsg).To(Equal("my-error"))
-	g.Expect(err.(*HttpError).Description).To(Equal("my-description"))
+	g.Expect(err.(*HttpError).Description).To(Equal("my-description: from call to GET http://localhost"))
 }

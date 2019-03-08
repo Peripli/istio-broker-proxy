@@ -80,7 +80,7 @@ func TestAdaptCredentialsWithBadRequest(t *testing.T) {
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*model.HttpError).StatusCode).To(Equal(http.StatusBadRequest))
 	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("myerror"))
-	g.Expect(err.(*model.HttpError).Description).To(Equal("mydescription"))
+	g.Expect(err.(*model.HttpError).Description).To(Equal("mydescription: from call to POST http://xxxxx.xx/adapt_credentials"))
 }
 
 func TestAdaptCredentialsWithInvalidJson(t *testing.T) {
