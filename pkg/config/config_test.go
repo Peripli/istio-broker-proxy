@@ -109,7 +109,7 @@ func TestCompleteEntryClientEgressDestinationRule(t *testing.T) {
 
 	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog", "landscape")
 
-	ruleSpecs, ruleMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, istio_destinationRule)
+	ruleSpecs, ruleMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, istioDestinationRule)
 	ruleSpec := ruleSpecs[0]
 	ruleMetadata := ruleMetadatas[0]
 
@@ -125,7 +125,7 @@ func TestCompleteEntryClientSidecarDestinationRule(t *testing.T) {
 
 	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog", "landscape")
 
-	ruleSpecs, ruleMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, istio_destinationRule)
+	ruleSpecs, ruleMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, istioDestinationRule)
 	g.Expect(ruleSpecs).To(HaveLen(2))
 
 	ruleSpec := ruleSpecs[1]
@@ -142,7 +142,7 @@ func TestCompleteEntryClientServiceEntry(t *testing.T) {
 
 	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog", "landscape")
 
-	serviceEntriesConfigs := lookupObjectsFromConfigs(configObjects, istio_serviceEntry)
+	serviceEntriesConfigs := lookupObjectsFromConfigs(configObjects, istioServiceEntry)
 	g.Expect(serviceEntriesConfigs).To(HaveLen(1))
 
 	var ports []string
@@ -161,7 +161,7 @@ func TestCompleteEntryClientVirtualServices(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	configObjects := CreateEntriesForExternalServiceClient("myservice", "myservice.landscape", "1.1.1.1", 9000, "catalog", "landscape")
-	serviceSpecs, serviceMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, istio_virtualService)
+	serviceSpecs, serviceMetadatas := getSpecsAndMetadatasFromConfig(g, configObjects, istioVirtualService)
 	g.Expect(serviceSpecs).To(HaveLen(2))
 	g.Expect(serviceMetadatas).To(HaveLen(2))
 	g.Expect(serviceSpecs[0]).To(ContainSubstring("mesh"))
@@ -192,13 +192,13 @@ func TestCreateIstioConfigForProvider(t *testing.T) {
 
 	request := model.BindRequest{
 		NetworkData: model.NetworkDataRequest{
-			NetworkProfileId: "my-profile-id",
-			Data:             model.DataRequest{ConsumerId: "147"}}}
+			NetworkProfileID: "my-profile-id",
+			Data:             model.DataRequest{ConsumerID: "147"}}}
 	response := model.BindResponse{
 		NetworkData: model.NetworkDataResponse{
-			NetworkProfileId: "your-profile-id",
+			NetworkProfileID: "your-profile-id",
 			Data: model.DataResponse{
-				ProviderId: "852",
+				ProviderID: "852",
 			}},
 		Endpoints: eps,
 

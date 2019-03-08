@@ -18,18 +18,18 @@ func TestAddIstioNetworkDataHasConfigurableProviderId(t *testing.T) {
 
 	g.Expect(body).NotTo(BeNil())
 
-	g.Expect(body.NetworkData.NetworkProfileId).To(Equal("urn:local.test:public"))
-	g.Expect(body.NetworkData.Data.ProviderId).To(Equal("my-provider"))
+	g.Expect(body.NetworkData.NetworkProfileID).To(Equal("urn:local.test:public"))
+	g.Expect(body.NetworkData.Data.ProviderID).To(Equal("my-provider"))
 	g.Expect(string(body.AdditionalProperties["something_else"])).To(Equal(`"body of response"`))
 }
 
 func TestCreateEndpointHosts(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	serviceId := "postgres-34de6ac"
+	serviceID := "postgres-34de6ac"
 	systemDomain := "my.arbitrary.domain.io"
 
-	endpointHost := createEndpointHostsBasedOnSystemDomainServiceId(serviceId, systemDomain, 2)
+	endpointHost := createEndpointHostsBasedOnSystemDomainServiceID(serviceID, systemDomain, 2)
 
 	g.Expect(endpointHost).To(HaveLen(2))
 	g.Expect(endpointHost).To(ContainElement("0.postgres-34de6ac.my.arbitrary.domain.io"))

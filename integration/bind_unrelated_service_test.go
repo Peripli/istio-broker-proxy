@@ -50,7 +50,7 @@ func createServiceBindingButNoIstioResources(kubectl *kubectl, g *GomegaWithT, n
 	waitForServiceInstance(kubectl, g, namePrefix)
 	kubectl.Apply([]byte(bindingConfig))
 	serviceBinding := waitForServiceBinding(kubectl, g, namePrefix)
-	bindId := serviceBinding.Spec.ExternalID
+	bindID := serviceBinding.Spec.ExternalID
 	var servicesInstance ServiceInstanceList
 	kubectl.List(&servicesInstance, "--all-namespaces=true")
 	g.Expect(servicesInstance.Items).NotTo(BeEmpty(), "List of available servicesInstance in OSB should not be empty")
@@ -58,12 +58,12 @@ func createServiceBindingButNoIstioResources(kubectl *kubectl, g *GomegaWithT, n
 	var services v1.ServiceList
 	kubectl.List(&services, "--all-namespaces=true")
 	g.Expect(services.Items).NotTo(BeEmpty(), "List of available services in OSB should not be empty")
-	g.Expect(serviceExists(services, bindId)).To(BeFalse())
+	g.Expect(serviceExists(services, bindID)).To(BeFalse())
 	var serviceEntries ServiceEntryList
 	kubectl.List(&serviceEntries, "--all-namespaces=true")
 	matchingServiceEntryExists := false
 	for _, serviceEntry := range serviceEntries.Items {
-		if strings.Contains(serviceEntry.Metadata.Name, bindId) {
+		if strings.Contains(serviceEntry.Metadata.Name, bindID) {
 			matchingServiceEntryExists = true
 		}
 	}
@@ -73,7 +73,7 @@ func createServiceBindingButNoIstioResources(kubectl *kubectl, g *GomegaWithT, n
 	matchingIstioObjectCount := 0
 	for _, virtualService := range virtualServices.Items {
 
-		if strings.Contains(virtualService.Metadata.Name, bindId) {
+		if strings.Contains(virtualService.Metadata.Name, bindID) {
 			matchingIstioObjectCount += 1
 		}
 	}
@@ -83,7 +83,7 @@ func createServiceBindingButNoIstioResources(kubectl *kubectl, g *GomegaWithT, n
 	matchingIstioObjectCount = 0
 	for _, gateway := range gateways.Items {
 
-		if strings.Contains(gateway.Metadata.Name, bindId) {
+		if strings.Contains(gateway.Metadata.Name, bindID) {
 			matchingIstioObjectCount += 1
 		}
 	}
@@ -93,12 +93,12 @@ func createServiceBindingButNoIstioResources(kubectl *kubectl, g *GomegaWithT, n
 	matchingIstioObjectCount = 0
 	for _, destinationRule := range destinationRules.Items {
 
-		if strings.Contains(destinationRule.Metadata.Name, bindId) {
+		if strings.Contains(destinationRule.Metadata.Name, bindID) {
 			matchingIstioObjectCount += 1
 		}
 	}
 	g.Expect(matchingIstioObjectCount).To(Equal(0))
-	return bindId
+	return bindID
 }
 
 func serviceinstanceExists(serviceInstaces ServiceInstanceList, name string) bool {

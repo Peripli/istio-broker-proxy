@@ -13,7 +13,7 @@ import (
 func TestDefaultConfigurationIsWritten(t *testing.T) {
 	g := NewGomegaWithT(t)
 	interceptor := ProducerInterceptor{
-		ProviderId:     "your-provider",
+		ProviderID:     "your-provider",
 		SystemDomain:   "services.domain",
 		IstioDirectory: os.TempDir()}
 	interceptor.WriteIstioConfigFiles(147)
@@ -31,7 +31,7 @@ func TestDefaultConfigurationIsWritten(t *testing.T) {
 func TestWriteIstioConfigFilesReturnsError(t *testing.T) {
 	g := NewGomegaWithT(t)
 	interceptor := ProducerInterceptor{
-		ProviderId:     "your-provider",
+		ProviderID:     "your-provider",
 		SystemDomain:   "services.domain",
 		IstioDirectory: "/not-existing"}
 	err := interceptor.WriteIstioConfigFiles(147)
@@ -41,13 +41,13 @@ func TestWriteIstioConfigFilesReturnsError(t *testing.T) {
 func TestYmlFileIsCorrectlyWritten(t *testing.T) {
 	g := NewGomegaWithT(t)
 	///var/vcap/packages/istio-broker/bin/istio-broker --port 8000 --forwardUrl https://10.11.252.10:9293/cf
-	// --systemdomain istio.my.arbitrary.domain.io --ProviderId cf-service.istio.my.arbitrary.domain.io
+	// --systemdomain istio.my.arbitrary.domain.io --ProviderID cf-service.istio.my.arbitrary.domain.io
 	// --LoadBalancerPort 9000 --istioDirectory /var/vcap/store/istio-config --ipAddress 10.0.81.0
 	interceptor := ProducerInterceptor{
-		ProviderId:       "prefix.istio.my.arbitrary.domain.io",
+		ProviderID:       "prefix.istio.my.arbitrary.domain.io",
 		SystemDomain:     "istio.my.arbitrary.domain.io",
 		LoadBalancerPort: 9000,
-		IpAddress:        "10.0.81.0",
+		IPAddress:        "10.0.81.0",
 		IstioDirectory:   os.TempDir(),
 	}
 	interceptor.WriteIstioConfigFiles(8000)
@@ -67,10 +67,10 @@ func TestYmlFileIsCorrectlyWritten(t *testing.T) {
 func TestEndpointsAreTransferedFromCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
 	interceptor := ProducerInterceptor{
-		ProviderId:       "cf-service.istio.my.arbitrary.domain.io",
+		ProviderID:       "cf-service.istio.my.arbitrary.domain.io",
 		SystemDomain:     "istio.my.arbitrary.domain.io",
 		LoadBalancerPort: 9000,
-		IpAddress:        "10.0.81.0",
+		IPAddress:        "10.0.81.0",
 		IstioDirectory:   os.TempDir(),
 		NetworkProfile:   "urn:local.test:public",
 	}
@@ -88,10 +88,10 @@ func TestEndpointsAreTransferedFromCredentials(t *testing.T) {
 func TestConfigFilesAreWrittenAndDeleted(t *testing.T) {
 	g := NewGomegaWithT(t)
 	interceptor := ProducerInterceptor{
-		ProviderId:       "cf-service.istio.my.arbitrary.domain.io",
+		ProviderID:       "cf-service.istio.my.arbitrary.domain.io",
 		SystemDomain:     "istio.my.arbitrary.domain.io",
 		LoadBalancerPort: 9000,
-		IpAddress:        "10.0.81.0",
+		IPAddress:        "10.0.81.0",
 		IstioDirectory:   os.TempDir(),
 		NetworkProfile:   "urn:local.test:public",
 	}
@@ -123,10 +123,10 @@ func TestConfigFilesBindFailsButFileIsCleanedUp(t *testing.T) {
 	g := NewGomegaWithT(t)
 	tempDir := os.TempDir()
 	interceptor := ProducerInterceptor{
-		ProviderId:       "cf-service.istio.my.arbitrary.domain.io",
+		ProviderID:       "cf-service.istio.my.arbitrary.domain.io",
 		SystemDomain:     "istio.my.arbitrary.domain.io",
 		LoadBalancerPort: 9000,
-		IpAddress:        "10.0.81.0",
+		IPAddress:        "10.0.81.0",
 		IstioDirectory:   tempDir,
 		NetworkProfile:   "urn:local.test:public",
 	}

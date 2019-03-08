@@ -29,8 +29,8 @@ func TestBindResponseUnmarshal(t *testing.T) {
     }`), &bindResponse)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(string(bindResponse.AdditionalProperties["abc"])).To(Equal(`"1234"`))
-	g.Expect(bindResponse.NetworkData.NetworkProfileId).To(Equal("your-profile-id"))
-	g.Expect(bindResponse.NetworkData.Data.ProviderId).To(Equal("852"))
+	g.Expect(bindResponse.NetworkData.NetworkProfileID).To(Equal("your-profile-id"))
+	g.Expect(bindResponse.NetworkData.Data.ProviderID).To(Equal("852"))
 	g.Expect(bindResponse.NetworkData.Data.Endpoints[0]).To(Equal(Endpoint{"10.0.0.1", 9999}))
 	g.Expect(bindResponse.Endpoints[0]).To(Equal(Endpoint{"10.0.0.3", 3333}))
 	g.Expect(bindResponse.Endpoints[1]).To(Equal(Endpoint{"10.0.0.4", 4444}))
@@ -81,9 +81,9 @@ func TestBindResponseMarshal(t *testing.T) {
 			"abc": json.RawMessage([]byte(`"1234"`)),
 		},
 		NetworkData: NetworkDataResponse{
-			NetworkProfileId: "your-profile-id",
+			NetworkProfileID: "your-profile-id",
 			Data: DataResponse{
-				ProviderId: "852",
+				ProviderID: "852",
 				Endpoints:  []Endpoint{{"host1", 9999}, {"host2", 7777}},
 			}},
 		Credentials: Credentials{AdditionalProperties: map[string]json.RawMessage{"user": json.RawMessage([]byte(`"myuser"`))}},

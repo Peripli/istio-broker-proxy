@@ -29,7 +29,7 @@ func TestAdaptCredentialsWithProxy(t *testing.T) {
 	binding, err := client.AdaptCredentials(model.PostgresCredentials{
 		Port:     47637,
 		Hostname: "10.11.241.0",
-		Uri:      "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn",
+		URI:      "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn",
 	}.ToCredentials(),
 		[]model.EndpointMapping{
 			{
@@ -47,7 +47,7 @@ func TestAdaptCredentialsWithProxy(t *testing.T) {
 
 	g.Expect(postgresCredentials.Port).To(Equal(5555))
 	g.Expect(postgresCredentials.Hostname).To(Equal("postgres.catalog.svc.cluster.local"))
-	g.Expect(postgresCredentials.Uri).To(Equal("postgres://mma4G8N0isoxe17v:redacted@postgres.catalog.svc.cluster.local:5555/yLO2WoE0-mCcEppn"))
+	g.Expect(postgresCredentials.URI).To(Equal("postgres://mma4G8N0isoxe17v:redacted@postgres.catalog.svc.cluster.local:5555/yLO2WoE0-mCcEppn"))
 
 }
 
@@ -78,9 +78,9 @@ func TestAdaptCredentialsWithBadRequest(t *testing.T) {
 	_, err := client.AdaptCredentials(model.PostgresCredentials{}.ToCredentials(), []model.EndpointMapping{})
 
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HttpError).StatusCode).To(Equal(http.StatusBadRequest))
-	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("myerror"))
-	g.Expect(err.(*model.HttpError).Description).To(Equal("mydescription: from call to POST http://xxxxx.xx/adapt_credentials"))
+	g.Expect(err.(*model.HTTPError).StatusCode).To(Equal(http.StatusBadRequest))
+	g.Expect(err.(*model.HTTPError).ErrorMsg).To(Equal("myerror"))
+	g.Expect(err.(*model.HTTPError).Description).To(Equal("mydescription: from call to POST http://xxxxx.xx/adapt_credentials"))
 }
 
 func TestAdaptCredentialsWithInvalidJson(t *testing.T) {

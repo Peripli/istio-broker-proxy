@@ -5,11 +5,11 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 )
 
-func AddIstioNetworkDataToResponse(providerId string, bindingId string, systemDomain string, portNumber int, body *model.BindResponse, networkProfile string) {
+func AddIstioNetworkDataToResponse(providerID string, bindingID string, systemDomain string, portNumber int, body *model.BindResponse, networkProfile string) {
 
 	endpointCount := len(body.Endpoints)
 
-	endpointHosts := createEndpointHostsBasedOnSystemDomainServiceId(bindingId, systemDomain, endpointCount)
+	endpointHosts := createEndpointHostsBasedOnSystemDomainServiceID(bindingID, systemDomain, endpointCount)
 
 	newEndpoints := make([]model.Endpoint, 0)
 	for _, endpointHost := range endpointHosts {
@@ -21,22 +21,22 @@ func AddIstioNetworkDataToResponse(providerId string, bindingId string, systemDo
 		)
 	}
 
-	body.NetworkData.NetworkProfileId = networkProfile
-	body.NetworkData.Data.ProviderId = providerId
+	body.NetworkData.NetworkProfileID = networkProfile
+	body.NetworkData.Data.ProviderID = providerID
 	body.NetworkData.Data.Endpoints = newEndpoints
 
 }
 
-func createEndpointHostsBasedOnSystemDomainServiceId(bindingId string, systemDomain string, count int) []string {
+func createEndpointHostsBasedOnSystemDomainServiceID(bindingID string, systemDomain string, count int) []string {
 	var endpointsHosts []string
 
 	for i := 0; i < count; i++ {
-		newHost := CreateEndpointHosts(bindingId, systemDomain, i)
+		newHost := CreateEndpointHosts(bindingID, systemDomain, i)
 		endpointsHosts = append(endpointsHosts, newHost)
 	}
 	return endpointsHosts
 }
 
-func CreateEndpointHosts(bindingId string, systemDomain string, index int) string {
-	return fmt.Sprintf("%d.%s.%s", index, bindingId, systemDomain)
+func CreateEndpointHosts(bindingID string, systemDomain string, index int) string {
+	return fmt.Sprintf("%d.%s.%s", index, bindingID, systemDomain)
 }

@@ -30,7 +30,7 @@ func TestHealthEndpoint(t *testing.T) {
 
 func TestInvalidUpdateCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	router := SetupRouter(ProducerInterceptor{ProviderId: "x"}, RouterConfig{})
+	router := SetupRouter(ProducerInterceptor{ProviderID: "x"}, RouterConfig{})
 
 	emptyBody := bytes.NewReader([]byte("{}"))
 	request, _ := http.NewRequest(http.MethodPost, "https://blablub.org/v2/service_instances/134567/service_bindings/76543210/adapt_credentials", emptyBody)
@@ -63,7 +63,7 @@ func TestDoNotSkipVerifyTLSIfNotConfigured(t *testing.T) {
 	handlerStub := NewHandlerStub(200, []byte(`{}`))
 	_, routerConfig := injectClientStub(handlerStub)
 	routerConfig.SkipVerifyTLS = true
-	SetupRouter(ProducerInterceptor{ProviderId: "x"}, *routerConfig)
+	SetupRouter(ProducerInterceptor{ProviderID: "x"}, *routerConfig)
 
 	skipVerify := handlerStub.spy.tr.TLSClientConfig.InsecureSkipVerify
 
@@ -76,7 +76,7 @@ func TestSkipVerifyTLSIfConfigured(t *testing.T) {
 	handlerStub := NewHandlerStub(200, []byte(`{}`))
 	_, routerConfig := injectClientStub(handlerStub)
 	routerConfig.SkipVerifyTLS = false
-	SetupRouter(ProducerInterceptor{ProviderId: "x"}, *routerConfig)
+	SetupRouter(ProducerInterceptor{ProviderID: "x"}, *routerConfig)
 
 	skipVerify := handlerStub.spy.tr.TLSClientConfig.InsecureSkipVerify
 
@@ -85,7 +85,7 @@ func TestSkipVerifyTLSIfConfigured(t *testing.T) {
 
 func TestValidUpdateCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	router := SetupRouter(ProducerInterceptor{ProviderId: "x"}, RouterConfig{})
+	router := SetupRouter(ProducerInterceptor{ProviderID: "x"}, RouterConfig{})
 
 	emptyBody := bytes.NewReader([]byte(validUpdateCredentialsRequest))
 	request, _ := http.NewRequest(http.MethodPost, "/v2/service_instances/1234-4567/service_bindings/7654-3210/adapt_credentials", emptyBody)
@@ -102,7 +102,7 @@ func TestConsumerForwardsAdpotCredentials(t *testing.T) {
 	handlerStub := NewHandlerStub(499, []byte(`{"error" : "abc"}`))
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	router := SetupRouter(ConsumerInterceptor{ConsumerId: "x"}, *routerConfig)
+	router := SetupRouter(ConsumerInterceptor{ConsumerID: "x"}, *routerConfig)
 
 	emptyBody := bytes.NewReader([]byte(validUpdateCredentialsRequest))
 	request, _ := http.NewRequest(http.MethodPost, "/v2/service_instances/1234-4567/service_bindings/7654-3210/adapt_credentials", emptyBody)
@@ -112,7 +112,7 @@ func TestConsumerForwardsAdpotCredentials(t *testing.T) {
 	code := response.Code
 
 	g.Expect(code).To(Equal(499))
-	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
+	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
 	g.Expect(err.Error()).To(Equal("error: 'abc', description: ': from call to  '"))
 
 }
@@ -129,7 +129,7 @@ func TestCreateNewURL(t *testing.T) {
 		request.Header = make(http.Header)
 		request.Header["accept"] = []string{"application/json"}
 
-		got := createNewUrl(externalURL, request)
+		got := createNewURL(externalURL, request)
 
 		want := externalURL + "/" + helloPath
 		g.Expect(got).To(Equal(want))
@@ -142,7 +142,7 @@ func TestCreateNewURL(t *testing.T) {
 		request.Header = make(http.Header)
 		request.Header["accept"] = []string{"application/json"}
 
-		got := createNewUrl(externalURL, request)
+		got := createNewURL(externalURL, request)
 
 		want := externalURL + "/" + helloPath + "?debug=true"
 		g.Expect(got).To(Equal(want))
@@ -192,13 +192,13 @@ func TestRedirect(t *testing.T) {
 		router.ServeHTTP(response, request)
 
 		var bodyData struct {
-			Json map[string]string `json:"json"`
+			JSON map[string]string `json:"json"`
 		}
 
 		err := json.NewDecoder(response.Body).Decode(&bodyData)
 		g.Expect(err).NotTo(HaveOccurred(), "error while decoding body: %v ", response.Body)
 
-		got := bodyData.Json["service_id"]
+		got := bodyData.JSON["service_id"]
 
 		want := "6db542eb-8187-4afc-8a85-e08b4a3cc24e"
 		g.Expect(got).To(Equal(want))
@@ -219,13 +219,13 @@ func TestBadGateway(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusBadGateway))
-	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
-	g.Expect(err.(*model.HttpError).Description).To(ContainSubstring(`Get doesntexist.org/get: unsupported protocol scheme ""`))
+	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
+	g.Expect(err.(*model.HTTPError).Description).To(ContainSubstring(`Get doesntexist.org/get: unsupported protocol scheme ""`))
 }
 
 func TestAdaptCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	router := SetupRouter(ProducerInterceptor{ProviderId: "x"}, RouterConfig{})
+	router := SetupRouter(ProducerInterceptor{ProviderID: "x"}, RouterConfig{})
 
 	body := []byte(`{
 "credentials": {
@@ -294,7 +294,7 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAndEndpointIndex(t *testing.T) {
 	producerConfig := ProducerInterceptor{
 		SystemDomain:     "my.arbitrary.domain.io",
-		ProviderId:       "your-provider",
+		ProviderID:       "your-provider",
 		LoadBalancerPort: 9000,
 		IstioDirectory:   os.TempDir(),
 		NetworkProfile:   "urn:local.test:public"}
@@ -332,7 +332,7 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 func TestIstioConfigFilesAreWritten(t *testing.T) {
 	producerInterceptor := ProducerInterceptor{
 		SystemDomain:   "services.cf.dev99.sc6.my.arbitrary.domain.io",
-		ProviderId:     "your-provider",
+		ProviderID:     "your-provider",
 		IstioDirectory: os.TempDir(),
 		NetworkProfile: "urn:local.test:public"}
 	g := NewGomegaWithT(t)
@@ -382,7 +382,7 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 	producerConfig := ProducerInterceptor{
 		SystemDomain:   "services.cf.dev99.sc6.my.arbitrary.domain.io",
-		ProviderId:     "your-provider",
+		ProviderID:     "your-provider",
 		IstioDirectory: "/non-existing-directory",
 		NetworkProfile: "urn:local.test:public",
 	}
@@ -419,9 +419,9 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 	router := SetupRouter(producerConfig, *routerConfig)
 	router.ServeHTTP(response, request)
 	g.Expect(response.Code).To(Equal(500))
-	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
+	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HttpError).Description).To(ContainSubstring("Unable to write istio configuration to file"))
+	g.Expect(err.(*model.HTTPError).Description).To(ContainSubstring("Unable to write istio configuration to file"))
 }
 
 func TestBindWithInvalidRequest(t *testing.T) {
@@ -437,9 +437,9 @@ func TestBindWithInvalidRequest(t *testing.T) {
 	router := SetupRouter(producerConfig, *routerConfig)
 	router.ServeHTTP(response, request)
 	g.Expect(response.Code).To(Equal(http.StatusBadRequest))
-	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
+	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HttpError).Description).To(ContainSubstring("cannot unmarshal array into Go value"))
+	g.Expect(err.(*model.HTTPError).Description).To(ContainSubstring("cannot unmarshal array into Go value"))
 }
 
 func TestHttpClientError(t *testing.T) {
@@ -468,10 +468,10 @@ func TestHttpClientError(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusNotFound))
-	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
+	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("Not found"))
-	g.Expect(err.(*model.HttpError).Description).To(ContainSubstring("Unable to find entry"))
+	g.Expect(err.(*model.HTTPError).ErrorMsg).To(Equal("Not found"))
+	g.Expect(err.(*model.HTTPError).Description).To(ContainSubstring("Unable to find entry"))
 }
 
 func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
@@ -496,7 +496,7 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
 	response := httptest.NewRecorder()
-	router := SetupRouter(ConsumerInterceptor{ConsumerId: "your-consumer", NetworkProfile: "network-profile"}, *routerConfig)
+	router := SetupRouter(ConsumerInterceptor{ConsumerID: "your-consumer", NetworkProfile: "network-profile"}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	g.Expect(len(handlerStub.spy.body)).To(Equal(2))
@@ -522,7 +522,7 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumerForBrokerAPI(t *
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v1/osb/2324552-34535345-34534535/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
 	response := httptest.NewRecorder()
-	router := SetupRouter(ConsumerInterceptor{ConsumerId: "your-consumer", NetworkProfile: "my-network-profile"}, *routerConfig)
+	router := SetupRouter(ConsumerInterceptor{ConsumerID: "your-consumer", NetworkProfile: "my-network-profile"}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	g.Expect(len(handlerStub.spy.body)).To(Equal(2))
@@ -544,10 +544,10 @@ func TestErrorCodeOfForwardIsReturned(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(503))
-	err := model.HttpErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
+	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("xxx"))
-	g.Expect(err.(*model.HttpError).Description).To(ContainSubstring("yyy"))
+	g.Expect(err.(*model.HTTPError).ErrorMsg).To(Equal("xxx"))
+	g.Expect(err.(*model.HTTPError).Description).To(ContainSubstring("yyy"))
 }
 
 func TestReturnCodeOfGet(t *testing.T) {
@@ -595,14 +595,14 @@ func TestDeleteBinding(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/v2/service_instances/123/service_bindings/456?parameter=true", bytes.NewReader(body))
 
 	response := httptest.NewRecorder()
-	var bindId = ""
+	var bindID = ""
 	router := SetupRouter(&DeleteInterceptor{deleteCallback: func(innerBindId string) error {
-		bindId = innerBindId
+		bindID = innerBindId
 		return nil
 	}}, *routerConfig)
 	router.ServeHTTP(response, request)
 
-	g.Expect(bindId).To(Equal("456"))
+	g.Expect(bindID).To(Equal("456"))
 	g.Expect(response.Code).To(Equal(http.StatusOK))
 	g.Expect(handlerStub.spy.url).To(ContainSubstring("parameter=true"))
 }
@@ -618,14 +618,14 @@ func TestDeleteBindingForBrokerAPI(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/v1/osb/23234234-324234234-234234/v2/service_instances/123/service_bindings/321?parameter=false", bytes.NewReader(body))
 
 	response := httptest.NewRecorder()
-	var bindId = ""
+	var bindID = ""
 	router := SetupRouter(&DeleteInterceptor{deleteCallback: func(innerBindId string) error {
-		bindId = innerBindId
+		bindID = innerBindId
 		return nil
 	}}, *routerConfig)
 	router.ServeHTTP(response, request)
 
-	g.Expect(bindId).To(Equal("321"))
+	g.Expect(bindID).To(Equal("321"))
 	g.Expect(response.Code).To(Equal(http.StatusOK))
 	g.Expect(handlerStub.spy.url).To(ContainSubstring("parameter=false"))
 }
@@ -699,9 +699,9 @@ func TestCorrectRequestParamForDelete(t *testing.T) {
 
 type DeleteInterceptor struct {
 	NoOpInterceptor
-	deleteCallback func(bindId string) error
+	deleteCallback func(bindID string) error
 }
 
-func (c DeleteInterceptor) PostDelete(bindId string) error {
-	return c.deleteCallback(bindId)
+func (c DeleteInterceptor) PostDelete(bindID string) error {
+	return c.deleteCallback(bindID)
 }

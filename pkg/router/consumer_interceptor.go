@@ -16,7 +16,7 @@ const (
 )
 
 type ConsumerInterceptor struct {
-	ConsumerId        string
+	ConsumerID        string
 	ConfigStore       ConfigStore
 	ServiceNamePrefix string
 	NetworkProfile    string
@@ -26,18 +26,18 @@ func (c ConsumerInterceptor) PreBind(request model.BindRequest) (*model.BindRequ
 	if c.NetworkProfile == "" {
 		return nil, errors.New("network profile not configured")
 	}
-	request.NetworkData.Data.ConsumerId = c.ConsumerId
-	request.NetworkData.NetworkProfileId = c.NetworkProfile
+	request.NetworkData.Data.ConsumerID = c.ConsumerID
+	request.NetworkData.NetworkProfileID = c.NetworkProfile
 	return &request, nil
 }
 
-func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.BindResponse, bindId string,
+func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.BindResponse, bindID string,
 	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
 	var endpointMapping []model.EndpointMapping
 
-	networkDataMatches := (c.NetworkProfile == response.NetworkData.NetworkProfileId)
+	networkDataMatches := (c.NetworkProfile == response.NetworkData.NetworkProfileID)
 	if !networkDataMatches {
-		log.Println("Ignoring bind request for network id:", response.NetworkData.NetworkProfileId)
+		log.Println("Ignoring bind request for network id:", response.NetworkData.NetworkProfileID)
 		return &response, nil
 	}
 
@@ -52,19 +52,19 @@ func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.
 
 	log.Printf("Number of endpoints: %d\n", len(response.NetworkData.Data.Endpoints))
 	for index, endpoint := range response.NetworkData.Data.Endpoints {
-		clusterIp, err := CreateIstioObjectsInK8S(c.ConfigStore, serviceName(index, bindId), endpoint, response.NetworkData.Data.ProviderId)
+		clusterIP, err := CreateIstioObjectsInK8S(c.ConfigStore, serviceName(index, bindID), endpoint, response.NetworkData.Data.ProviderID)
 		if err != nil {
-			c.cleanUpConfig(bindId, endCleanupCondition)
+			c.cleanUpConfig(bindID, endCleanupCondition)
 			return nil, err
 		}
 		endpointMapping = append(endpointMapping,
 			model.EndpointMapping{
 				Source: response.Endpoints[index],
-				Target: model.Endpoint{Host: clusterIp, Port: service_port}})
+				Target: model.Endpoint{Host: clusterIP, Port: service_port}})
 	}
 	binding, err := adapt(response.Credentials, endpointMapping)
 	if err != nil {
-		c.cleanUpConfig(bindId, endCleanupCondition)
+		c.cleanUpConfig(bindID, endCleanupCondition)
 		return nil, err
 	}
 	binding.NetworkData = response.NetworkData
@@ -92,23 +92,23 @@ func CreateIstioObjectsInK8S(configStore ConfigStore, name string, endpoint mode
 	return service.Spec.ClusterIP, nil
 }
 
-func serviceName(index int, bindId string) string {
-	name := fmt.Sprintf("svc-%d-%s", index, bindId)
+func serviceName(index int, bindID string) string {
+	name := fmt.Sprintf("svc-%d-%s", index, bindID)
 	return name
 }
 
-func (c ConsumerInterceptor) PostDelete(bindId string) error {
-	return c.cleanUpConfig(bindId, func(index int, err error) bool {
+func (c ConsumerInterceptor) PostDelete(bindID string) error {
+	return c.cleanUpConfig(bindID, func(index int, err error) bool {
 		return err != nil && index > 2
 	})
 }
 
-func (c ConsumerInterceptor) cleanUpConfig(bindId string, endCleanupCondition func(index int, err error) bool) error {
+func (c ConsumerInterceptor) cleanUpConfig(bindID string, endCleanupCondition func(index int, err error) bool) error {
 	i := 0
 	var err error
 
 	for {
-		serviceName := serviceName(i, bindId)
+		serviceName := serviceName(i, bindID)
 		isFirstIteration := i == 0
 
 		for _, id := range config.DeleteEntriesForExternalServiceClient(serviceName) {

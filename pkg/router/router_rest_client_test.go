@@ -44,9 +44,9 @@ func TestRouterRestClientWithBadRequest(t *testing.T) {
 	err := client.Get().Do().Error()
 
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HttpError).StatusCode).To(Equal(http.StatusBadRequest))
-	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("myerror"))
-	g.Expect(err.(*model.HttpError).Description).To(Equal("mydescription: from call to GET http://xxxxx.xx"))
+	g.Expect(err.(*model.HTTPError).StatusCode).To(Equal(http.StatusBadRequest))
+	g.Expect(err.(*model.HTTPError).ErrorMsg).To(Equal("myerror"))
+	g.Expect(err.(*model.HTTPError).Description).To(Equal("mydescription: from call to GET http://xxxxx.xx"))
 	g.Expect(handlerStub.spy.method).To(Equal(http.MethodGet))
 }
 
@@ -92,9 +92,9 @@ func TestRouterRestClientWithMultilineErrorResponse(t *testing.T) {
 	err := client.Get().Do().Error()
 
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HttpError).StatusCode).To(Equal(http.StatusConflict))
-	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("error: Internal server error\ndescription: \n"))
-	g.Expect(err.(*model.HttpError).Description).To(Equal(": from call to GET http://xxxxx.xx"))
+	g.Expect(err.(*model.HTTPError).StatusCode).To(Equal(http.StatusConflict))
+	g.Expect(err.(*model.HTTPError).ErrorMsg).To(Equal("error: Internal server error\ndescription: \n"))
+	g.Expect(err.(*model.HTTPError).Description).To(Equal(": from call to GET http://xxxxx.xx"))
 	g.Expect(handlerStub.spy.method).To(Equal(http.MethodGet))
 }
 
@@ -108,8 +108,8 @@ func TestRouterRestClientWithInvalidJsonErrorResponse(t *testing.T) {
 	err := client.Get().Do().Error()
 
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HttpError).StatusCode).To(Equal(http.StatusConflict))
-	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("InvalidJSON"))
-	g.Expect(err.(*model.HttpError).Description).To(Equal("invalid JSON 'error: Internal server error\ndescription: \n': from call to GET http://xxxxx.xx"))
+	g.Expect(err.(*model.HTTPError).StatusCode).To(Equal(http.StatusConflict))
+	g.Expect(err.(*model.HTTPError).ErrorMsg).To(Equal("InvalidJSON"))
+	g.Expect(err.(*model.HTTPError).Description).To(Equal("invalid JSON 'error: Internal server error\ndescription: \n': from call to GET http://xxxxx.xx"))
 	g.Expect(handlerStub.spy.method).To(Equal(http.MethodGet))
 }

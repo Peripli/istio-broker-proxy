@@ -49,7 +49,7 @@ func (client *RouterRestClient) Put(request interface{}) RestRequest {
 }
 
 func (client *RouterRestClient) createRequest(method string, body []byte, err error) *RouterRestRequest {
-	return &RouterRestRequest{method: method, client: client, request: body, url: createNewUrl(client.config.ForwardURL, client.request)}
+	return &RouterRestRequest{method: method, client: client, request: body, url: createNewURL(client.config.ForwardURL, client.request)}
 }
 
 func (o *RouterRestRequest) AppendPath(path string) RestRequest {
@@ -87,7 +87,7 @@ func (o *RouterRestRequest) Do() RestResponse {
 		return &osbResponse
 	}
 
-	osbResponse.err = model.HttpErrorFromResponse(response.StatusCode, osbResponse.response, o.url, o.method)
+	osbResponse.err = model.HTTPErrorFromResponse(response.StatusCode, osbResponse.response, o.url, o.method)
 	if osbResponse.err != nil {
 		return &osbResponse
 	}

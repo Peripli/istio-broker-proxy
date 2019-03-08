@@ -6,12 +6,12 @@ type BindRequest struct {
 }
 
 type NetworkDataRequest struct {
-	NetworkProfileId string      `json:"network_profile_id"`
+	NetworkProfileID string      `json:"network_profile_id"`
 	Data             DataRequest `json:"data"`
 }
 
 type DataRequest struct {
-	ConsumerId string `json:"consumer_id"`
+	ConsumerID string `json:"consumer_id"`
 }
 
 func (bindRequest *BindRequest) UnmarshalJSON(b []byte) error {

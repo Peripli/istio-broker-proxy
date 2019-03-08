@@ -11,7 +11,7 @@ func TestCredentialIsChangedRMQ(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	credentials := RabbitMQCredentials{
-		Hostname: "a", Port: 1, Uri: "amqp://user:passwd@a:1",
+		Hostname: "a", Port: 1, URI: "amqp://user:passwd@a:1",
 	}
 	credentials.Adapt([]EndpointMapping{
 		{
@@ -20,7 +20,7 @@ func TestCredentialIsChangedRMQ(t *testing.T) {
 		}})
 	g.Expect(credentials.Hostname).To(Equal("b"))
 	g.Expect(credentials.Port).To(Equal(2))
-	g.Expect(credentials.Uri).To(Equal("amqp://user:passwd@b:2"))
+	g.Expect(credentials.URI).To(Equal("amqp://user:passwd@b:2"))
 }
 
 func TestPostgresMarshalUnmarshalRMQ(t *testing.T) {
@@ -31,7 +31,7 @@ func TestPostgresMarshalUnmarshalRMQ(t *testing.T) {
 			AdditionalProperties: make(map[string]json.RawMessage),
 			Endpoints:            []Endpoint{{Host: "a", Port: 1}},
 		},
-		Hostname: "a", Port: 1, Uri: "amqp://user:passwd@a:1",
+		Hostname: "a", Port: 1, URI: "amqp://user:passwd@a:1",
 	}
 	data, err := json.Marshal(rabbitmqExpected.ToCredentials())
 	g.Expect(err).NotTo(HaveOccurred())
@@ -45,7 +45,7 @@ func TestPostgresMarshalUnmarshalRMQ(t *testing.T) {
 
 	g.Expect(rabbitmq.Hostname).To(Equal(rabbitmqExpected.Hostname))
 	g.Expect(rabbitmq.Port).To(Equal(rabbitmqExpected.Port))
-	g.Expect(rabbitmq.Uri).To(Equal(rabbitmqExpected.Uri))
+	g.Expect(rabbitmq.URI).To(Equal(rabbitmqExpected.URI))
 
 	g.Expect(rabbitmq.Endpoints).To(Equal(rabbitmqExpected.Endpoints))
 	g.Expect(rabbitmq.AdditionalProperties).To(Equal(rabbitmqExpected.AdditionalProperties))
@@ -55,7 +55,7 @@ func TestCredentialIsChangedToAnotherValueRMQ(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	credentials := RabbitMQCredentials{
-		Hostname: "a", Port: 1, Uri: "amqp://user:passwd@a:1",
+		Hostname: "a", Port: 1, URI: "amqp://user:passwd@a:1",
 	}
 	credentials.Adapt([]EndpointMapping{
 		{
@@ -65,7 +65,7 @@ func TestCredentialIsChangedToAnotherValueRMQ(t *testing.T) {
 
 	g.Expect(credentials.Hostname).To(Equal("myhost"))
 	g.Expect(credentials.Port).To(Equal(3))
-	g.Expect(credentials.Uri).To(Equal("amqp://user:passwd@myhost:3"))
+	g.Expect(credentials.URI).To(Equal("amqp://user:passwd@myhost:3"))
 }
 
 // Documenting weird behaviour of our implementation: We apply endpoint-mappings in place. And that means that two mappings with
@@ -74,7 +74,7 @@ func TestSecondMappingChangesResultOfFirstMappingRMQ(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	credentials := RabbitMQCredentials{
-		Hostname: "a", Port: 1, Uri: "amqp://user:passwd@a:1",
+		Hostname: "a", Port: 1, URI: "amqp://user:passwd@a:1",
 	}
 	credentials.Adapt([]EndpointMapping{
 		{
@@ -89,7 +89,7 @@ func TestSecondMappingChangesResultOfFirstMappingRMQ(t *testing.T) {
 
 	g.Expect(credentials.Hostname).To(Equal("c"))
 	g.Expect(credentials.Port).To(Equal(99))
-	g.Expect(credentials.Uri).To(Equal("amqp://user:passwd@c:99"))
+	g.Expect(credentials.URI).To(Equal("amqp://user:passwd@c:99"))
 
 }
 
@@ -97,7 +97,7 @@ func TestPortDoesntMatchRMQ(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	credentials := RabbitMQCredentials{
-		Hostname: "a", Port: 1, Uri: "amqp://user:passwd@a:1",
+		Hostname: "a", Port: 1, URI: "amqp://user:passwd@a:1",
 	}
 	credentials.Adapt([]EndpointMapping{
 		{
@@ -106,14 +106,14 @@ func TestPortDoesntMatchRMQ(t *testing.T) {
 		}})
 	g.Expect(credentials.Hostname).To(Equal("a"))
 	g.Expect(credentials.Port).To(Equal(1))
-	g.Expect(credentials.Uri).To(Equal("amqp://user:passwd@a:1"))
+	g.Expect(credentials.URI).To(Equal("amqp://user:passwd@a:1"))
 }
 
 func TestHostDoesntMatchRMQ(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	credentials := RabbitMQCredentials{
-		Hostname: "a", Port: 1, Uri: "amqp://user:passwd@a:1",
+		Hostname: "a", Port: 1, URI: "amqp://user:passwd@a:1",
 	}
 	credentials.Adapt([]EndpointMapping{
 		{
@@ -122,7 +122,7 @@ func TestHostDoesntMatchRMQ(t *testing.T) {
 		}})
 	g.Expect(credentials.Hostname).To(Equal("a"))
 	g.Expect(credentials.Port).To(Equal(1))
-	g.Expect(credentials.Uri).To(Equal("amqp://user:passwd@a:1"))
+	g.Expect(credentials.URI).To(Equal("amqp://user:passwd@a:1"))
 }
 
 func TestCredentialsInvalidUriRMQ(t *testing.T) {

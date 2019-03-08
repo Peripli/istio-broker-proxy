@@ -16,9 +16,9 @@ import (
 type ProducerInterceptor struct {
 	LoadBalancerPort  int
 	SystemDomain      string
-	ProviderId        string
+	ProviderID        string
 	IstioDirectory    string
-	IpAddress         string
+	IPAddress         string
 	ServiceNamePrefix string
 	PlanMetaData      string
 	NetworkProfile    string
@@ -26,29 +26,29 @@ type ProducerInterceptor struct {
 
 func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) error {
 	return c.writeIstioConfigFiles("istio-broker",
-		config.CreateEntriesForExternalService("istio-broker", string(c.IpAddress), uint32(port), "istio-broker."+c.SystemDomain, "", 9000, c.ProviderId))
+		config.CreateEntriesForExternalService("istio-broker", string(c.IPAddress), uint32(port), "istio-broker."+c.SystemDomain, "", 9000, c.ProviderID))
 }
 
 func (c ProducerInterceptor) PreBind(request model.BindRequest) (*model.BindRequest, error) {
 	return &request, nil
 }
 
-func (c ProducerInterceptor) PostBind(request model.BindRequest, response model.BindResponse, bindingId string,
+func (c ProducerInterceptor) PostBind(request model.BindRequest, response model.BindResponse, bindingID string,
 	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
 	if c.NetworkProfile == "" {
 		return nil, errors.New("network profile not configured")
 	}
 	systemDomain := c.SystemDomain
-	providerId := c.ProviderId
+	providerID := c.ProviderID
 	if len(response.Endpoints) == 0 {
 		response.Endpoints = response.Credentials.Endpoints
 	}
 	response.Credentials.Endpoints = nil
-	profiles.AddIstioNetworkDataToResponse(providerId, bindingId, systemDomain, c.LoadBalancerPort, &response, c.NetworkProfile)
+	profiles.AddIstioNetworkDataToResponse(providerID, bindingID, systemDomain, c.LoadBalancerPort, &response, c.NetworkProfile)
 
-	err := c.writeIstioFilesForProvider(bindingId, &request, &response)
+	err := c.writeIstioFilesForProvider(bindingID, &request, &response)
 	if err != nil {
-		c.PostDelete(bindingId)
+		c.PostDelete(bindingID)
 		return nil, err
 	}
 	return &response, nil
@@ -58,8 +58,8 @@ func (c ProducerInterceptor) HasAdaptCredentials() bool {
 	return true
 }
 
-func (c ProducerInterceptor) PostDelete(bindId string) error {
-	fileName := path.Join(c.IstioDirectory, bindId) + ".yml"
+func (c ProducerInterceptor) PostDelete(bindID string) error {
+	fileName := path.Join(c.IstioDirectory, bindID) + ".yml"
 	err := os.Remove(fileName)
 	if err != nil {
 		log.Printf("Ignoring error during removal of file %s: %v\n", fileName, err)
@@ -67,8 +67,8 @@ func (c ProducerInterceptor) PostDelete(bindId string) error {
 	return nil
 }
 
-func (c ProducerInterceptor) writeIstioFilesForProvider(bindingId string, request *model.BindRequest, response *model.BindResponse) error {
-	return c.writeIstioConfigFiles(bindingId, config.CreateIstioConfigForProvider(request, response, bindingId, c.SystemDomain, c.ProviderId))
+func (c ProducerInterceptor) writeIstioFilesForProvider(bindingID string, request *model.BindRequest, response *model.BindResponse) error {
+	return c.writeIstioConfigFiles(bindingID, config.CreateIstioConfigForProvider(request, response, bindingID, c.SystemDomain, c.ProviderID))
 }
 
 func (c ProducerInterceptor) writeIstioConfigFiles(fileName string, configuration []istioModel.Config) error {

@@ -50,9 +50,9 @@ func (client osbProxy) forward(ctx *gin.Context) {
 }
 
 func (client osbProxy) deleteBinding(ctx *gin.Context) {
-	bindingId := ctx.Params.ByName("binding_id")
+	bindingID := ctx.Params.ByName("binding_id")
 	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, ctx.Request, client.config}}, client.interceptor}
-	err := osbClient.Unbind(bindingId)
+	err := osbClient.Unbind(bindingID)
 	if err != nil {
 		httpError(ctx, err, http.StatusInternalServerError)
 		return
@@ -76,7 +76,7 @@ func (client osbProxy) forwardWithCallback(ctx *gin.Context, postCallback func(c
 
 	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
 
-	url := createNewUrl(client.config.ForwardURL, request)
+	url := createNewURL(client.config.ForwardURL, request)
 	proxyRequest, err := client.config.HttpRequestFactory(request.Method, url, request.Body)
 	proxyRequest.Header = request.Header
 
@@ -117,8 +117,8 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 
 	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, request, client.config}}, client.interceptor}
 	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
-	bindingId := ctx.Params.ByName("binding_id")
-	bindResponse, err := osbClient.Bind(bindingId, &bindRequest)
+	bindingID := ctx.Params.ByName("binding_id")
+	bindResponse, err := osbClient.Bind(bindingID, &bindRequest)
 	if err != nil {
 		httpError(ctx, err, http.StatusInternalServerError)
 		return
@@ -128,7 +128,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 
 func httpError(ctx *gin.Context, err error, statusCode int) {
 	log.Printf("ERROR: %s\n", err.Error())
-	httpError := model.HttpErrorFromError(err, statusCode)
+	httpError := model.HTTPErrorFromError(err, statusCode)
 	ctx.AbortWithStatusJSON(httpError.StatusCode, httpError)
 }
 
@@ -141,8 +141,8 @@ func httpRequestFactory(method string, url string, body io.Reader) (*http.Reques
 	return http.NewRequest(method, url, body)
 }
 
-func createNewUrl(newBaseUrl string, req *http.Request) string {
-	return fmt.Sprintf("%s%s", newBaseUrl, createNewPath(req))
+func createNewURL(newBaseURL string, req *http.Request) string {
+	return fmt.Sprintf("%s%s", newBaseURL, createNewPath(req))
 }
 
 func createNewPath(req *http.Request) string {

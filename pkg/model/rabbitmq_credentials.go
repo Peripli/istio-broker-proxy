@@ -9,7 +9,7 @@ type RabbitMQCredentials struct {
 	Credentials
 	Hostname string
 	Port     int
-	Uri      string
+	URI      string
 }
 
 func RabbitMQCredentialsConverter(credentials Credentials, endpointMappings []EndpointMapping) (*Credentials, error) {
@@ -29,24 +29,24 @@ func RabbitMQCredentialsFromCredentials(credentials Credentials) (*RabbitMQCrede
 	result := RabbitMQCredentials{}
 	result.Endpoints = credentials.Endpoints
 	result.AdditionalProperties = clone(credentials.AdditionalProperties)
-	err := removeProperty(result.AdditionalProperties, uri_key, &result.Uri)
+	err := removeProperty(result.AdditionalProperties, uriKey, &result.URI)
 	if err != nil {
 		return nil, err
 	}
-	if !(strings.HasPrefix(result.Uri, "amqp:")) {
+	if !(strings.HasPrefix(result.URI, "amqp:")) {
 		return nil, nil
 	}
 	err = removeProperties(result.AdditionalProperties, map[string]interface{}{
-		hostname_key: &result.Hostname,
+		hostnameKey: &result.Hostname,
 	})
 	if err != nil {
 		return nil, err
 	}
-	err = removeIntOrStringProperty(result.AdditionalProperties, port_key, &result.Port)
+	err = removeIntOrStringProperty(result.AdditionalProperties, portKey, &result.Port)
 	if err != nil {
 		return nil, err
 	}
-	if result.Uri == "" || result.Hostname == "" || result.Port == 0 {
+	if result.URI == "" || result.Hostname == "" || result.Port == 0 {
 		return nil, fmt.Errorf("Invalid rabbitmq credentials: %#v", result)
 	}
 	return &result, nil
@@ -55,14 +55,14 @@ func RabbitMQCredentialsFromCredentials(credentials Credentials) (*RabbitMQCrede
 func (credentials RabbitMQCredentials) ToCredentials() Credentials {
 	result := Credentials{clone(credentials.AdditionalProperties), credentials.Endpoints}
 	if len(credentials.Hostname) > 0 {
-		addProperty(result.AdditionalProperties, hostname_key, credentials.Hostname)
+		addProperty(result.AdditionalProperties, hostnameKey, credentials.Hostname)
 	}
-	if len(credentials.Uri) > 0 {
-		addProperty(result.AdditionalProperties, uri_key, credentials.Uri)
+	if len(credentials.URI) > 0 {
+		addProperty(result.AdditionalProperties, uriKey, credentials.URI)
 	}
 
 	if credentials.Port != 0 {
-		addProperty(result.AdditionalProperties, port_key, credentials.Port)
+		addProperty(result.AdditionalProperties, portKey, credentials.Port)
 	}
 	return result
 }
@@ -73,11 +73,11 @@ func (credentials *RabbitMQCredentials) Adapt(endpointMappings []EndpointMapping
 			credentials.Hostname = endpointMapping.Target.Host
 			credentials.Port = endpointMapping.Target.Port
 		}
-		credentials.Uri = replaceInRabbitMqUrl(credentials.Uri, endpointMapping)
+		credentials.URI = replaceInRabbitMqURL(credentials.URI, endpointMapping)
 
 	}
 }
 
-func replaceInRabbitMqUrl(url string, endpointMapping EndpointMapping) string {
-	return replaceInUrl(url, endpointMapping, 5672)
+func replaceInRabbitMqURL(url string, endpointMapping EndpointMapping) string {
+	return replaceInURL(url, endpointMapping, 5672)
 }

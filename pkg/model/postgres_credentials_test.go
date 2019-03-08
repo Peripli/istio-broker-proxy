@@ -11,7 +11,7 @@ func TestCredentialIsChanged(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	credentials := PostgresCredentials{
-		Hostname: "a", Port: 1, Uri: "postgres://user:passwd@a:1/dbname",
+		Hostname: "a", Port: 1, URI: "postgres://user:passwd@a:1/dbname",
 	}
 	credentials.Adapt([]EndpointMapping{
 		EndpointMapping{
@@ -20,7 +20,7 @@ func TestCredentialIsChanged(t *testing.T) {
 		}})
 	g.Expect(credentials.Hostname).To(Equal("b"))
 	g.Expect(credentials.Port).To(Equal(2))
-	g.Expect(credentials.Uri).To(Equal("postgres://user:passwd@b:2/dbname"))
+	g.Expect(credentials.URI).To(Equal("postgres://user:passwd@b:2/dbname"))
 }
 
 func TestPostgresMarshalUnmarshal(t *testing.T) {
@@ -31,8 +31,8 @@ func TestPostgresMarshalUnmarshal(t *testing.T) {
 			AdditionalProperties: make(map[string]json.RawMessage),
 			Endpoints:            []Endpoint{{Host: "a", Port: 1}},
 		},
-		Hostname: "a", Port: 1, Uri: "postgres://user:passwd@a:1/dbname",
-		WriteUrl: "postgres://write", ReadUrl: "postgres://read",
+		Hostname: "a", Port: 1, URI: "postgres://user:passwd@a:1/dbname",
+		WriteURL: "postgres://write", ReadURL: "postgres://read",
 	}
 	data, err := json.Marshal(postgresExpected.ToCredentials())
 	g.Expect(err).NotTo(HaveOccurred())
@@ -46,9 +46,9 @@ func TestPostgresMarshalUnmarshal(t *testing.T) {
 
 	g.Expect(postgres.Hostname).To(Equal(postgresExpected.Hostname))
 	g.Expect(postgres.Port).To(Equal(postgresExpected.Port))
-	g.Expect(postgres.Uri).To(Equal(postgresExpected.Uri))
-	g.Expect(postgres.WriteUrl).To(Equal(postgresExpected.WriteUrl))
-	g.Expect(postgres.ReadUrl).To(Equal(postgresExpected.ReadUrl))
+	g.Expect(postgres.URI).To(Equal(postgresExpected.URI))
+	g.Expect(postgres.WriteURL).To(Equal(postgresExpected.WriteURL))
+	g.Expect(postgres.ReadURL).To(Equal(postgresExpected.ReadURL))
 	g.Expect(postgres.Endpoints).To(Equal(postgresExpected.Endpoints))
 	g.Expect(postgres.AdditionalProperties).To(Equal(postgresExpected.AdditionalProperties))
 }
@@ -57,7 +57,7 @@ func TestCredentialIsChangedToAnotherValue(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	credentials := PostgresCredentials{
-		Hostname: "a", Port: 1, Uri: "postgres://user:passwd@a:1/dbname",
+		Hostname: "a", Port: 1, URI: "postgres://user:passwd@a:1/dbname",
 	}
 	credentials.Adapt([]EndpointMapping{
 		{
@@ -67,7 +67,7 @@ func TestCredentialIsChangedToAnotherValue(t *testing.T) {
 
 	g.Expect(credentials.Hostname).To(Equal("myhost"))
 	g.Expect(credentials.Port).To(Equal(3))
-	g.Expect(credentials.Uri).To(Equal("postgres://user:passwd@myhost:3/dbname"))
+	g.Expect(credentials.URI).To(Equal("postgres://user:passwd@myhost:3/dbname"))
 }
 
 // Documenting weird behaviour of our implementation: We apply endpoint-mappings in place. And that means that two mappings with
@@ -76,7 +76,7 @@ func TestSecondMappingChangesResultOfFirstMapping(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	credentials := PostgresCredentials{
-		Hostname: "a", Port: 1, Uri: "postgres://user:passwd@a:1/dbname",
+		Hostname: "a", Port: 1, URI: "postgres://user:passwd@a:1/dbname",
 	}
 	credentials.Adapt([]EndpointMapping{
 		{
@@ -91,7 +91,7 @@ func TestSecondMappingChangesResultOfFirstMapping(t *testing.T) {
 
 	g.Expect(credentials.Hostname).To(Equal("c"))
 	g.Expect(credentials.Port).To(Equal(99))
-	g.Expect(credentials.Uri).To(Equal("postgres://user:passwd@c:99/dbname"))
+	g.Expect(credentials.URI).To(Equal("postgres://user:passwd@c:99/dbname"))
 
 }
 
@@ -99,7 +99,7 @@ func TestPortDoesntMatch(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	credentials := PostgresCredentials{
-		Hostname: "a", Port: 1, Uri: "postgres://user:passwd@a:1/dbname",
+		Hostname: "a", Port: 1, URI: "postgres://user:passwd@a:1/dbname",
 	}
 	credentials.Adapt([]EndpointMapping{
 		{
@@ -108,14 +108,14 @@ func TestPortDoesntMatch(t *testing.T) {
 		}})
 	g.Expect(credentials.Hostname).To(Equal("a"))
 	g.Expect(credentials.Port).To(Equal(1))
-	g.Expect(credentials.Uri).To(Equal("postgres://user:passwd@a:1/dbname"))
+	g.Expect(credentials.URI).To(Equal("postgres://user:passwd@a:1/dbname"))
 }
 
 func TestHostDoesntMatch(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	credentials := PostgresCredentials{
-		Hostname: "a", Port: 1, Uri: "postgres://user:passwd@a:1/dbname",
+		Hostname: "a", Port: 1, URI: "postgres://user:passwd@a:1/dbname",
 	}
 	credentials.Adapt([]EndpointMapping{
 		EndpointMapping{
@@ -124,14 +124,14 @@ func TestHostDoesntMatch(t *testing.T) {
 		}})
 	g.Expect(credentials.Hostname).To(Equal("a"))
 	g.Expect(credentials.Port).To(Equal(1))
-	g.Expect(credentials.Uri).To(Equal("postgres://user:passwd@a:1/dbname"))
+	g.Expect(credentials.URI).To(Equal("postgres://user:passwd@a:1/dbname"))
 }
 
 func TestWriteUrlIsAdapted(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	credentials := PostgresCredentials{
-		WriteUrl: "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master",
+		WriteURL: "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master",
 		Hostname: "a", Port: 1,
 	}
 	credentials.Adapt([]EndpointMapping{
@@ -143,14 +143,14 @@ func TestWriteUrlIsAdapted(t *testing.T) {
 			Source: Endpoint{Host: "10.11.19.241", Port: 5432},
 			Target: Endpoint{Host: "hostb", Port: 456},
 		}})
-	g.Expect(credentials.WriteUrl).To(Equal("jdbc:postgresql://hosta:123,hostb:456/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master"))
+	g.Expect(credentials.WriteURL).To(Equal("jdbc:postgresql://hosta:123,hostb:456/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master"))
 }
 
 func TestWriteUrlIsAdaptedWithGivenDefaultPort(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	credentials := PostgresCredentials{
-		WriteUrl: "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master",
+		WriteURL: "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master",
 		Hostname: "a", Port: 1,
 	}
 	credentials.Adapt([]EndpointMapping{
@@ -162,14 +162,14 @@ func TestWriteUrlIsAdaptedWithGivenDefaultPort(t *testing.T) {
 			Source: Endpoint{Host: "10.11.19.241", Port: 5432},
 			Target: Endpoint{Host: "hostb", Port: 456},
 		}})
-	g.Expect(credentials.WriteUrl).To(Equal("jdbc:postgresql://hosta:123,hostb:456/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master"))
+	g.Expect(credentials.WriteURL).To(Equal("jdbc:postgresql://hosta:123,hostb:456/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master"))
 }
 
 func TestReadUrlIsAdapted(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	credentials := PostgresCredentials{
-		ReadUrl:  "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=preferSlave\u0026loadBalanceHosts=true",
+		ReadURL:  "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=preferSlave\u0026loadBalanceHosts=true",
 		Hostname: "a", Port: 1,
 	}
 	credentials.Adapt([]EndpointMapping{
@@ -181,14 +181,14 @@ func TestReadUrlIsAdapted(t *testing.T) {
 			Source: Endpoint{Host: "10.11.19.241", Port: 5432},
 			Target: Endpoint{Host: "hostb", Port: 456},
 		}})
-	g.Expect(credentials.ReadUrl).To(Equal("jdbc:postgresql://hosta:123,hostb:456/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=preferSlave\u0026loadBalanceHosts=true"))
+	g.Expect(credentials.ReadURL).To(Equal("jdbc:postgresql://hosta:123,hostb:456/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=preferSlave\u0026loadBalanceHosts=true"))
 }
 
 func TestReadUrlIsUnchangedWhenSourceIsStringContainedWithinHost(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	credentials := PostgresCredentials{
-		ReadUrl:  "x:y://11.0.0.11,11.1.1.11/z",
+		ReadURL:  "x:y://11.0.0.11,11.1.1.11/z",
 		Hostname: "a", Port: 1,
 	}
 	credentials.Adapt([]EndpointMapping{
@@ -196,14 +196,14 @@ func TestReadUrlIsUnchangedWhenSourceIsStringContainedWithinHost(t *testing.T) {
 			Source: Endpoint{Host: "1.0.0.1", Port: 5432},
 			Target: Endpoint{Host: "host", Port: 5432},
 		}})
-	g.Expect(credentials.ReadUrl).To(Equal("x:y://11.0.0.11,11.1.1.11/z"))
+	g.Expect(credentials.ReadURL).To(Equal("x:y://11.0.0.11,11.1.1.11/z"))
 }
 
 func TestHostIsReplacedTwoTimes(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	credentials := PostgresCredentials{
-		ReadUrl:  "x:y://hosta,hostb,hosta/z",
+		ReadURL:  "x:y://hosta,hostb,hosta/z",
 		Hostname: "a", Port: 1,
 	}
 	credentials.Adapt([]EndpointMapping{
@@ -211,7 +211,7 @@ func TestHostIsReplacedTwoTimes(t *testing.T) {
 			Source: Endpoint{Host: "hosta", Port: 5432},
 			Target: Endpoint{Host: "hostX", Port: 5432},
 		}})
-	g.Expect(credentials.ReadUrl).To(Equal("x:y://hostX:5432,hostb,hostX:5432/z"))
+	g.Expect(credentials.ReadURL).To(Equal("x:y://hostX:5432,hostb,hostX:5432/z"))
 }
 
 func TestCredentialsInvalidUri(t *testing.T) {

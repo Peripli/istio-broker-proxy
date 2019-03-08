@@ -20,18 +20,18 @@ func adaptError(credentials model.Credentials, endpointMappings []model.Endpoint
 func TestConsumerPreBind(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", NetworkProfile: "network-profile"}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", NetworkProfile: "network-profile"}
 	request, err := consumer.PreBind(model.BindRequest{})
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(request.NetworkData.NetworkProfileId).To(Equal("network-profile"))
-	g.Expect(request.NetworkData.Data.ConsumerId).To(Equal("consumer-id"))
+	g.Expect(request.NetworkData.NetworkProfileID).To(Equal("network-profile"))
+	g.Expect(request.NetworkData.Data.ConsumerID).To(Equal("consumer-id"))
 
 }
 
 func TestConsumerPreBindWithoutNetworkProfile(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id"}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id"}
 	_, err := consumer.PreBind(model.BindRequest{})
 	g.Expect(err).To(HaveOccurred())
 }
@@ -75,7 +75,7 @@ func TestConsumerPostBind(t *testing.T) {
 	g := NewGomegaWithT(t)
 	kubernetes := MockConfigStore{}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &kubernetes}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &kubernetes}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(kubernetes.CreatedServices).To(HaveLen(1))
@@ -87,7 +87,7 @@ func TestConsumerPostBindReturnsError(t *testing.T) {
 	g := NewGomegaWithT(t)
 	kubernetes := MockConfigStore{}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &kubernetes}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &kubernetes}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "678", adaptError)
 	g.Expect(err).To(HaveOccurred())
 }
@@ -96,7 +96,7 @@ func TestNoEndpointsPresent(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := MockConfigStore{}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, model.BindResponse{}, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(configStore.CreatedServices).To(BeNil())
@@ -106,8 +106,8 @@ func TestNoEndpointsPresent(t *testing.T) {
 func TestEndpointsMappingWorks(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := MockConfigStore{}
-	configStore.ClusterIp = "1.2.3.5"
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore, NetworkProfile: "testprofile"}
+	configStore.ClusterIP = "1.2.3.5"
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore, NetworkProfile: "testprofile"}
 	endpoints := []model.Endpoint{
 		{
 			Host: "10.10.10.11",
@@ -119,10 +119,10 @@ func TestEndpointsMappingWorks(t *testing.T) {
 			Credentials: model.Credentials{},
 			Hostname:    "10.10.10.11",
 			Port:        5432,
-			Uri:         "postgres://user:password@10.10.10.11:5432/test",
+			URI:         "postgres://user:password@10.10.10.11:5432/test",
 		}.ToCredentials(),
 			Endpoints:   endpoints,
-			NetworkData: model.NetworkDataResponse{NetworkProfileId: "testprofile", Data: model.DataResponse{Endpoints: endpoints}}},
+			NetworkData: model.NetworkDataResponse{NetworkProfileID: "testprofile", Data: model.DataResponse{Endpoints: endpoints}}},
 		"678", model.Adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -130,7 +130,7 @@ func TestEndpointsMappingWorks(t *testing.T) {
 	g.Expect(len(binding.Endpoints)).To(Equal(1))
 	g.Expect(binding.Endpoints[0].Host).To(Equal("1.2.3.5"))
 	g.Expect(binding.Endpoints[0].Port).To(Equal(service_port))
-	g.Expect(binding.NetworkData.NetworkProfileId).To(Equal("testprofile"))
+	g.Expect(binding.NetworkData.NetworkProfileID).To(Equal("testprofile"))
 	g.Expect(len(binding.NetworkData.Data.Endpoints)).To(Equal(1))
 	g.Expect(binding.NetworkData.Data.Endpoints[0]).To(Equal(endpoints[0]))
 
@@ -138,7 +138,7 @@ func TestEndpointsMappingWorks(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(postgresCredentials.Hostname).To(Equal("1.2.3.5"))
 	g.Expect(postgresCredentials.Port).To(Equal(service_port))
-	g.Expect(postgresCredentials.Uri).To(Equal("postgres://user:password@1.2.3.5:5555/test"))
+	g.Expect(postgresCredentials.URI).To(Equal("postgres://user:password@1.2.3.5:5555/test"))
 
 }
 
@@ -146,7 +146,7 @@ func TestBindIdIsPartOfServiceName(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := MockConfigStore{}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "555", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(configStore.CreatedServices).To(HaveLen(1))
@@ -157,7 +157,7 @@ func TestMaximumLengthIsNotExceededWithRealBindId(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := MockConfigStore{}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "f1b32107-c8a5-11e8-b8be-02caceffa7f1", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -171,7 +171,7 @@ func TestEndpointIndexIsPartOfServiceName(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := MockConfigStore{}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "adf123", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(configStore.CreatedServices).To(HaveLen(2))
@@ -182,7 +182,7 @@ func TestConsumerInterceptorCreatesIstioObjects(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := MockConfigStore{}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -203,7 +203,7 @@ func TestTwoEndpointsCreateTwelveObject(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := MockConfigStore{}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -224,7 +224,7 @@ func TestTwoEndpointsHasTheCorrcetCount(t *testing.T) {
 					Host: "0.678.istio.my.arbitrary.domain.io",
 					Port: 9001}}}}}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponse, "678", adapt)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("Number of endpoints"))
@@ -232,9 +232,9 @@ func TestTwoEndpointsHasTheCorrcetCount(t *testing.T) {
 
 func TestClusterIpIsUsed(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{ClusterIp: "9.8.7.6"}
+	configStore := MockConfigStore{ClusterIP: "9.8.7.6"}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -247,7 +247,7 @@ func TestCreateServiceErrorIsHandled(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := MockConfigStore{CreateServiceErr: fmt.Errorf("Test service error")}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("Test service error"))
@@ -257,7 +257,7 @@ func TestCreateObjectErrorIsHandled(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := MockConfigStore{CreateObjectErr: fmt.Errorf("Test object error")}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("Test object error"))
@@ -267,7 +267,7 @@ func TestConsumerPostDelete(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := MockConfigStore{}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 
 	err = consumer.PostDelete("678")
@@ -292,7 +292,7 @@ func TestConsumerPostDeleteNoResourceLeaks(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := MockConfigStore{}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 
 	g.Expect(configStore.CreatedServices).To(HaveLen(2))
@@ -312,7 +312,7 @@ func TestConsumerFailingPostBindGetsCleanedUp(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := MockConfigStore{CreateObjectErrCount: 3, CreateObjectErr: errors.New("No more objects")}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 	g.Expect(err).To(HaveOccurred())
@@ -343,7 +343,7 @@ func TestBindAdaptEndpointsOnlyIfNetworkProfilesMatch(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := MockConfigStore{}
 
-	consumer := ConsumerInterceptor{ConsumerId: "consumer-id", ConfigStore: &configStore, NetworkProfile: "urn:my.test:public"}
+	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore, NetworkProfile: "urn:my.test:public"}
 	binding, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "555", adaptError)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(*binding).To(Equal(bindResponseSingleEndpoint))

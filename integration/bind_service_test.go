@@ -373,7 +373,7 @@ func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
 	g := NewGomegaWithT(t)
 	kubectl := NewKubeCtl(g)
 
-	bindId := createServiceBinding(kubectl, g, "postgres", service_instance, service_binding)
+	bindID := createServiceBinding(kubectl, g, "postgres", service_instance, service_binding)
 
 	kubectl.Delete("ServiceBinding", "postgres-binding")
 	kubectl.Delete("ServiceInstance", "postgres-instance")
@@ -382,7 +382,7 @@ func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
 	kubectl.List(&serviceEntries, "-n", "catalog")
 	matchingIstioObjectCount := 0
 	for _, serviceEntry := range serviceEntries.Items {
-		if strings.Contains(serviceEntry.Metadata.Name, bindId) {
+		if strings.Contains(serviceEntry.Metadata.Name, bindID) {
 			matchingIstioObjectCount += 1
 		}
 	}
@@ -393,7 +393,7 @@ func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
 
 	for _, virtualService := range virtualServices.Items {
 
-		if strings.Contains(virtualService.Metadata.Name, bindId) {
+		if strings.Contains(virtualService.Metadata.Name, bindID) {
 			matchingIstioObjectCount += 1
 		}
 	}
@@ -405,7 +405,7 @@ func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
 
 	for _, gateway := range gateways.Items {
 
-		if strings.Contains(gateway.Metadata.Name, bindId) {
+		if strings.Contains(gateway.Metadata.Name, bindID) {
 			matchingIstioObjectCount += 1
 		}
 	}
@@ -417,7 +417,7 @@ func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
 
 	for _, destinationRule := range destinationRules.Items {
 
-		if strings.Contains(destinationRule.Metadata.Name, bindId) {
+		if strings.Contains(destinationRule.Metadata.Name, bindID) {
 			matchingIstioObjectCount += 1
 		}
 	}
@@ -469,16 +469,16 @@ func createServiceBinding(kubectl *kubectl, g *GomegaWithT, name string, service
 	waitForServiceInstance(kubectl, g, name)
 	kubectl.Apply([]byte(bindingConfig))
 	serviceBinding := waitForServiceBinding(kubectl, g, name)
-	bindId := serviceBinding.Spec.ExternalID
+	bindID := serviceBinding.Spec.ExternalID
 	var services v1.ServiceList
 	kubectl.List(&services, "--all-namespaces=true")
 	g.Expect(services.Items).NotTo(BeEmpty(), "List of available services in OSB should not be empty")
-	g.Expect(serviceExists(services, bindId)).To(BeTrue())
+	g.Expect(serviceExists(services, bindID)).To(BeTrue())
 	var serviceEntries ServiceEntryList
 	kubectl.List(&serviceEntries, "--all-namespaces=true")
 	matchingServiceEntryExists := false
 	for _, serviceEntry := range serviceEntries.Items {
-		if strings.Contains(serviceEntry.Metadata.Name, bindId) {
+		if strings.Contains(serviceEntry.Metadata.Name, bindID) {
 			matchingServiceEntryExists = true
 		}
 	}
@@ -488,7 +488,7 @@ func createServiceBinding(kubectl *kubectl, g *GomegaWithT, name string, service
 	matchingIstioObjectCount := 0
 	for _, virtualService := range virtualServices.Items {
 
-		if strings.Contains(virtualService.Metadata.Name, bindId) {
+		if strings.Contains(virtualService.Metadata.Name, bindID) {
 			matchingIstioObjectCount += 1
 		}
 	}
@@ -498,7 +498,7 @@ func createServiceBinding(kubectl *kubectl, g *GomegaWithT, name string, service
 	matchingIstioObjectCount = 0
 	for _, gateway := range gateways.Items {
 
-		if strings.Contains(gateway.Metadata.Name, bindId) {
+		if strings.Contains(gateway.Metadata.Name, bindID) {
 			matchingIstioObjectCount += 1
 		}
 	}
@@ -508,17 +508,17 @@ func createServiceBinding(kubectl *kubectl, g *GomegaWithT, name string, service
 	matchingIstioObjectCount = 0
 	for _, destinationRule := range destinationRules.Items {
 
-		if strings.Contains(destinationRule.Metadata.Name, bindId) {
+		if strings.Contains(destinationRule.Metadata.Name, bindID) {
 			matchingIstioObjectCount += 1
 		}
 	}
 	g.Expect(matchingIstioObjectCount).To(Equal(2))
-	return bindId
+	return bindID
 }
 
-func serviceExists(services v1.ServiceList, bindId string) bool {
+func serviceExists(services v1.ServiceList, bindID string) bool {
 	for _, service := range services.Items {
-		if strings.Contains(service.Name, bindId) {
+		if strings.Contains(service.Name, bindID) {
 			return true
 		}
 	}

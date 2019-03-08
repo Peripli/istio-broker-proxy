@@ -15,7 +15,7 @@ func TestSetupConfiguration(t *testing.T) {
 	flag.CommandLine.Parse(args)
 
 	g.Expect(routerConfig.SkipVerifyTLS).To(BeTrue())
-	g.Expect(producerInterceptor.ProviderId).To(Equal("istio.yyy.io"))
+	g.Expect(producerInterceptor.ProviderID).To(Equal("istio.yyy.io"))
 }
 
 func TestConfigureProducerInterceptor(t *testing.T) {
@@ -41,7 +41,7 @@ func TestConfigureConsumerInterceptor(t *testing.T) {
 	g.Expect(ok).To(BeTrue())
 
 	g.Expect(interceptor.NetworkProfile).To(Equal("xxx.yyy"))
-	g.Expect(interceptor.ConsumerId).To(Equal("istio.yyy.io"))
+	g.Expect(interceptor.ConsumerID).To(Equal("istio.yyy.io"))
 }
 
 func newMockConfigStore() router.ConfigStore {

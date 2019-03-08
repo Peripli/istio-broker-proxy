@@ -18,26 +18,26 @@ const (
 	destinationRule = "DestinationRule"
 )
 const (
-	istio_gateway         = "gateway"
-	istio_serviceEntry    = "service-entry"
-	istio_virtualService  = "virtual-service"
-	istio_destinationRule = "destination-rule"
+	istioGateway         = "gateway"
+	istioServiceEntry    = "service-entry"
+	istioVirtualService  = "virtual-service"
+	istioDestinationRule = "destination-rule"
 )
 
 var invalidIdentifiers = regexp.MustCompile(`[^0-9a-z-]`)
 
 var schemas = map[string]istioModel.ProtoSchema{
-	gateway:               istioModel.Gateway,
-	serviceEntry:          istioModel.ServiceEntry,
-	virtualService:        istioModel.VirtualService,
-	destinationRule:       istioModel.DestinationRule,
-	istio_gateway:         istioModel.Gateway,
-	istio_serviceEntry:    istioModel.ServiceEntry,
-	istio_virtualService:  istioModel.VirtualService,
-	istio_destinationRule: istioModel.DestinationRule,
+	gateway:              istioModel.Gateway,
+	serviceEntry:         istioModel.ServiceEntry,
+	virtualService:       istioModel.VirtualService,
+	destinationRule:      istioModel.DestinationRule,
+	istioGateway:         istioModel.Gateway,
+	istioServiceEntry:    istioModel.ServiceEntry,
+	istioVirtualService:  istioModel.VirtualService,
+	istioDestinationRule: istioModel.DestinationRule,
 }
 
-type ServiceId struct {
+type IstioObjectID struct {
 	Type string
 	Name string
 }
@@ -52,18 +52,18 @@ func CreateEntriesForExternalService(serviceName string, endpointServiceEntry st
 	return configs
 }
 
-func CreateIstioConfigForProvider(request *model.BindRequest, response *model.BindResponse, bindingId string, systemDomain string, providerSAN string) []istioModel.Config {
+func CreateIstioConfigForProvider(request *model.BindRequest, response *model.BindResponse, bindingID string, systemDomain string, providerSAN string) []istioModel.Config {
 	var istioConfig []istioModel.Config
 	for index, endpoint := range response.Endpoints {
 		portServiceEntry := uint32(endpoint.Port)
-		consumerId := request.NetworkData.Data.ConsumerId
+		consumerID := request.NetworkData.Data.ConsumerID
 		ingressPort := uint32(9000)
 
-		serviceName := createValidIdentifer(fmt.Sprintf("%d-%s", index, bindingId))
+		serviceName := createValidIdentifer(fmt.Sprintf("%d-%s", index, bindingID))
 		endpointServiceEntry := endpoint.Host
-		hostVirtualService := profiles.CreateEndpointHosts(bindingId, systemDomain, index)
+		hostVirtualService := profiles.CreateEndpointHosts(bindingID, systemDomain, index)
 		istioConfig = append(istioConfig,
-			CreateEntriesForExternalService(serviceName, endpointServiceEntry, portServiceEntry, hostVirtualService, consumerId, ingressPort, providerSAN)...)
+			CreateEntriesForExternalService(serviceName, endpointServiceEntry, portServiceEntry, hostVirtualService, consumerID, ingressPort, providerSAN)...)
 	}
 	return istioConfig
 }
@@ -77,8 +77,8 @@ func createValidIdentifer(identifer string) string {
 
 }
 
-func DeleteEntriesForExternalServiceClient(serviceName string) []ServiceId {
-	result := make([]ServiceId, 0)
+func DeleteEntriesForExternalServiceClient(serviceName string) []IstioObjectID {
+	result := make([]IstioObjectID, 0)
 	result = append(result, sidecarDestinationRuleForExternalService(serviceName))
 	result = append(result, egressDestinationRuleForExternalService(serviceName))
 	result = append(result, egressGatewayForExternalService(serviceName))

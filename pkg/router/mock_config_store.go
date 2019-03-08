@@ -10,7 +10,7 @@ import (
 type MockConfigStore struct {
 	CreatedServices      []*v1.Service
 	CreatedIstioConfigs  []istioModel.Config
-	ClusterIp            string
+	ClusterIP            string
 	CreateServiceErr     error
 	CreateObjectErr      error
 	CreateObjectErrCount int
@@ -23,7 +23,7 @@ func (m *MockConfigStore) CreateService(service *v1.Service) (*v1.Service, error
 		return nil, m.CreateServiceErr
 	}
 	m.CreatedServices = append(m.CreatedServices, service)
-	service.Spec.ClusterIP = m.ClusterIp
+	service.Spec.ClusterIP = m.ClusterIP
 	return service, nil
 }
 

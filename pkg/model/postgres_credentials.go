@@ -7,21 +7,21 @@ import (
 )
 
 const (
-	default_postgres_port = 5432
-	hostname_key          = "hostname"
-	port_key              = "port"
-	write_url_key         = "write_url"
-	read_url_key          = "read_url"
-	uri_key               = "uri"
+	defaultPostgresPort = 5432
+	hostnameKey         = "hostname"
+	portKey             = "port"
+	writeUrlKey         = "write_url"
+	readUrlKey          = "read_url"
+	uriKey              = "uri"
 )
 
 type PostgresCredentials struct {
 	Credentials
 	Hostname string
 	Port     int
-	Uri      string
-	WriteUrl string
-	ReadUrl  string
+	URI      string
+	WriteURL string
+	ReadURL  string
 }
 
 func PostgresCredentialsConverter(credentials Credentials, endpointMappings []EndpointMapping) (*Credentials, error) {
@@ -41,26 +41,26 @@ func PostgresCredentialsFromCredentials(credentials Credentials) (*PostgresCrede
 	result := PostgresCredentials{}
 	result.Endpoints = credentials.Endpoints
 	result.AdditionalProperties = clone(credentials.AdditionalProperties)
-	err := removeProperty(result.AdditionalProperties, uri_key, &result.Uri)
+	err := removeProperty(result.AdditionalProperties, uriKey, &result.URI)
 	if err != nil {
 		return nil, err
 	}
-	if !(strings.HasPrefix(result.Uri, "postgres:") || strings.HasPrefix(result.Uri, "jdbc:postgres:")) {
+	if !(strings.HasPrefix(result.URI, "postgres:") || strings.HasPrefix(result.URI, "jdbc:postgres:")) {
 		return nil, nil
 	}
 	err = removeProperties(result.AdditionalProperties, map[string]interface{}{
-		hostname_key:  &result.Hostname,
-		write_url_key: &result.WriteUrl,
-		read_url_key:  &result.ReadUrl,
+		hostnameKey: &result.Hostname,
+		writeUrlKey: &result.WriteURL,
+		readUrlKey:  &result.ReadURL,
 	})
 	if err != nil {
 		return nil, err
 	}
-	err = removeIntOrStringProperty(result.AdditionalProperties, port_key, &result.Port)
+	err = removeIntOrStringProperty(result.AdditionalProperties, portKey, &result.Port)
 	if err != nil {
 		return nil, err
 	}
-	if result.Uri == "" || result.Hostname == "" || result.Port == 0 {
+	if result.URI == "" || result.Hostname == "" || result.Port == 0 {
 		return nil, fmt.Errorf("Invalid postgres credentials: %#v", result)
 	}
 	return &result, nil
@@ -69,19 +69,19 @@ func PostgresCredentialsFromCredentials(credentials Credentials) (*PostgresCrede
 func (credentials PostgresCredentials) ToCredentials() Credentials {
 	result := Credentials{clone(credentials.AdditionalProperties), credentials.Endpoints}
 	if len(credentials.Hostname) > 0 {
-		addProperty(result.AdditionalProperties, hostname_key, credentials.Hostname)
+		addProperty(result.AdditionalProperties, hostnameKey, credentials.Hostname)
 	}
-	if len(credentials.Uri) > 0 {
-		addProperty(result.AdditionalProperties, uri_key, credentials.Uri)
+	if len(credentials.URI) > 0 {
+		addProperty(result.AdditionalProperties, uriKey, credentials.URI)
 	}
-	if len(credentials.ReadUrl) > 0 {
-		addProperty(result.AdditionalProperties, read_url_key, credentials.ReadUrl)
+	if len(credentials.ReadURL) > 0 {
+		addProperty(result.AdditionalProperties, readUrlKey, credentials.ReadURL)
 	}
-	if len(credentials.WriteUrl) > 0 {
-		addProperty(result.AdditionalProperties, write_url_key, credentials.WriteUrl)
+	if len(credentials.WriteURL) > 0 {
+		addProperty(result.AdditionalProperties, writeUrlKey, credentials.WriteURL)
 	}
 	if credentials.Port != 0 {
-		addProperty(result.AdditionalProperties, port_key, credentials.Port)
+		addProperty(result.AdditionalProperties, portKey, credentials.Port)
 	}
 	return result
 }
@@ -92,17 +92,17 @@ func (credentials *PostgresCredentials) Adapt(endpointMappings []EndpointMapping
 			credentials.Hostname = endpointMapping.Target.Host
 			credentials.Port = endpointMapping.Target.Port
 		}
-		credentials.Uri = replaceInPostgresUrl(credentials.Uri, endpointMapping)
-		credentials.ReadUrl = replaceInPostgresUrl(credentials.ReadUrl, endpointMapping)
-		credentials.WriteUrl = replaceInPostgresUrl(credentials.WriteUrl, endpointMapping)
+		credentials.URI = replaceInPostgresURL(credentials.URI, endpointMapping)
+		credentials.ReadURL = replaceInPostgresURL(credentials.ReadURL, endpointMapping)
+		credentials.WriteURL = replaceInPostgresURL(credentials.WriteURL, endpointMapping)
 	}
 }
 
-func replaceInPostgresUrl(url string, endpointMapping EndpointMapping) string {
-	return replaceInUrl(url, endpointMapping, default_postgres_port)
+func replaceInPostgresURL(url string, endpointMapping EndpointMapping) string {
+	return replaceInURL(url, endpointMapping, defaultPostgresPort)
 }
 
-func replaceInUrl(url string, endpointMapping EndpointMapping, defaultPort int) string {
+func replaceInURL(url string, endpointMapping EndpointMapping, defaultPort int) string {
 	pattern := toHostPortPattern(endpointMapping.Source, defaultPort)
 	return pattern.ReplaceAllString(url, "${1}"+toHostString(endpointMapping.Target)+"${2}")
 }

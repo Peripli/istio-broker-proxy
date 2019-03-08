@@ -27,12 +27,12 @@ func configureInterceptor(configStoreFactory func() router.ConfigStore) router.S
 	}
 	log.Printf("Running on port %d\n", routerConfig.Port)
 	var interceptor router.ServiceBrokerInterceptor
-	if consumerInterceptor.ConsumerId != "" {
+	if consumerInterceptor.ConsumerID != "" {
 		consumerInterceptor.ServiceNamePrefix = serviceNamePrefix
 		consumerInterceptor.NetworkProfile = networkProfile
 		consumerInterceptor.ConfigStore = configStoreFactory()
 		interceptor = consumerInterceptor
-	} else if producerInterceptor.ProviderId != "" {
+	} else if producerInterceptor.ProviderID != "" {
 		producerInterceptor.ServiceNamePrefix = serviceNamePrefix
 		producerInterceptor.NetworkProfile = networkProfile
 		err := producerInterceptor.WriteIstioConfigFiles(routerConfig.Port)
@@ -49,15 +49,15 @@ func configureInterceptor(configStoreFactory func() router.ConfigStore) router.S
 // SetupConfiguration sets up the configuration (e.g. initializing the available command line parameters)
 func SetupConfiguration() {
 	flag.StringVar(&producerInterceptor.SystemDomain, "systemdomain", "", "system domain of the landscape")
-	flag.StringVar(&producerInterceptor.ProviderId, "providerId", "", "The subject alternative name of the provider for which the service has a certificate")
+	flag.StringVar(&producerInterceptor.ProviderID, "providerId", "", "The subject alternative name of the provider for which the service has a certificate")
 
 	flag.IntVar(&producerInterceptor.LoadBalancerPort, "loadBalancerPort", 9000, "port of the load balancer of the landscape")
 	flag.StringVar(&producerInterceptor.IstioDirectory, "istioDirectory", os.TempDir(), "Directory to store the istio configuration files")
-	flag.StringVar(&producerInterceptor.IpAddress, "ipAddress", "127.0.0.1", "IP address of ingress")
+	flag.StringVar(&producerInterceptor.IPAddress, "ipAddress", "127.0.0.1", "IP address of ingress")
 	flag.StringVar(&producerInterceptor.PlanMetaData, "planMetaData", "{}", "Metadata which is added to each service")
 	flag.StringVar(&networkProfile, "networkProfile", "", "Network profile e.g. urn:local.test:public")
 
-	flag.StringVar(&consumerInterceptor.ConsumerId, "consumerId", "", "The subject alternative name of the consumer for which the service has a certificate")
+	flag.StringVar(&consumerInterceptor.ConsumerID, "consumerId", "", "The subject alternative name of the consumer for which the service has a certificate")
 
 	flag.StringVar(&routerConfig.ForwardURL, "forwardUrl", "", "url for forwarding incoming requests")
 	flag.BoolVar(&routerConfig.SkipVerifyTLS, "skipVerifyTLS", false, "Do not verify the certificate of the forwardUrl")

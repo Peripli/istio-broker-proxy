@@ -20,8 +20,8 @@ func TestBindRequestUnmarshal(t *testing.T) {
     }`), &bindRequest)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(string(bindRequest.AdditionalProperties["abc"])).To(Equal(`"1234"`))
-	g.Expect(string(bindRequest.NetworkData.NetworkProfileId)).To(Equal("my-profile-id"))
-	g.Expect(string(bindRequest.NetworkData.Data.ConsumerId)).To(Equal("147"))
+	g.Expect(string(bindRequest.NetworkData.NetworkProfileID)).To(Equal("my-profile-id"))
+	g.Expect(string(bindRequest.NetworkData.Data.ConsumerID)).To(Equal("147"))
 }
 
 func TestBindRequestMarshal(t *testing.T) {
@@ -31,8 +31,8 @@ func TestBindRequestMarshal(t *testing.T) {
 			"abc": json.RawMessage([]byte(`"1234"`)),
 		},
 		NetworkData: NetworkDataRequest{
-			NetworkProfileId: "my-profile-id",
-			Data:             DataRequest{ConsumerId: "147"}}}
+			NetworkProfileID: "my-profile-id",
+			Data:             DataRequest{ConsumerID: "147"}}}
 	body, err := json.Marshal(bindRequest)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(string(body)).To(MatchJSON(`{

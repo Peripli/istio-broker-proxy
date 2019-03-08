@@ -8,12 +8,12 @@ type BindResponse struct {
 }
 
 type NetworkDataResponse struct {
-	NetworkProfileId string       `json:"network_profile_id"`
+	NetworkProfileID string       `json:"network_profile_id"`
 	Data             DataResponse `json:"data"`
 }
 
 type DataResponse struct {
-	ProviderId string     `json:"provider_id"`
+	ProviderID string     `json:"provider_id"`
 	Endpoints  []Endpoint `json:"endpoints, omitempty"`
 }
 
@@ -30,7 +30,7 @@ func (bindResponse BindResponse) MarshalJSON() ([]byte, error) {
 		"credentials": &bindResponse.Credentials,
 		"endpoints":   bindResponse.Endpoints,
 	}
-	if len(bindResponse.NetworkData.NetworkProfileId) > 0 || len(bindResponse.NetworkData.Data.Endpoints) > 0 {
+	if len(bindResponse.NetworkData.NetworkProfileID) > 0 || len(bindResponse.NetworkData.Data.Endpoints) > 0 {
 		mapping["network_data"] = &bindResponse.NetworkData
 	}
 	return bindResponse.AdditionalProperties.MarshalJSON(mapping)
