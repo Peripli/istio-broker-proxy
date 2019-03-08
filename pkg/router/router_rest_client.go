@@ -77,7 +77,7 @@ func (o *RouterRestRequest) Do() RestResponse {
 		log.Printf("error during execute request: %s\n", osbResponse.err.Error())
 		return &osbResponse
 	}
-	log.Printf("Response status from %s: %s\n", o.url, response.Status)
+	log.Printf("response status from %s: %s\n", o.url, response.Status)
 
 	defer response.Body.Close()
 
