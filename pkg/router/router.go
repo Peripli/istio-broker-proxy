@@ -172,7 +172,8 @@ func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig RouterConfig
 		routerConfig.Port = DefaultPort
 	}
 
-	mux := gin.Default()
+	mux := gin.New()
+	mux.Use(gin.LoggerWithWriter(gin.DefaultWriter, "/health"), gin.Recovery())
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: routerConfig.SkipVerifyTLS},
 	}
