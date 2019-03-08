@@ -66,7 +66,7 @@ func (o *RouterRestRequest) Do() RestResponse {
 	var proxyRequest *http.Request
 	proxyRequest, osbResponse.err = o.client.config.HttpRequestFactory(o.method, o.url, bytes.NewReader(o.request))
 	if osbResponse.err != nil {
-		log.Printf("ERROR: %s\n", osbResponse.err.Error())
+		log.Printf("error during create request: %s\n", osbResponse.err.Error())
 		return &osbResponse
 	}
 	proxyRequest.Header = o.client.request.Header
@@ -74,7 +74,7 @@ func (o *RouterRestRequest) Do() RestResponse {
 	var response *http.Response
 	response, osbResponse.err = o.client.Do(proxyRequest)
 	if osbResponse.err != nil {
-		log.Printf("ERROR: %s\n", osbResponse.err.Error())
+		log.Printf("error during execute request: %s\n", osbResponse.err.Error())
 		return &osbResponse
 	}
 	log.Printf("Response status from %s: %s\n", o.url, response.Status)
@@ -83,7 +83,7 @@ func (o *RouterRestRequest) Do() RestResponse {
 
 	osbResponse.response, osbResponse.err = ioutil.ReadAll(response.Body)
 	if nil != osbResponse.err {
-		log.Printf("ERROR: %s\n", osbResponse.err.Error())
+		log.Printf("error during read response: %s\n", osbResponse.err.Error())
 		return &osbResponse
 	}
 
