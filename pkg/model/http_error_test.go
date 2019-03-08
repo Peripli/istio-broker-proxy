@@ -44,8 +44,8 @@ func TestHttpErrorFromResponseNotOKInvalidBody(t *testing.T) {
 	err := HttpErrorFromResponse(401, []byte("Invalid body"), "http://localhost", "GET")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*HttpError).StatusCode).To(Equal(401))
-	g.Expect(err.(*HttpError).ErrorMsg).To(Equal("Invalid body"))
-	g.Expect(err.(*HttpError).Description).To(Equal("invalid JSON: from call to GET http://localhost"))
+	g.Expect(err.(*HttpError).ErrorMsg).To(Equal("InvalidJSON"))
+	g.Expect(err.(*HttpError).Description).To(Equal("invalid JSON 'Invalid body': from call to GET http://localhost"))
 }
 
 func TestHttpErrorFromResponseNotOK(t *testing.T) {

@@ -81,3 +81,35 @@ func TestRouterRestClientDelete(t *testing.T) {
 	g.Expect(handlerStub.spy.method).To(Equal(http.MethodDelete))
 
 }
+
+func TestRouterRestClientWithMultilineErrorResponse(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	handlerStub := NewHandlerStub(http.StatusConflict, []byte(`{ "error": "error: Internal server error\ndescription: \n"}`))
+	server, routerConfig := injectClientStub(handlerStub)
+	defer server.Close()
+	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
+	err := client.Get().Do().Error()
+
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.(*model.HttpError).StatusCode).To(Equal(http.StatusConflict))
+	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("error: Internal server error\ndescription: \n"))
+	g.Expect(err.(*model.HttpError).Description).To(Equal(": from call to GET http://xxxxx.xx"))
+	g.Expect(handlerStub.spy.method).To(Equal(http.MethodGet))
+}
+
+func TestRouterRestClientWithInvalidJsonErrorResponse(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	handlerStub := NewHandlerStub(http.StatusConflict, []byte("error: Internal server error\ndescription: \n"))
+	server, routerConfig := injectClientStub(handlerStub)
+	defer server.Close()
+	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
+	err := client.Get().Do().Error()
+
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.(*model.HttpError).StatusCode).To(Equal(http.StatusConflict))
+	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("InvalidJSON"))
+	g.Expect(err.(*model.HttpError).Description).To(Equal("invalid JSON 'error: Internal server error\ndescription: \n': from call to GET http://xxxxx.xx"))
+	g.Expect(handlerStub.spy.method).To(Equal(http.MethodGet))
+}
