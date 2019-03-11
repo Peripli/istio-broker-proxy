@@ -13,6 +13,7 @@ import (
 	"os"
 )
 
+//ConfigStore encapsulates functions to modify istio config
 type ConfigStore interface {
 	CreateService(*v1.Service) (*v1.Service, error)
 	CreateIstioConfig(model.Config) error
@@ -21,6 +22,7 @@ type ConfigStore interface {
 	getNamespace() string
 }
 
+//NewInClusterConfigStore creates a new ConfigStore from within the cluster
 func NewInClusterConfigStore() ConfigStore {
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
@@ -98,6 +100,7 @@ func (k kubeConfigStore) DeleteIstioConfig(configType string, configName string)
 	return err
 }
 
+//NewExternKubeConfigStore creates a new ConfigStore using the KUBECONFIG env variable
 func NewExternKubeConfigStore(namespace string) ConfigStore {
 	clientcmd.ClusterDefaults.Server = ""
 	cfg, err := clientcmd.BuildConfigFromFlags("", os.Getenv("KUBECONFIG"))

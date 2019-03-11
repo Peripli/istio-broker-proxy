@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+//RabbitMQCredentials contains credentials for a rabbitmq
 type RabbitMQCredentials struct {
 	Credentials
 	Hostname string
@@ -12,20 +13,21 @@ type RabbitMQCredentials struct {
 	URI      string
 }
 
+//RabbitMQCredentialsConverter converts to RabbitMQCredentials and adapts endpoints
 func RabbitMQCredentialsConverter(credentials Credentials, endpointMappings []EndpointMapping) (*Credentials, error) {
-	rabbitMqCredentials, err := RabbitMQCredentialsFromCredentials(credentials)
+	rabbitMqCredentials, err := rabbitMQCredentialsFromCredentials(credentials)
 	if err != nil {
 		return nil, err
 	}
 	if rabbitMqCredentials == nil {
 		return nil, nil
 	}
-	rabbitMqCredentials.Adapt(endpointMappings)
-	result := rabbitMqCredentials.ToCredentials()
+	rabbitMqCredentials.adapt(endpointMappings)
+	result := rabbitMqCredentials.toCredentials()
 	return &result, nil
 }
 
-func RabbitMQCredentialsFromCredentials(credentials Credentials) (*RabbitMQCredentials, error) {
+func rabbitMQCredentialsFromCredentials(credentials Credentials) (*RabbitMQCredentials, error) {
 	result := RabbitMQCredentials{}
 	result.Endpoints = credentials.Endpoints
 	result.AdditionalProperties = clone(credentials.AdditionalProperties)
@@ -52,7 +54,7 @@ func RabbitMQCredentialsFromCredentials(credentials Credentials) (*RabbitMQCrede
 	return &result, nil
 }
 
-func (credentials RabbitMQCredentials) ToCredentials() Credentials {
+func (credentials RabbitMQCredentials) toCredentials() Credentials {
 	result := Credentials{clone(credentials.AdditionalProperties), credentials.Endpoints}
 	if len(credentials.Hostname) > 0 {
 		addProperty(result.AdditionalProperties, hostnameKey, credentials.Hostname)
@@ -67,7 +69,7 @@ func (credentials RabbitMQCredentials) ToCredentials() Credentials {
 	return result
 }
 
-func (credentials *RabbitMQCredentials) Adapt(endpointMappings []EndpointMapping) {
+func (credentials *RabbitMQCredentials) adapt(endpointMappings []EndpointMapping) {
 	for _, endpointMapping := range endpointMappings {
 		if credentials.Hostname == endpointMapping.Source.Host && credentials.Port == endpointMapping.Source.Port {
 			credentials.Hostname = endpointMapping.Target.Host

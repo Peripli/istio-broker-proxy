@@ -37,11 +37,12 @@ var schemas = map[string]istioModel.ProtoSchema{
 	istioDestinationRule: istioModel.DestinationRule,
 }
 
-type IstioObjectID struct {
+type istioObjectID struct {
 	Type string
 	Name string
 }
 
+//CreateEntriesForExternalService creates routing rules (gateway, virtual service, service entry) to route to a service with serviceName (provider side)
 func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string, clientName string, ingressPort uint32, providerSAN string) []istioModel.Config {
 	var configs []istioModel.Config
 
@@ -52,6 +53,7 @@ func CreateEntriesForExternalService(serviceName string, endpointServiceEntry st
 	return configs
 }
 
+//CreateIstioConfigForProvider creates istio routing rules for provider
 func CreateIstioConfigForProvider(request *model.BindRequest, response *model.BindResponse, bindingID string, systemDomain string, providerSAN string) []istioModel.Config {
 	var istioConfig []istioModel.Config
 	for index, endpoint := range response.Endpoints {
@@ -77,8 +79,9 @@ func createValidIdentifer(identifer string) string {
 
 }
 
-func DeleteEntriesForExternalServiceClient(serviceName string) []IstioObjectID {
-	result := make([]IstioObjectID, 0)
+//DeleteEntriesForExternalServiceClient creates a list of istio config to delete for a service on the consumer side
+func DeleteEntriesForExternalServiceClient(serviceName string) []istioObjectID {
+	result := make([]istioObjectID, 0)
 	result = append(result, sidecarDestinationRuleForExternalService(serviceName))
 	result = append(result, egressDestinationRuleForExternalService(serviceName))
 	result = append(result, egressGatewayForExternalService(serviceName))
@@ -88,6 +91,7 @@ func DeleteEntriesForExternalServiceClient(serviceName string) []IstioObjectID {
 	return result
 }
 
+//CreateEntriesForExternalServiceClient creates istio routing config for a service for the consumer side
 func CreateEntriesForExternalServiceClient(serviceName string, hostName string, serviceIP string, port int, namespace string, systemDomain string) []istioModel.Config {
 	var configs []istioModel.Config
 
@@ -112,6 +116,7 @@ func CreateEntriesForExternalServiceClient(serviceName string, hostName string, 
 	return configs
 }
 
+//ToYamlDocuments creates yaml config files
 func ToYamlDocuments(entry []istioModel.Config) (string, error) {
 	var result, text string
 	var err error
@@ -125,7 +130,7 @@ func ToYamlDocuments(entry []istioModel.Config) (string, error) {
 }
 
 func enrichAndtoText(config istioModel.Config) (string, error) {
-	kubernetesConf, err := ToRuntimeObject(config)
+	kubernetesConf, err := toRuntimeObject(config)
 	if err != nil {
 		return "", err
 	}
@@ -133,7 +138,7 @@ func enrichAndtoText(config istioModel.Config) (string, error) {
 	return string(bytes), err
 }
 
-func ToRuntimeObject(config istioModel.Config) (crd.IstioObject, error) {
+func toRuntimeObject(config istioModel.Config) (crd.IstioObject, error) {
 	schema := schemas[config.Type]
 	return crd.ConvertConfig(schema, config)
 }

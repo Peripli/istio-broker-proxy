@@ -15,6 +15,7 @@ const (
 	servicePort = 5555
 )
 
+//ConsumerInterceptor contains config for the consumer side
 type ConsumerInterceptor struct {
 	ConsumerID        string
 	ConfigStore       ConfigStore
@@ -22,6 +23,7 @@ type ConsumerInterceptor struct {
 	NetworkProfile    string
 }
 
+//PreBind see interface definition
 func (c ConsumerInterceptor) PreBind(request model.BindRequest) (*model.BindRequest, error) {
 	if c.NetworkProfile == "" {
 		return nil, errors.New("network profile not configured")
@@ -31,6 +33,7 @@ func (c ConsumerInterceptor) PreBind(request model.BindRequest) (*model.BindRequ
 	return &request, nil
 }
 
+//PostBind see interface definition
 func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.BindResponse, bindID string,
 	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
 	var endpointMapping []model.EndpointMapping
@@ -72,6 +75,7 @@ func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.
 	return binding, nil
 }
 
+//CreateIstioObjectsInK8S create a service and istio routing rules
 func CreateIstioObjectsInK8S(configStore ConfigStore, name string, endpoint model.Endpoint, systemDomain string) (string, error) {
 	service := &v1.Service{Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Port: servicePort, TargetPort: intstr.FromInt(servicePort)}}}}
 	service.Name = name
@@ -97,6 +101,7 @@ func serviceName(index int, bindID string) string {
 	return name
 }
 
+//PostDelete see interface definition
 func (c ConsumerInterceptor) PostDelete(bindID string) error {
 	return c.cleanUpConfig(bindID, func(index int, err error) bool {
 		return err != nil && index > 2
@@ -129,10 +134,12 @@ func (c ConsumerInterceptor) cleanUpConfig(bindID string, endCleanupCondition fu
 	return nil
 }
 
+//HasAdaptCredentials see interface definition
 func (c ConsumerInterceptor) HasAdaptCredentials() bool {
 	return false
 }
 
+//PostCatalog see interface definition
 func (c ConsumerInterceptor) PostCatalog(catalog *model.Catalog) error {
 	for i := range catalog.Services {
 		catalog.Services[i].Name = strings.TrimPrefix(catalog.Services[i].Name, c.ServiceNamePrefix)

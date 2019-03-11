@@ -13,7 +13,7 @@ func TestCredentialIsChanged(t *testing.T) {
 	credentials := PostgresCredentials{
 		Hostname: "a", Port: 1, URI: "postgres://user:passwd@a:1/dbname",
 	}
-	credentials.Adapt([]EndpointMapping{
+	credentials.adapt([]EndpointMapping{
 		EndpointMapping{
 			Source: Endpoint{Host: "a", Port: 1},
 			Target: Endpoint{Host: "b", Port: 2},
@@ -59,7 +59,7 @@ func TestCredentialIsChangedToAnotherValue(t *testing.T) {
 	credentials := PostgresCredentials{
 		Hostname: "a", Port: 1, URI: "postgres://user:passwd@a:1/dbname",
 	}
-	credentials.Adapt([]EndpointMapping{
+	credentials.adapt([]EndpointMapping{
 		{
 			Source: Endpoint{Host: "a", Port: 1},
 			Target: Endpoint{Host: "myhost", Port: 3},
@@ -78,7 +78,7 @@ func TestSecondMappingChangesResultOfFirstMapping(t *testing.T) {
 	credentials := PostgresCredentials{
 		Hostname: "a", Port: 1, URI: "postgres://user:passwd@a:1/dbname",
 	}
-	credentials.Adapt([]EndpointMapping{
+	credentials.adapt([]EndpointMapping{
 		{
 			Source: Endpoint{Host: "a", Port: 1},
 			Target: Endpoint{Host: "b", Port: 2},
@@ -101,7 +101,7 @@ func TestPortDoesntMatch(t *testing.T) {
 	credentials := PostgresCredentials{
 		Hostname: "a", Port: 1, URI: "postgres://user:passwd@a:1/dbname",
 	}
-	credentials.Adapt([]EndpointMapping{
+	credentials.adapt([]EndpointMapping{
 		{
 			Source: Endpoint{Host: "a", Port: 99},
 			Target: Endpoint{Host: "b", Port: 2},
@@ -117,7 +117,7 @@ func TestHostDoesntMatch(t *testing.T) {
 	credentials := PostgresCredentials{
 		Hostname: "a", Port: 1, URI: "postgres://user:passwd@a:1/dbname",
 	}
-	credentials.Adapt([]EndpointMapping{
+	credentials.adapt([]EndpointMapping{
 		EndpointMapping{
 			Source: Endpoint{Host: "c", Port: 1},
 			Target: Endpoint{Host: "b", Port: 2},
@@ -134,7 +134,7 @@ func TestWriteUrlIsAdapted(t *testing.T) {
 		WriteURL: "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master",
 		Hostname: "a", Port: 1,
 	}
-	credentials.Adapt([]EndpointMapping{
+	credentials.adapt([]EndpointMapping{
 		EndpointMapping{
 			Source: Endpoint{Host: "10.11.19.240", Port: 5432},
 			Target: Endpoint{Host: "hosta", Port: 123},
@@ -153,7 +153,7 @@ func TestWriteUrlIsAdaptedWithGivenDefaultPort(t *testing.T) {
 		WriteURL: "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=master",
 		Hostname: "a", Port: 1,
 	}
-	credentials.Adapt([]EndpointMapping{
+	credentials.adapt([]EndpointMapping{
 		EndpointMapping{
 			Source: Endpoint{Host: "10.11.19.240", Port: 5432},
 			Target: Endpoint{Host: "hosta", Port: 123},
@@ -172,7 +172,7 @@ func TestReadUrlIsAdapted(t *testing.T) {
 		ReadURL:  "jdbc:postgresql://10.11.19.240,10.11.19.241/e2b91324e12361f3eaeb35fe570efe1d?targetServerType=preferSlave\u0026loadBalanceHosts=true",
 		Hostname: "a", Port: 1,
 	}
-	credentials.Adapt([]EndpointMapping{
+	credentials.adapt([]EndpointMapping{
 		EndpointMapping{
 			Source: Endpoint{Host: "10.11.19.240", Port: 5432},
 			Target: Endpoint{Host: "hosta", Port: 123},
@@ -191,7 +191,7 @@ func TestReadUrlIsUnchangedWhenSourceIsStringContainedWithinHost(t *testing.T) {
 		ReadURL:  "x:y://11.0.0.11,11.1.1.11/z",
 		Hostname: "a", Port: 1,
 	}
-	credentials.Adapt([]EndpointMapping{
+	credentials.adapt([]EndpointMapping{
 		EndpointMapping{
 			Source: Endpoint{Host: "1.0.0.1", Port: 5432},
 			Target: Endpoint{Host: "host", Port: 5432},
@@ -206,7 +206,7 @@ func TestHostIsReplacedTwoTimes(t *testing.T) {
 		ReadURL:  "x:y://hosta,hostb,hosta/z",
 		Hostname: "a", Port: 1,
 	}
-	credentials.Adapt([]EndpointMapping{
+	credentials.adapt([]EndpointMapping{
 		EndpointMapping{
 			Source: Endpoint{Host: "hosta", Port: 5432},
 			Target: Endpoint{Host: "hostX", Port: 5432},

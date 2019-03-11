@@ -73,7 +73,7 @@ var (
 
 func TestConsumerPostBind(t *testing.T) {
 	g := NewGomegaWithT(t)
-	kubernetes := MockConfigStore{}
+	kubernetes := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &kubernetes}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "678", adapt)
@@ -85,7 +85,7 @@ func TestConsumerPostBind(t *testing.T) {
 
 func TestConsumerPostBindReturnsError(t *testing.T) {
 	g := NewGomegaWithT(t)
-	kubernetes := MockConfigStore{}
+	kubernetes := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &kubernetes}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "678", adaptError)
@@ -94,7 +94,7 @@ func TestConsumerPostBindReturnsError(t *testing.T) {
 
 func TestNoEndpointsPresent(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{}
+	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, model.BindResponse{}, "678", adapt)
@@ -105,7 +105,7 @@ func TestNoEndpointsPresent(t *testing.T) {
 
 func TestEndpointsMappingWorks(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{}
+	configStore := mockConfigStore{}
 	configStore.ClusterIP = "1.2.3.5"
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore, NetworkProfile: "testprofile"}
 	endpoints := []model.Endpoint{
@@ -144,7 +144,7 @@ func TestEndpointsMappingWorks(t *testing.T) {
 
 func TestBindIdIsPartOfServiceName(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{}
+	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "555", adapt)
@@ -155,7 +155,7 @@ func TestBindIdIsPartOfServiceName(t *testing.T) {
 
 func TestMaximumLengthIsNotExceededWithRealBindId(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{}
+	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "f1b32107-c8a5-11e8-b8be-02caceffa7f1", adapt)
@@ -169,7 +169,7 @@ func TestMaximumLengthIsNotExceededWithRealBindId(t *testing.T) {
 
 func TestEndpointIndexIsPartOfServiceName(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{}
+	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "adf123", adapt)
@@ -180,7 +180,7 @@ func TestEndpointIndexIsPartOfServiceName(t *testing.T) {
 
 func TestConsumerInterceptorCreatesIstioObjects(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{}
+	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "678", adapt)
@@ -201,7 +201,7 @@ func TestConsumerInterceptorCreatesIstioObjects(t *testing.T) {
 
 func TestTwoEndpointsCreateTwelveObject(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{}
+	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
@@ -214,7 +214,7 @@ func TestTwoEndpointsCreateTwelveObject(t *testing.T) {
 
 func TestTwoEndpointsHasTheCorrcetCount(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{}
+	configStore := mockConfigStore{}
 	bindResponse := model.BindResponse{
 		Credentials: model.Credentials{},
 		Endpoints:   []model.Endpoint{},
@@ -232,7 +232,7 @@ func TestTwoEndpointsHasTheCorrcetCount(t *testing.T) {
 
 func TestClusterIpIsUsed(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{ClusterIP: "9.8.7.6"}
+	configStore := mockConfigStore{ClusterIP: "9.8.7.6"}
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
@@ -245,7 +245,7 @@ func TestClusterIpIsUsed(t *testing.T) {
 
 func TestCreateServiceErrorIsHandled(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{CreateServiceErr: fmt.Errorf("Test service error")}
+	configStore := mockConfigStore{CreateServiceErr: fmt.Errorf("Test service error")}
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
@@ -255,7 +255,7 @@ func TestCreateServiceErrorIsHandled(t *testing.T) {
 
 func TestCreateObjectErrorIsHandled(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{CreateObjectErr: fmt.Errorf("Test object error")}
+	configStore := mockConfigStore{CreateObjectErr: fmt.Errorf("Test object error")}
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
@@ -265,7 +265,7 @@ func TestCreateObjectErrorIsHandled(t *testing.T) {
 
 func TestConsumerPostDelete(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{}
+	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
@@ -290,7 +290,7 @@ func TestConsumerPostDelete(t *testing.T) {
 
 func TestConsumerPostDeleteNoResourceLeaks(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{}
+	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
@@ -310,7 +310,7 @@ func TestConsumerPostDeleteNoResourceLeaks(t *testing.T) {
 
 func TestConsumerFailingPostBindGetsCleanedUp(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{CreateObjectErrCount: 3, CreateObjectErr: errors.New("No more objects")}
+	configStore := mockConfigStore{CreateObjectErrCount: 3, CreateObjectErr: errors.New("No more objects")}
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 
@@ -341,7 +341,7 @@ func TestConsumerPostCatalogWithoutPrefix(t *testing.T) {
 
 func TestBindAdaptEndpointsOnlyIfNetworkProfilesMatch(t *testing.T) {
 	g := NewGomegaWithT(t)
-	configStore := MockConfigStore{}
+	configStore := mockConfigStore{}
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore, NetworkProfile: "urn:my.test:public"}
 	binding, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "555", adaptError)

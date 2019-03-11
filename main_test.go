@@ -23,7 +23,7 @@ func TestConfigureProducerInterceptor(t *testing.T) {
 
 	args := strings.Split("--port 8000 --forwardUrl https://192.168.252.10:9293/cf --skipVerifyTLS --systemdomain istio.xxx.io --providerId istio.yyy.io --loadBalancerPort 9000 --istioDirectory /tmp --ipAddress 10.0.81.0 --serviceNamePrefix istio- --networkProfile xxx.yyy", " ")
 	flag.CommandLine.Parse(args)
-	interceptor, ok := configureInterceptor(newMockConfigStore).(router.ProducerInterceptor)
+	interceptor, ok := configureInterceptor(router.NewMockConfigStore).(router.ProducerInterceptor)
 
 	g.Expect(ok).To(BeTrue())
 
@@ -36,16 +36,12 @@ func TestConfigureConsumerInterceptor(t *testing.T) {
 
 	args := strings.Split("--port 8000 --forwardUrl https://192.168.252.10:9293/cf --skipVerifyTLS --consumerId istio.yyy.io --loadBalancerPort 9000 --istioDirectory /tmp --ipAddress 10.0.81.0 --serviceNamePrefix istio- --networkProfile xxx.yyy", " ")
 	flag.CommandLine.Parse(args)
-	interceptor, ok := configureInterceptor(newMockConfigStore).(router.ConsumerInterceptor)
+	interceptor, ok := configureInterceptor(router.NewMockConfigStore).(router.ConsumerInterceptor)
 
 	g.Expect(ok).To(BeTrue())
 
 	g.Expect(interceptor.NetworkProfile).To(Equal("xxx.yyy"))
 	g.Expect(interceptor.ConsumerID).To(Equal("istio.yyy.io"))
-}
-
-func newMockConfigStore() router.ConfigStore {
-	return &router.MockConfigStore{}
 }
 
 func TestMain(m *testing.M) {

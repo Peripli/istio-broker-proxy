@@ -25,15 +25,18 @@ type ProducerInterceptor struct {
 	NetworkProfile    string
 }
 
+//WriteIstioConfigFiles creates istio config for control plane route
 func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) error {
 	return c.writeIstioConfigFiles("istio-broker",
 		config.CreateEntriesForExternalService("istio-broker", string(c.IPAddress), uint32(port), "istio-broker."+c.SystemDomain, "", 9000, c.ProviderID))
 }
 
+//PreBind see interface definition
 func (c ProducerInterceptor) PreBind(request model.BindRequest) (*model.BindRequest, error) {
 	return &request, nil
 }
 
+//PostBind see interface definition
 func (c ProducerInterceptor) PostBind(request model.BindRequest, response model.BindResponse, bindingID string,
 	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
 	if c.NetworkProfile == "" {
@@ -55,10 +58,12 @@ func (c ProducerInterceptor) PostBind(request model.BindRequest, response model.
 	return &response, nil
 }
 
+//HasAdaptCredentials see interface definition
 func (c ProducerInterceptor) HasAdaptCredentials() bool {
 	return true
 }
 
+//PostDelete see interface definition
 func (c ProducerInterceptor) PostDelete(bindID string) error {
 	fileName := path.Join(c.IstioDirectory, bindID) + ".yml"
 	err := os.Remove(fileName)
@@ -92,6 +97,7 @@ func (c ProducerInterceptor) writeIstioConfigFiles(fileName string, configuratio
 	return nil
 }
 
+//PostCatalog see interface definition
 func (c ProducerInterceptor) PostCatalog(catalog *model.Catalog) error {
 	for i := range catalog.Services {
 		catalog.Services[i].Name = c.ServiceNamePrefix + catalog.Services[i].Name

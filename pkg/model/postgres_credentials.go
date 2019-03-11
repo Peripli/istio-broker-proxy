@@ -15,6 +15,7 @@ const (
 	uriKey              = "uri"
 )
 
+//PostgresCredentials contains credentials for a postgres
 type PostgresCredentials struct {
 	Credentials
 	Hostname string
@@ -24,6 +25,7 @@ type PostgresCredentials struct {
 	ReadURL  string
 }
 
+//PostgresCredentialsConverter converts to postgresCredentials and adapts endpoints
 func PostgresCredentialsConverter(credentials Credentials, endpointMappings []EndpointMapping) (*Credentials, error) {
 	postgresCredentials, err := PostgresCredentialsFromCredentials(credentials)
 	if err != nil {
@@ -32,11 +34,12 @@ func PostgresCredentialsConverter(credentials Credentials, endpointMappings []En
 	if postgresCredentials == nil {
 		return nil, nil
 	}
-	postgresCredentials.Adapt(endpointMappings)
+	postgresCredentials.adapt(endpointMappings)
 	result := postgresCredentials.ToCredentials()
 	return &result, nil
 }
 
+//PostgresCredentialsFromCredentials convert Credentials to PostgresCredentials
 func PostgresCredentialsFromCredentials(credentials Credentials) (*PostgresCredentials, error) {
 	result := PostgresCredentials{}
 	result.Endpoints = credentials.Endpoints
@@ -66,6 +69,7 @@ func PostgresCredentialsFromCredentials(credentials Credentials) (*PostgresCrede
 	return &result, nil
 }
 
+//ToCredentials converts to general Credentials
 func (credentials PostgresCredentials) ToCredentials() Credentials {
 	result := Credentials{clone(credentials.AdditionalProperties), credentials.Endpoints}
 	if len(credentials.Hostname) > 0 {
@@ -86,7 +90,7 @@ func (credentials PostgresCredentials) ToCredentials() Credentials {
 	return result
 }
 
-func (credentials *PostgresCredentials) Adapt(endpointMappings []EndpointMapping) {
+func (credentials *PostgresCredentials) adapt(endpointMappings []EndpointMapping) {
 	for _, endpointMapping := range endpointMappings {
 		if credentials.Hostname == endpointMapping.Source.Host && credentials.Port == endpointMapping.Source.Port {
 			credentials.Hostname = endpointMapping.Target.Host

@@ -5,6 +5,7 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 )
 
+//AddIstioNetworkDataToResponse adds networkData and endpoints to response
 func AddIstioNetworkDataToResponse(providerID string, bindingID string, systemDomain string, portNumber int, body *model.BindResponse, networkProfile string) {
 
 	endpointCount := len(body.Endpoints)
@@ -37,6 +38,7 @@ func createEndpointHostsBasedOnSystemDomainServiceID(bindingID string, systemDom
 	return endpointsHosts
 }
 
+//CreateEndpointHosts creates hostnames
 func CreateEndpointHosts(bindingID string, systemDomain string, index int) string {
 	return fmt.Sprintf("%d.%s.%s", index, bindingID, systemDomain)
 }

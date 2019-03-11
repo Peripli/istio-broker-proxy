@@ -7,7 +7,7 @@ import (
 	"k8s.io/api/core/v1"
 )
 
-type MockConfigStore struct {
+type mockConfigStore struct {
 	CreatedServices      []*v1.Service
 	CreatedIstioConfigs  []istioModel.Config
 	ClusterIP            string
@@ -18,7 +18,7 @@ type MockConfigStore struct {
 	DeletedIstioConfigs  []string
 }
 
-func (m *MockConfigStore) CreateService(service *v1.Service) (*v1.Service, error) {
+func (m *mockConfigStore) CreateService(service *v1.Service) (*v1.Service, error) {
 	if m.CreateServiceErr != nil {
 		return nil, m.CreateServiceErr
 	}
@@ -27,11 +27,11 @@ func (m *MockConfigStore) CreateService(service *v1.Service) (*v1.Service, error
 	return service, nil
 }
 
-func (m *MockConfigStore) getNamespace() string {
+func (m *mockConfigStore) getNamespace() string {
 	return "catalog"
 }
 
-func (m *MockConfigStore) CreateIstioConfig(object istioModel.Config) error {
+func (m *mockConfigStore) CreateIstioConfig(object istioModel.Config) error {
 	if m.CreateObjectErr != nil && m.CreateObjectErrCount == len(m.CreatedIstioConfigs) {
 		return m.CreateObjectErr
 	}
@@ -39,7 +39,7 @@ func (m *MockConfigStore) CreateIstioConfig(object istioModel.Config) error {
 	return nil
 }
 
-func (m *MockConfigStore) DeleteService(serviceName string) error {
+func (m *mockConfigStore) DeleteService(serviceName string) error {
 	for index, c := range m.CreatedServices {
 		if c.Name == serviceName {
 			m.DeletedServices = append(m.DeletedServices, serviceName)
@@ -51,7 +51,7 @@ func (m *MockConfigStore) DeleteService(serviceName string) error {
 	return errors.New(errorMsg)
 }
 
-func (m *MockConfigStore) DeleteIstioConfig(configType string, configName string) error {
+func (m *mockConfigStore) DeleteIstioConfig(configType string, configName string) error {
 	for index, c := range m.CreatedIstioConfigs {
 		if c.Name == configName {
 			m.DeletedIstioConfigs = append(m.DeletedIstioConfigs, configType+":"+configName)
@@ -61,4 +61,9 @@ func (m *MockConfigStore) DeleteIstioConfig(configType string, configName string
 	}
 	errorMsg := fmt.Sprintf("error %s.networking.istio.io %s not found", configType, configName)
 	return errors.New(errorMsg)
+}
+
+//NewMockConfigStore create a new ConfigStore with mocking capabilities
+func NewMockConfigStore() ConfigStore {
+	return &mockConfigStore{}
 }

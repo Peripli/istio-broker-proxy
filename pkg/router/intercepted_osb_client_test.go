@@ -18,7 +18,7 @@ func (c TestInterceptor) PreBind(request model.BindRequest) (*model.BindRequest,
 func TestInterceptedOsbClient(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	interceptedOsbClient := InterceptedOsbClient{Interceptor: TestInterceptor{}}
+	interceptedOsbClient := interceptedOsbClient{Interceptor: TestInterceptor{}}
 	_, err := interceptedOsbClient.Bind("test", &model.BindRequest{})
 	g.Expect(err).To(HaveOccurred())
 }

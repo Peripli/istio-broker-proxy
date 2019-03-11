@@ -85,10 +85,10 @@ func TestRouterRestClientDelete(t *testing.T) {
 func TestRouterRestClientWithMultilineErrorResponse(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	handlerStub := NewHandlerStub(http.StatusConflict, []byte(`{ "error": "error: Internal server error\ndescription: \n"}`))
+	handlerStub := newHandlerStub(http.StatusConflict, []byte(`{ "error": "error: Internal server error\ndescription: \n"}`))
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
+	client := &restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
 	err := client.Get().Do().Error()
 
 	g.Expect(err).To(HaveOccurred())
@@ -101,10 +101,10 @@ func TestRouterRestClientWithMultilineErrorResponse(t *testing.T) {
 func TestRouterRestClientWithInvalidJsonErrorResponse(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	handlerStub := NewHandlerStub(http.StatusConflict, []byte("error: Internal server error\ndescription: \n"))
+	handlerStub := newHandlerStub(http.StatusConflict, []byte("error: Internal server error\ndescription: \n"))
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
+	client := &restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
 	err := client.Get().Do().Error()
 
 	g.Expect(err).To(HaveOccurred())

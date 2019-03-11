@@ -25,8 +25,8 @@ func TestAdaptCredentialsWithProxy(t *testing.T) {
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
-	binding, err := client.AdaptCredentials(model.PostgresCredentials{
+	client := osbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
+	binding, err := client.adaptCredentials(model.PostgresCredentials{
 		Port:     47637,
 		Hostname: "10.11.241.0",
 		URI:      "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn",
@@ -58,9 +58,9 @@ func TestAdaptCredentialsCalledWithCorrectPath(t *testing.T) {
 	server, routerConfig := injectClientStub(handlerStub)
 	routerConfig.ForwardURL = "https://myhost"
 	defer server.Close()
-	client := OsbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{Host: "original-host",
+	client := osbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{Host: "original-host",
 		Path: "/v2/service_instances/552c6306-fd6a-11e8-b5d9-1287e5b96b40/service_bindings/5e58a9a6-fd6a-11e8-b5d9-1287e5b96b40"}}, *routerConfig}}
-	binding, err := client.AdaptCredentials(model.Credentials{}, []model.EndpointMapping{{}})
+	binding, err := client.adaptCredentials(model.Credentials{}, []model.EndpointMapping{{}})
 
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(binding).NotTo(BeNil())
@@ -74,8 +74,8 @@ func TestAdaptCredentialsWithBadRequest(t *testing.T) {
 	handlerStub := newHandlerStub(http.StatusBadRequest, []byte(`{"error" : "myerror", "description" : "mydescription"}`))
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
-	_, err := client.AdaptCredentials(model.PostgresCredentials{}.ToCredentials(), []model.EndpointMapping{})
+	client := osbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
+	_, err := client.adaptCredentials(model.PostgresCredentials{}.ToCredentials(), []model.EndpointMapping{})
 
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*model.HTTPError).StatusCode).To(Equal(http.StatusBadRequest))
@@ -89,8 +89,8 @@ func TestAdaptCredentialsWithInvalidJson(t *testing.T) {
 	handlerStub := newHandlerStub(http.StatusOK, []byte(""))
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
-	_, err := client.AdaptCredentials(model.PostgresCredentials{}.ToCredentials(), []model.EndpointMapping{})
+	client := osbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
+	_, err := client.adaptCredentials(model.PostgresCredentials{}.ToCredentials(), []model.EndpointMapping{})
 
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("Can't unmarshal response from"))
@@ -108,8 +108,8 @@ func TestGetCatalog(t *testing.T) {
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
-	catalog, err := client.GetCatalog()
+	client := osbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
+	catalog, err := client.getCatalog()
 
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(catalog).NotTo(BeNil())
@@ -128,8 +128,8 @@ func TestGetCatalogWithoutUpstreamServer(t *testing.T) {
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
-	_, err := client.GetCatalog()
+	client := osbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
+	_, err := client.getCatalog()
 
 	g.Expect(err).To(HaveOccurred())
 }
@@ -142,8 +142,8 @@ func TestGetCatalogWithInvalidCatalog(t *testing.T) {
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
-	_, err := client.GetCatalog()
+	client := osbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
+	_, err := client.getCatalog()
 
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("Can't unmarshal response from"))
@@ -157,8 +157,8 @@ func TestGetCatalogWithBadRequest(t *testing.T) {
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
-	_, err := client.GetCatalog()
+	client := osbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}}
+	_, err := client.getCatalog()
 
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("error: 'BadRequest', description: ': from call to GET http://xxxxx.xx'"))
@@ -172,9 +172,9 @@ func TestUnbind(t *testing.T) {
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := OsbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}),
+	client := osbClient{&restClient{routerConfig.HTTPClientFactory(&http.Transport{}),
 		&http.Request{URL: &url.URL{Host: "yyyy:123", Path: "/v2/service_instances/1/service_bindings/2", RawQuery: "query_parameter=value"}}, *routerConfig}}
-	err := client.Unbind()
+	err := client.unbind()
 
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(handlerStub.spy.url).To(Equal("http://xxxxx.xx/v2/service_instances/1/service_bindings/2?query_parameter=value"))

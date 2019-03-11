@@ -13,7 +13,7 @@ func TestCredentialIsChangedRMQ(t *testing.T) {
 	credentials := RabbitMQCredentials{
 		Hostname: "a", Port: 1, URI: "amqp://user:passwd@a:1",
 	}
-	credentials.Adapt([]EndpointMapping{
+	credentials.adapt([]EndpointMapping{
 		{
 			Source: Endpoint{Host: "a", Port: 1},
 			Target: Endpoint{Host: "b", Port: 2},
@@ -33,14 +33,14 @@ func TestPostgresMarshalUnmarshalRMQ(t *testing.T) {
 		},
 		Hostname: "a", Port: 1, URI: "amqp://user:passwd@a:1",
 	}
-	data, err := json.Marshal(rabbitmqExpected.ToCredentials())
+	data, err := json.Marshal(rabbitmqExpected.toCredentials())
 	g.Expect(err).NotTo(HaveOccurred())
 
 	var credentials Credentials
 	err = json.Unmarshal(data, &credentials)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	rabbitmq, err := RabbitMQCredentialsFromCredentials(credentials)
+	rabbitmq, err := rabbitMQCredentialsFromCredentials(credentials)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	g.Expect(rabbitmq.Hostname).To(Equal(rabbitmqExpected.Hostname))
@@ -57,7 +57,7 @@ func TestCredentialIsChangedToAnotherValueRMQ(t *testing.T) {
 	credentials := RabbitMQCredentials{
 		Hostname: "a", Port: 1, URI: "amqp://user:passwd@a:1",
 	}
-	credentials.Adapt([]EndpointMapping{
+	credentials.adapt([]EndpointMapping{
 		{
 			Source: Endpoint{Host: "a", Port: 1},
 			Target: Endpoint{Host: "myhost", Port: 3},
@@ -76,7 +76,7 @@ func TestSecondMappingChangesResultOfFirstMappingRMQ(t *testing.T) {
 	credentials := RabbitMQCredentials{
 		Hostname: "a", Port: 1, URI: "amqp://user:passwd@a:1",
 	}
-	credentials.Adapt([]EndpointMapping{
+	credentials.adapt([]EndpointMapping{
 		{
 			Source: Endpoint{Host: "a", Port: 1},
 			Target: Endpoint{Host: "b", Port: 2},
@@ -99,7 +99,7 @@ func TestPortDoesntMatchRMQ(t *testing.T) {
 	credentials := RabbitMQCredentials{
 		Hostname: "a", Port: 1, URI: "amqp://user:passwd@a:1",
 	}
-	credentials.Adapt([]EndpointMapping{
+	credentials.adapt([]EndpointMapping{
 		{
 			Source: Endpoint{Host: "a", Port: 99},
 			Target: Endpoint{Host: "b", Port: 2},
@@ -115,7 +115,7 @@ func TestHostDoesntMatchRMQ(t *testing.T) {
 	credentials := RabbitMQCredentials{
 		Hostname: "a", Port: 1, URI: "amqp://user:passwd@a:1",
 	}
-	credentials.Adapt([]EndpointMapping{
+	credentials.adapt([]EndpointMapping{
 		{
 			Source: Endpoint{Host: "c", Port: 1},
 			Target: Endpoint{Host: "b", Port: 2},
@@ -130,7 +130,7 @@ func TestCredentialsInvalidUriRMQ(t *testing.T) {
 	var credentials Credentials
 	err := json.Unmarshal([]byte(`{ "uri" : 1234}`), &credentials)
 	g.Expect(err).NotTo(HaveOccurred())
-	_, err = RabbitMQCredentialsFromCredentials(credentials)
+	_, err = rabbitMQCredentialsFromCredentials(credentials)
 	g.Expect(err).To(HaveOccurred())
 }
 
@@ -139,7 +139,7 @@ func TestCredentialsInvalidPortRMQ(t *testing.T) {
 	var credentials Credentials
 	err := json.Unmarshal([]byte(`{ "port" : [], "uri" : "amqp://"}`), &credentials)
 	g.Expect(err).NotTo(HaveOccurred())
-	_, err = RabbitMQCredentialsFromCredentials(credentials)
+	_, err = rabbitMQCredentialsFromCredentials(credentials)
 	g.Expect(err).To(HaveOccurred())
 }
 
@@ -148,7 +148,7 @@ func TestCredentialsInvalidHostnameRMQ(t *testing.T) {
 	var credentials Credentials
 	err := json.Unmarshal([]byte(`{ "hostname" : 1234, "uri" : "amqp://"}`), &credentials)
 	g.Expect(err).NotTo(HaveOccurred())
-	_, err = RabbitMQCredentialsFromCredentials(credentials)
+	_, err = rabbitMQCredentialsFromCredentials(credentials)
 	g.Expect(err).To(HaveOccurred())
 }
 
@@ -157,7 +157,7 @@ func TestCredentialsInvalidReadUrlRMQ(t *testing.T) {
 	var credentials Credentials
 	err := json.Unmarshal([]byte(`{ "read_url" : 1234, "uri" : "amqp://"}`), &credentials)
 	g.Expect(err).NotTo(HaveOccurred())
-	_, err = RabbitMQCredentialsFromCredentials(credentials)
+	_, err = rabbitMQCredentialsFromCredentials(credentials)
 	g.Expect(err).To(HaveOccurred())
 }
 
@@ -166,7 +166,7 @@ func TestCredentialsInvalidWriteUrlRMQ(t *testing.T) {
 	var credentials Credentials
 	err := json.Unmarshal([]byte(`{ "write_url" : 1234, "uri" : "amqp://"}`), &credentials)
 	g.Expect(err).NotTo(HaveOccurred())
-	_, err = RabbitMQCredentialsFromCredentials(credentials)
+	_, err = rabbitMQCredentialsFromCredentials(credentials)
 	g.Expect(err).To(HaveOccurred())
 }
 
@@ -175,7 +175,7 @@ func TestRabbitMQCredentialsInvalidRMQ(t *testing.T) {
 	var credentials Credentials
 	err := json.Unmarshal([]byte(`{ "hostname" : "", "uri" : "amqp://"}`), &credentials)
 	g.Expect(err).NotTo(HaveOccurred())
-	_, err = RabbitMQCredentialsFromCredentials(credentials)
+	_, err = rabbitMQCredentialsFromCredentials(credentials)
 	g.Expect(err).To(HaveOccurred())
 }
 
@@ -184,7 +184,7 @@ func TestRabbitMQCredentialsFromMySql(t *testing.T) {
 	var credentials Credentials
 	err := json.Unmarshal([]byte(`{ "hostname" : 1234, "uri" : "mysql://"}`), &credentials)
 	g.Expect(err).NotTo(HaveOccurred())
-	c, err := RabbitMQCredentialsFromCredentials(credentials)
+	c, err := rabbitMQCredentialsFromCredentials(credentials)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(c).To(BeNil())
 }

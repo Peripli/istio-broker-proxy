@@ -4,13 +4,13 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 )
 
-type InterceptedOsbClient struct {
-	OsbClient   *OsbClient
+type interceptedOsbClient struct {
+	OsbClient   *osbClient
 	Interceptor ServiceBrokerInterceptor
 }
 
-func (c *InterceptedOsbClient) GetCatalog() (*model.Catalog, error) {
-	catalog, err := c.OsbClient.GetCatalog()
+func (c *interceptedOsbClient) GetCatalog() (*model.Catalog, error) {
+	catalog, err := c.OsbClient.getCatalog()
 	if err != nil {
 		return nil, err
 	}
@@ -18,25 +18,25 @@ func (c *InterceptedOsbClient) GetCatalog() (*model.Catalog, error) {
 	return catalog, err
 }
 
-func (c *InterceptedOsbClient) Bind(bindingID string, bindRequest *model.BindRequest) (*model.BindResponse, error) {
+func (c *interceptedOsbClient) Bind(bindingID string, bindRequest *model.BindRequest) (*model.BindResponse, error) {
 	bindRequest, err := c.Interceptor.PreBind(*bindRequest)
 	if err != nil {
 		return nil, err
 	}
 
-	bindResponse, err := c.OsbClient.Bind(bindRequest)
+	bindResponse, err := c.OsbClient.bind(bindRequest)
 	if err != nil {
 		return nil, err
 	}
 
 	return c.Interceptor.PostBind(*bindRequest, *bindResponse, bindingID,
 		func(credentials model.Credentials, mappings []model.EndpointMapping) (*model.BindResponse, error) {
-			return c.OsbClient.AdaptCredentials(credentials, mappings)
+			return c.OsbClient.adaptCredentials(credentials, mappings)
 		})
 }
 
-func (c *InterceptedOsbClient) Unbind(bindID string) error {
-	err := c.OsbClient.Unbind()
+func (c *interceptedOsbClient) Unbind(bindID string) error {
+	err := c.OsbClient.unbind()
 	if err != nil {
 		return err
 	}
