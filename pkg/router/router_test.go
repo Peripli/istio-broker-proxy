@@ -16,7 +16,7 @@ import (
 
 func TestHealthEndpoint(t *testing.T) {
 	g := NewGomegaWithT(t)
-	router := SetupRouter(NoOpInterceptor{}, RouterConfig{})
+	router := SetupRouter(noOpInterceptor{}, Config{})
 
 	emptyBody := bytes.NewReader([]byte(""))
 	request, _ := http.NewRequest(http.MethodGet, "https://blablub.org/health", emptyBody)
@@ -30,7 +30,7 @@ func TestHealthEndpoint(t *testing.T) {
 
 func TestInvalidUpdateCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	router := SetupRouter(ProducerInterceptor{ProviderID: "x"}, RouterConfig{})
+	router := SetupRouter(ProducerInterceptor{ProviderID: "x"}, Config{})
 
 	emptyBody := bytes.NewReader([]byte("{}"))
 	request, _ := http.NewRequest(http.MethodPost, "https://blablub.org/v2/service_instances/134567/service_bindings/76543210/adapt_credentials", emptyBody)
@@ -60,7 +60,7 @@ const validUpdateCredentialsRequest = `{
 func TestDoNotSkipVerifyTLSIfNotConfigured(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	handlerStub := NewHandlerStub(200, []byte(`{}`))
+	handlerStub := newHandlerStub(200, []byte(`{}`))
 	_, routerConfig := injectClientStub(handlerStub)
 	routerConfig.SkipVerifyTLS = true
 	SetupRouter(ProducerInterceptor{ProviderID: "x"}, *routerConfig)
@@ -73,7 +73,7 @@ func TestDoNotSkipVerifyTLSIfNotConfigured(t *testing.T) {
 func TestSkipVerifyTLSIfConfigured(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	handlerStub := NewHandlerStub(200, []byte(`{}`))
+	handlerStub := newHandlerStub(200, []byte(`{}`))
 	_, routerConfig := injectClientStub(handlerStub)
 	routerConfig.SkipVerifyTLS = false
 	SetupRouter(ProducerInterceptor{ProviderID: "x"}, *routerConfig)
@@ -85,7 +85,7 @@ func TestSkipVerifyTLSIfConfigured(t *testing.T) {
 
 func TestValidUpdateCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	router := SetupRouter(ProducerInterceptor{ProviderID: "x"}, RouterConfig{})
+	router := SetupRouter(ProducerInterceptor{ProviderID: "x"}, Config{})
 
 	emptyBody := bytes.NewReader([]byte(validUpdateCredentialsRequest))
 	request, _ := http.NewRequest(http.MethodPost, "/v2/service_instances/1234-4567/service_bindings/7654-3210/adapt_credentials", emptyBody)
@@ -99,7 +99,7 @@ func TestValidUpdateCredentials(t *testing.T) {
 
 func TestConsumerForwardsAdpotCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	handlerStub := NewHandlerStub(499, []byte(`{"error" : "abc"}`))
+	handlerStub := newHandlerStub(499, []byte(`{"error" : "abc"}`))
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
 	router := SetupRouter(ConsumerInterceptor{ConsumerID: "x"}, *routerConfig)
@@ -163,7 +163,7 @@ func TestRedirect(t *testing.T) {
 		request.Header.Set(testHeaderKey, testHeaderValue)
 
 		response := httptest.NewRecorder()
-		router := SetupRouter(&NoOpInterceptor{}, RouterConfig{ForwardURL: "https://httpbin.org"})
+		router := SetupRouter(&noOpInterceptor{}, Config{ForwardURL: "https://httpbin.org"})
 		router.ServeHTTP(response, request)
 
 		var bodyData struct {
@@ -188,7 +188,7 @@ func TestRedirect(t *testing.T) {
 		request.Header.Set("'Content-Type", "application/json")
 
 		response := httptest.NewRecorder()
-		router := SetupRouter(&NoOpInterceptor{}, RouterConfig{ForwardURL: "https://httpbin.org"})
+		router := SetupRouter(&noOpInterceptor{}, Config{ForwardURL: "https://httpbin.org"})
 		router.ServeHTTP(response, request)
 
 		var bodyData struct {
@@ -208,7 +208,7 @@ func TestRedirect(t *testing.T) {
 
 func TestBadGateway(t *testing.T) {
 	g := NewGomegaWithT(t)
-	router := SetupRouter(&NoOpInterceptor{}, RouterConfig{ForwardURL: "doesntexist.org"})
+	router := SetupRouter(&noOpInterceptor{}, Config{ForwardURL: "doesntexist.org"})
 
 	body := []byte{'{', '}'}
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/get", bytes.NewReader(body))
@@ -225,7 +225,7 @@ func TestBadGateway(t *testing.T) {
 
 func TestAdaptCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
-	router := SetupRouter(ProducerInterceptor{ProviderID: "x"}, RouterConfig{})
+	router := SetupRouter(ProducerInterceptor{ProviderID: "x"}, Config{})
 
 	body := []byte(`{
 "credentials": {
@@ -272,7 +272,7 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 						"uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
  					}
 					}`)
-	handlerStub := NewHandlerStub(http.StatusOK, body)
+	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -312,7 +312,7 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 						"uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
  					}
 					}`)
-	handlerStub := NewHandlerStub(http.StatusOK, body)
+	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -358,7 +358,7 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
                         }
  					}
 					}`)
-	handlerStub := NewHandlerStub(http.StatusOK, responseBody)
+	handlerStub := newHandlerStub(http.StatusOK, responseBody)
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -409,7 +409,7 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
                         }
  					}
 					}`)
-	handlerStub := NewHandlerStub(http.StatusOK, responseBody)
+	handlerStub := newHandlerStub(http.StatusOK, responseBody)
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -427,7 +427,7 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 func TestBindWithInvalidRequest(t *testing.T) {
 	producerConfig := ProducerInterceptor{}
 	g := NewGomegaWithT(t)
-	handlerStub := NewHandlerStub(http.StatusOK, []byte(``))
+	handlerStub := newHandlerStub(http.StatusOK, []byte(``))
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -457,14 +457,14 @@ func TestHttpClientError(t *testing.T) {
                         "uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
                     }
                     }`)
-	handlerStub := NewHandlerStub(http.StatusNotFound, []byte(`{ "error": "Not found", "description": "Unable to find entry"}`))
+	handlerStub := newHandlerStub(http.StatusNotFound, []byte(`{ "error": "Not found", "description": "Unable to find entry"}`))
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
 	response := httptest.NewRecorder()
-	router := SetupRouter(&NoOpInterceptor{}, *routerConfig)
+	router := SetupRouter(&noOpInterceptor{}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusNotFound))
@@ -489,7 +489,7 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumer(t *testing.T) {
 					}
 					}`)
 
-	handlerStub := NewHandlerStub(http.StatusOK, body)
+	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -515,7 +515,7 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumerForBrokerAPI(t *
 					}
 					}`)
 
-	handlerStub := NewHandlerStub(http.StatusOK, body)
+	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -532,7 +532,7 @@ func TestRequestServiceBindingAddsNetworkDataToRequestIfConsumerForBrokerAPI(t *
 
 func TestErrorCodeOfForwardIsReturned(t *testing.T) {
 	g := NewGomegaWithT(t)
-	handlerStub := NewHandlerStub(http.StatusServiceUnavailable, []byte(`{ "error": "xxx", "description": "yyy"}`))
+	handlerStub := newHandlerStub(http.StatusServiceUnavailable, []byte(`{ "error": "xxx", "description": "yyy"}`))
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -540,7 +540,7 @@ func TestErrorCodeOfForwardIsReturned(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/status/503", bytes.NewReader([]byte("{}")))
 
 	response := httptest.NewRecorder()
-	router := SetupRouter(&NoOpInterceptor{}, *routerConfig)
+	router := SetupRouter(&noOpInterceptor{}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(503))
@@ -553,7 +553,7 @@ func TestErrorCodeOfForwardIsReturned(t *testing.T) {
 func TestReturnCodeOfGet(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
-	handlerStub := NewHandlerStub(http.StatusOK, body)
+	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -561,7 +561,7 @@ func TestReturnCodeOfGet(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/xxx", bytes.NewReader(body))
 
 	response := httptest.NewRecorder()
-	router := SetupRouter(&NoOpInterceptor{}, *routerConfig)
+	router := SetupRouter(&noOpInterceptor{}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(200))
@@ -570,7 +570,7 @@ func TestReturnCodeOfGet(t *testing.T) {
 func TestCorrectUrlForwarded(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
-	handlerStub := NewHandlerStub(http.StatusOK, body)
+	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -578,7 +578,7 @@ func TestCorrectUrlForwarded(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/somepath", bytes.NewReader(body))
 
 	response := httptest.NewRecorder()
-	router := SetupRouter(&NoOpInterceptor{}, *routerConfig)
+	router := SetupRouter(&noOpInterceptor{}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	g.Expect(handlerStub.spy.url).To(Equal("http://xxxxx.xx/somepath"))
@@ -587,7 +587,7 @@ func TestCorrectUrlForwarded(t *testing.T) {
 func TestDeleteBinding(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
-	handlerStub := NewHandlerStub(http.StatusOK, body)
+	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -610,7 +610,7 @@ func TestDeleteBinding(t *testing.T) {
 func TestDeleteBindingForBrokerAPI(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
-	handlerStub := NewHandlerStub(http.StatusOK, body)
+	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -633,7 +633,7 @@ func TestDeleteBindingForBrokerAPI(t *testing.T) {
 func TestDeleteBindingNotFound(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
-	handlerStub := NewHandlerStub(http.StatusNotFound, body)
+	handlerStub := newHandlerStub(http.StatusNotFound, body)
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -641,7 +641,7 @@ func TestDeleteBindingNotFound(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
 
 	response := httptest.NewRecorder()
-	router := SetupRouter(&NoOpInterceptor{}, *routerConfig)
+	router := SetupRouter(&noOpInterceptor{}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusNotFound))
@@ -650,7 +650,7 @@ func TestDeleteBindingNotFound(t *testing.T) {
 func TestForwardGetCatalog(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte(`{"services": [{ "name" : "abc", "plans":[{}] } ] }`)
-	handlerStub := NewHandlerStub(http.StatusOK, body)
+	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -667,7 +667,7 @@ func TestForwardGetCatalog(t *testing.T) {
 func TestForwardGetCatalogForBrokerAPI(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte(`{"services": [{ "name" : "name", "plans":[{}] } ] }`)
-	handlerStub := NewHandlerStub(http.StatusOK, body)
+	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
@@ -684,21 +684,21 @@ func TestForwardGetCatalogForBrokerAPI(t *testing.T) {
 func TestCorrectRequestParamForDelete(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte(`{}`)
-	handlerStub := NewHandlerStub(http.StatusOK, body)
+	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
 	request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/delete?plan_id=myplan", bytes.NewReader(body))
 
 	response := httptest.NewRecorder()
-	router := SetupRouter(&NoOpInterceptor{}, *routerConfig)
+	router := SetupRouter(&noOpInterceptor{}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	g.Expect(handlerStub.spy.url).To(Equal("http://xxxxx.xx/delete?plan_id=myplan"))
 }
 
 type DeleteInterceptor struct {
-	NoOpInterceptor
+	noOpInterceptor
 	deleteCallback func(bindID string) error
 }
 

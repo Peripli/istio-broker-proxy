@@ -1,11 +1,12 @@
 package router
 
 import (
+	"github.com/Peripli/istio-broker-proxy/pkg/api"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 )
 
 type OsbClient struct {
-	RestClient
+	api.RestClient
 }
 
 func (client *OsbClient) AdaptCredentials(credentials model.Credentials, mapping []model.EndpointMapping) (*model.BindResponse, error) {

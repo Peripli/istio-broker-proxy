@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	service_port = 5555
+	servicePort = 5555
 )
 
 type ConsumerInterceptor struct {
@@ -60,7 +60,7 @@ func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.
 		endpointMapping = append(endpointMapping,
 			model.EndpointMapping{
 				Source: response.Endpoints[index],
-				Target: model.Endpoint{Host: clusterIP, Port: service_port}})
+				Target: model.Endpoint{Host: clusterIP, Port: servicePort}})
 	}
 	binding, err := adapt(response.Credentials, endpointMapping)
 	if err != nil {
@@ -73,7 +73,7 @@ func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.
 }
 
 func CreateIstioObjectsInK8S(configStore ConfigStore, name string, endpoint model.Endpoint, systemDomain string) (string, error) {
-	service := &v1.Service{Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Port: service_port, TargetPort: intstr.FromInt(service_port)}}}}
+	service := &v1.Service{Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Port: servicePort, TargetPort: intstr.FromInt(servicePort)}}}}
 	service.Name = name
 	log.Println("Creating istio objects for", name)
 	service, err := configStore.CreateService(service)

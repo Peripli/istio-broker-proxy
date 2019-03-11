@@ -11,21 +11,23 @@ import (
 )
 
 const (
+	// DefaultPort for istio-broker-proxy HTTP endpoint
 	DefaultPort = 8080
 )
 
-type RouterConfig struct {
+//Config contains various config
+type Config struct {
 	ForwardURL         string
 	SkipVerifyTLS      bool
 	Port               int
-	HttpClientFactory  func(tr *http.Transport) *http.Client
-	HttpRequestFactory func(method string, url string, body io.Reader) (*http.Request, error)
+	HTTPClientFactory  func(tr *http.Transport) *http.Client
+	HTTPRequestFactory func(method string, url string, body io.Reader) (*http.Request, error)
 }
 
 type osbProxy struct {
 	*http.Client
 	interceptor ServiceBrokerInterceptor
-	config      RouterConfig
+	config      Config
 }
 
 func (client osbProxy) updateCredentials(ctx *gin.Context) {
@@ -51,7 +53,7 @@ func (client osbProxy) forward(ctx *gin.Context) {
 
 func (client osbProxy) deleteBinding(ctx *gin.Context) {
 	bindingID := ctx.Params.ByName("binding_id")
-	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, ctx.Request, client.config}}, client.interceptor}
+	osbClient := InterceptedOsbClient{&OsbClient{&restClient{client.Client, ctx.Request, client.config}}, client.interceptor}
 	err := osbClient.Unbind(bindingID)
 	if err != nil {
 		httpError(ctx, err, http.StatusInternalServerError)
@@ -61,7 +63,7 @@ func (client osbProxy) deleteBinding(ctx *gin.Context) {
 }
 
 func (client osbProxy) forwardCatalog(ctx *gin.Context) {
-	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, ctx.Request, client.config}}, client.interceptor}
+	osbClient := InterceptedOsbClient{&OsbClient{&restClient{client.Client, ctx.Request, client.config}}, client.interceptor}
 	catalog, err := osbClient.GetCatalog()
 	if err != nil {
 		httpError(ctx, err, http.StatusInternalServerError)
@@ -77,7 +79,7 @@ func (client osbProxy) forwardWithCallback(ctx *gin.Context, postCallback func(c
 	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
 
 	url := createNewURL(client.config.ForwardURL, request)
-	proxyRequest, err := client.config.HttpRequestFactory(request.Method, url, request.Body)
+	proxyRequest, err := client.config.HTTPRequestFactory(request.Method, url, request.Body)
 	proxyRequest.Header = request.Header
 
 	response, err := client.Do(proxyRequest)
@@ -115,7 +117,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 		return
 	}
 
-	osbClient := InterceptedOsbClient{&OsbClient{&RouterRestClient{client.Client, request, client.config}}, client.interceptor}
+	osbClient := InterceptedOsbClient{&OsbClient{&restClient{client.Client, request, client.config}}, client.interceptor}
 	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
 	bindingID := ctx.Params.ByName("binding_id")
 	bindResponse, err := osbClient.Bind(bindingID, &bindRequest)
@@ -161,12 +163,13 @@ func registerConsumerRelevantRoutes(prefix string, mux *gin.Engine, client *osbP
 	mux.GET(prefix+"/v2/catalog", client.forwardCatalog)
 }
 
-func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig RouterConfig) *gin.Engine {
-	if routerConfig.HttpClientFactory == nil {
-		routerConfig.HttpClientFactory = httpClientFactory
+//SetupRouter creates the istio-broker-proxy's endpoints
+func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig Config) *gin.Engine {
+	if routerConfig.HTTPClientFactory == nil {
+		routerConfig.HTTPClientFactory = httpClientFactory
 	}
-	if routerConfig.HttpRequestFactory == nil {
-		routerConfig.HttpRequestFactory = httpRequestFactory
+	if routerConfig.HTTPRequestFactory == nil {
+		routerConfig.HTTPRequestFactory = httpRequestFactory
 	}
 	if routerConfig.Port == 0 {
 		routerConfig.Port = DefaultPort
@@ -177,7 +180,7 @@ func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig RouterConfig
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: routerConfig.SkipVerifyTLS},
 	}
-	client := osbProxy{routerConfig.HttpClientFactory(tr), interceptor, routerConfig}
+	client := osbProxy{routerConfig.HTTPClientFactory(tr), interceptor, routerConfig}
 	mux.GET("/health", func(ctx *gin.Context) {
 		ctx.Status(http.StatusOK)
 	})

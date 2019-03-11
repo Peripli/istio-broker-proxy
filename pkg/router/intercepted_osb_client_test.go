@@ -8,7 +8,7 @@ import (
 )
 
 type TestInterceptor struct {
-	NoOpInterceptor
+	noOpInterceptor
 }
 
 func (c TestInterceptor) PreBind(request model.BindRequest) (*model.BindRequest, error) {

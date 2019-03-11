@@ -16,12 +16,12 @@ type TestStruct struct {
 func TestRouterRestClientPut(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	handlerStub := NewHandlerStubWithFunc(http.StatusOK, func(body []byte) []byte {
+	handlerStub := newHandlerStubWithFunc(http.StatusOK, func(body []byte) []byte {
 		return []byte(`{"member1": "string","member2": 1}`)
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
+	client := &restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
 	testStruct := TestStruct{"s", 10}
 	err := client.Put(&testStruct).Do().Into(&testStruct)
 
@@ -37,10 +37,10 @@ func TestRouterRestClientPut(t *testing.T) {
 func TestRouterRestClientWithBadRequest(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	handlerStub := NewHandlerStub(http.StatusBadRequest, []byte(`{"error" : "myerror", "description" : "mydescription"}`))
+	handlerStub := newHandlerStub(http.StatusBadRequest, []byte(`{"error" : "myerror", "description" : "mydescription"}`))
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
+	client := &restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
 	err := client.Get().Do().Error()
 
 	g.Expect(err).To(HaveOccurred())
@@ -53,10 +53,10 @@ func TestRouterRestClientWithBadRequest(t *testing.T) {
 func TestRouterRestClientPostWithInvalidJson(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	handlerStub := NewHandlerStub(http.StatusOK, []byte(""))
+	handlerStub := newHandlerStub(http.StatusOK, []byte(""))
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
+	client := &restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
 	result := TestStruct{}
 	err := client.Post(&result).Do().Into(&result)
 
@@ -68,12 +68,12 @@ func TestRouterRestClientPostWithInvalidJson(t *testing.T) {
 func TestRouterRestClientDelete(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	handlerStub := NewHandlerStubWithFunc(http.StatusOK, func(body []byte) []byte {
+	handlerStub := newHandlerStubWithFunc(http.StatusOK, func(body []byte) []byte {
 		return []byte(`{"member1": "string","member2": 1}`)
 	})
 	server, routerConfig := injectClientStub(handlerStub)
 	defer server.Close()
-	client := &RouterRestClient{routerConfig.HttpClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
+	client := &restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
 	err := client.Delete().Do().Error()
 
 	g.Expect(err).NotTo(HaveOccurred())

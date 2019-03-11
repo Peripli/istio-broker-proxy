@@ -1,4 +1,4 @@
-package router
+package api
 
 type RestResponse interface {
 	Into(response interface{}) error

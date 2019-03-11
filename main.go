@@ -10,7 +10,7 @@ import (
 
 var producerInterceptor router.ProducerInterceptor
 var consumerInterceptor router.ConsumerInterceptor
-var routerConfig router.RouterConfig
+var routerConfig router.Config
 var serviceNamePrefix string
 var networkProfile string
 
@@ -41,7 +41,7 @@ func configureInterceptor(configStoreFactory func() router.ConfigStore) router.S
 		}
 		interceptor = producerInterceptor
 	} else {
-		interceptor = router.NoOpInterceptor{}
+		interceptor = router.NewNoOpInterceptor()
 	}
 	return interceptor
 }

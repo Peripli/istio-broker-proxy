@@ -14,7 +14,7 @@ func adapt(credentials model.Credentials, endpointMappings []model.EndpointMappi
 }
 
 func adaptError(credentials model.Credentials, endpointMappings []model.EndpointMapping) (*model.BindResponse, error) {
-	return &model.BindResponse{Credentials: credentials}, errors.New("Error during adapt.")
+	return &model.BindResponse{Credentials: credentials}, errors.New("error during adapt")
 }
 
 func TestConsumerPreBind(t *testing.T) {
@@ -129,7 +129,7 @@ func TestEndpointsMappingWorks(t *testing.T) {
 	g.Expect(binding.Endpoints).NotTo(BeNil())
 	g.Expect(len(binding.Endpoints)).To(Equal(1))
 	g.Expect(binding.Endpoints[0].Host).To(Equal("1.2.3.5"))
-	g.Expect(binding.Endpoints[0].Port).To(Equal(service_port))
+	g.Expect(binding.Endpoints[0].Port).To(Equal(servicePort))
 	g.Expect(binding.NetworkData.NetworkProfileID).To(Equal("testprofile"))
 	g.Expect(len(binding.NetworkData.Data.Endpoints)).To(Equal(1))
 	g.Expect(binding.NetworkData.Data.Endpoints[0]).To(Equal(endpoints[0]))
@@ -137,7 +137,7 @@ func TestEndpointsMappingWorks(t *testing.T) {
 	postgresCredentials, err := model.PostgresCredentialsFromCredentials(binding.Credentials)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(postgresCredentials.Hostname).To(Equal("1.2.3.5"))
-	g.Expect(postgresCredentials.Port).To(Equal(service_port))
+	g.Expect(postgresCredentials.Port).To(Equal(servicePort))
 	g.Expect(postgresCredentials.URI).To(Equal("postgres://user:password@1.2.3.5:5555/test"))
 
 }

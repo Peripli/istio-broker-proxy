@@ -11,7 +11,7 @@ type AdaptCredentialsRequest struct {
 
 type CredentialConverter func(credentials Credentials, endpointMappings []EndpointMapping) (*Credentials, error)
 
-var converters []CredentialConverter = []CredentialConverter{
+var converters = []CredentialConverter{
 	PostgresCredentialsConverter,
 	RabbitMQCredentialsConverter,
 	func(credentials Credentials, endpointMappings []EndpointMapping) (*Credentials, error) {

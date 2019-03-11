@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	gateway_ingress_yml = `apiVersion: networking.istio.io/v1alpha3
+	gatewayIngressYml = `apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   creationTimestamp: null
@@ -28,7 +28,7 @@ spec:
       subjectAltNames:
       - client.my.client.domain.io
 `
-	virtual_service_ingress_yml = `apiVersion: networking.istio.io/v1alpha3
+	virtualServiceIngressYml = `apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
   creationTimestamp: null
@@ -46,7 +46,7 @@ spec:
         port:
           number: 47637
 `
-	service_entry_yml = `apiVersion: networking.istio.io/v1alpha3
+	serviceEntryYml = `apiVersion: networking.istio.io/v1alpha3
 kind: ServiceEntry
 metadata:
   creationTimestamp: null
@@ -76,7 +76,7 @@ func TestServerGatewayFromGo(t *testing.T) {
 
 	text, err := enrichAndtoText(gatewaySpec)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(text).To(Equal(gateway_ingress_yml))
+	g.Expect(text).To(Equal(gatewayIngressYml))
 }
 
 func TestServerVirtualServiceFromGo(t *testing.T) {
@@ -88,7 +88,7 @@ func TestServerVirtualServiceFromGo(t *testing.T) {
 
 	text, err := enrichAndtoText(virtualServiceSpec)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(text).To(Equal(virtual_service_ingress_yml))
+	g.Expect(text).To(Equal(virtualServiceIngressYml))
 }
 
 func TestServiceEntryFromGo(t *testing.T) {
@@ -98,6 +98,6 @@ func TestServiceEntryFromGo(t *testing.T) {
 
 	text, err := enrichAndtoText(serviceEntrySpec)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(text).To(Equal(service_entry_yml))
+	g.Expect(text).To(Equal(serviceEntryYml))
 	g.Expect(serviceEntrySpec.Type).To(Equal(serviceEntry))
 }

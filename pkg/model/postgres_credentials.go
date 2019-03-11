@@ -10,8 +10,8 @@ const (
 	defaultPostgresPort = 5432
 	hostnameKey         = "hostname"
 	portKey             = "port"
-	writeUrlKey         = "write_url"
-	readUrlKey          = "read_url"
+	writeURLKey         = "write_url"
+	readURLKey          = "read_url"
 	uriKey              = "uri"
 )
 
@@ -50,8 +50,8 @@ func PostgresCredentialsFromCredentials(credentials Credentials) (*PostgresCrede
 	}
 	err = removeProperties(result.AdditionalProperties, map[string]interface{}{
 		hostnameKey: &result.Hostname,
-		writeUrlKey: &result.WriteURL,
-		readUrlKey:  &result.ReadURL,
+		writeURLKey: &result.WriteURL,
+		readURLKey:  &result.ReadURL,
 	})
 	if err != nil {
 		return nil, err
@@ -75,10 +75,10 @@ func (credentials PostgresCredentials) ToCredentials() Credentials {
 		addProperty(result.AdditionalProperties, uriKey, credentials.URI)
 	}
 	if len(credentials.ReadURL) > 0 {
-		addProperty(result.AdditionalProperties, readUrlKey, credentials.ReadURL)
+		addProperty(result.AdditionalProperties, readURLKey, credentials.ReadURL)
 	}
 	if len(credentials.WriteURL) > 0 {
-		addProperty(result.AdditionalProperties, writeUrlKey, credentials.WriteURL)
+		addProperty(result.AdditionalProperties, writeURLKey, credentials.WriteURL)
 	}
 	if credentials.Port != 0 {
 		addProperty(result.AdditionalProperties, portKey, credentials.Port)

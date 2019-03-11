@@ -30,27 +30,27 @@ func (stub handlerStub) ServeHTTP(writer http.ResponseWriter, request *http.Requ
 	writer.Write(stub.handler(bodyAsBytes))
 }
 
-func NewHandlerStub(code int, responseBody []byte) *handlerStub {
+func newHandlerStub(code int, responseBody []byte) *handlerStub {
 	stub := handlerStub{code, func([]byte) []byte { return responseBody }, requestSpy{}}
 	return &stub
 }
 
-func NewHandlerStubWithFunc(code int, handler func([]byte) []byte) *handlerStub {
+func newHandlerStubWithFunc(code int, handler func([]byte) []byte) *handlerStub {
 	stub := handlerStub{code, handler, requestSpy{}}
 	return &stub
 }
 
-func injectClientStub(handler *handlerStub) (*httptest.Server, *RouterConfig) {
+func injectClientStub(handler *handlerStub) (*httptest.Server, *Config) {
 
-	routerConfig := RouterConfig{ForwardURL: "http://xxxxx.xx"}
+	routerConfig := Config{ForwardURL: "http://xxxxx.xx"}
 
 	ts := httptest.NewServer(handler)
 	client := ts.Client()
-	routerConfig.HttpClientFactory = func(tr *http.Transport) *http.Client {
+	routerConfig.HTTPClientFactory = func(tr *http.Transport) *http.Client {
 		handler.spy.tr = tr
 		return client
 	}
-	routerConfig.HttpRequestFactory = func(method string, url string, body io.Reader) (*http.Request, error) {
+	routerConfig.HTTPRequestFactory = func(method string, url string, body io.Reader) (*http.Request, error) {
 		handler.spy.method = method
 		handler.spy.url = url
 		buf := new(bytes.Buffer)

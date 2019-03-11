@@ -13,6 +13,7 @@ import (
 	"path"
 )
 
+//ProducerInterceptor contains config for the producer side
 type ProducerInterceptor struct {
 	LoadBalancerPort  int
 	SystemDomain      string
