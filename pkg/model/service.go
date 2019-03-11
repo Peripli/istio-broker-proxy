@@ -4,7 +4,7 @@ package model
 type Service struct {
 	Name                 string
 	Plans                []Plan
-	AdditionalProperties AdditionalProperties
+	AdditionalProperties additionalProperties
 }
 
 //UnmarshalJSON unmarshals

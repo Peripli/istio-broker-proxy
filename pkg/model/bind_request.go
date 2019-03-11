@@ -1,15 +1,17 @@
 package model
 
 type BindRequest struct {
-	AdditionalProperties AdditionalProperties
+	AdditionalProperties additionalProperties
 	NetworkData          NetworkDataRequest
 }
 
+//NetworkDataRequest represents a osb-NetworkProfile field in a request
 type NetworkDataRequest struct {
 	NetworkProfileID string      `json:"network_profile_id"`
 	Data             DataRequest `json:"data"`
 }
 
+//DataRequest represents the data section of an osb-NetworkProfile
 type DataRequest struct {
 	ConsumerID string `json:"consumer_id"`
 }

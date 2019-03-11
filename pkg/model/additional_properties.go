@@ -7,9 +7,9 @@ import (
 	"strconv"
 )
 
-type AdditionalProperties map[string]json.RawMessage
+type additionalProperties map[string]json.RawMessage
 
-func (ap *AdditionalProperties) UnmarshalJSON(b []byte, values map[string]interface{}) error {
+func (ap *additionalProperties) UnmarshalJSON(b []byte, values map[string]interface{}) error {
 	if err := json.Unmarshal(b, ap); err != nil {
 		return err
 	}
@@ -20,7 +20,7 @@ func (ap *AdditionalProperties) UnmarshalJSON(b []byte, values map[string]interf
 	return nil
 }
 
-func (ap *AdditionalProperties) MarshalJSON(values map[string]interface{}) ([]byte, error) {
+func (ap *additionalProperties) MarshalJSON(values map[string]interface{}) ([]byte, error) {
 	properties := clone(*ap)
 	for key, value := range values {
 		if value != nil {

@@ -17,8 +17,8 @@ func createEgressVirtualServiceForExternalService(hostName string, port uint32, 
 	return enrichWithIstioDefaults(config, namespace)
 }
 
-func egressVirtualServiceForExternalService(serviceName string) istioObjectID {
-	return istioObjectID{model.VirtualService.Type, fmt.Sprintf("egress-gateway-%s", serviceName)}
+func egressVirtualServiceForExternalService(serviceName string) IstioObjectID {
+	return IstioObjectID{model.VirtualService.Type, fmt.Sprintf("egress-gateway-%s", serviceName)}
 }
 
 func createMeshVirtualServiceForExternalService(hostName string, port uint32, serviceName string, serviceIP string, namespace string) model.Config {
@@ -30,8 +30,8 @@ func createMeshVirtualServiceForExternalService(hostName string, port uint32, se
 	return enrichWithIstioDefaults(config, namespace)
 }
 
-func meshVirtualServiceForExternalService(serviceName string) istioObjectID {
-	return istioObjectID{model.VirtualService.Type, fmt.Sprintf("mesh-to-egress-%s", serviceName)}
+func meshVirtualServiceForExternalService(serviceName string) IstioObjectID {
+	return IstioObjectID{model.VirtualService.Type, fmt.Sprintf("mesh-to-egress-%s", serviceName)}
 }
 
 func enrichWithIstioDefaults(config model.Config, namespace string) model.Config {
@@ -76,8 +76,8 @@ func createEgressGatewayForExternalService(hostName string, portNumber uint32, s
 	return enrichWithIstioDefaults(config, namespace)
 }
 
-func egressGatewayForExternalService(serviceName string) istioObjectID {
-	return istioObjectID{model.Gateway.Type, fmt.Sprintf("istio-egressgateway-%s", serviceName)}
+func egressGatewayForExternalService(serviceName string) IstioObjectID {
+	return IstioObjectID{model.Gateway.Type, fmt.Sprintf("istio-egressgateway-%s", serviceName)}
 }
 
 func createEgressDestinationRuleForExternalService(hostName string, portNumber uint32, serviceName string, namespace string, systemDomain string) model.Config {
@@ -94,8 +94,8 @@ func createEgressDestinationRuleForExternalService(hostName string, portNumber u
 	return enrichWithIstioDefaults(config, namespace)
 }
 
-func egressDestinationRuleForExternalService(serviceName string) istioObjectID {
-	return istioObjectID{model.DestinationRule.Type, fmt.Sprintf("egressgateway-%s", serviceName)}
+func egressDestinationRuleForExternalService(serviceName string) IstioObjectID {
+	return IstioObjectID{model.DestinationRule.Type, fmt.Sprintf("egressgateway-%s", serviceName)}
 }
 
 func createTLSSettings(hostName string, systemDomain string) v1alpha3.TLSSettings {
@@ -122,8 +122,8 @@ func createEgressExternServiceEntryForExternalService(hostName string, portNumbe
 	return enrichWithIstioDefaults(config, namespace)
 }
 
-func egressExternServiceEntryForExternalService(serviceName string) istioObjectID {
-	return istioObjectID{model.ServiceEntry.Type, fmt.Sprintf("%s-service", serviceName)}
+func egressExternServiceEntryForExternalService(serviceName string) IstioObjectID {
+	return IstioObjectID{model.ServiceEntry.Type, fmt.Sprintf("%s-service", serviceName)}
 }
 
 func createGeneralServiceEntryForExternalService(serviceEntryName string, hostName string, portNumber uint32, portName string, protocol string) model.Config {
@@ -152,6 +152,6 @@ func createSidecarDestinationRuleForExternalService(hostName string, serviceName
 	return enrichWithIstioDefaults(config, namespace)
 }
 
-func sidecarDestinationRuleForExternalService(serviceName string) istioObjectID {
-	return istioObjectID{model.DestinationRule.Type, fmt.Sprintf("sidecar-to-egress-%s", serviceName)}
+func sidecarDestinationRuleForExternalService(serviceName string) IstioObjectID {
+	return IstioObjectID{model.DestinationRule.Type, fmt.Sprintf("sidecar-to-egress-%s", serviceName)}
 }

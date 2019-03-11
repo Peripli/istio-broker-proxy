@@ -1,7 +1,7 @@
 package model
 
 type BindResponse struct {
-	AdditionalProperties AdditionalProperties
+	AdditionalProperties additionalProperties
 	NetworkData          NetworkDataResponse
 	Credentials          Credentials
 	Endpoints            []Endpoint

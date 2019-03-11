@@ -37,7 +37,8 @@ var schemas = map[string]istioModel.ProtoSchema{
 	istioDestinationRule: istioModel.DestinationRule,
 }
 
-type istioObjectID struct {
+//IstioObjectID identifies an istio configuration object (e.g. a gateway with name XY)
+type IstioObjectID struct {
 	Type string
 	Name string
 }
@@ -80,8 +81,8 @@ func createValidIdentifer(identifer string) string {
 }
 
 //DeleteEntriesForExternalServiceClient creates a list of istio config to delete for a service on the consumer side
-func DeleteEntriesForExternalServiceClient(serviceName string) []istioObjectID {
-	result := make([]istioObjectID, 0)
+func DeleteEntriesForExternalServiceClient(serviceName string) []IstioObjectID {
+	result := make([]IstioObjectID, 0)
 	result = append(result, sidecarDestinationRuleForExternalService(serviceName))
 	result = append(result, egressDestinationRuleForExternalService(serviceName))
 	result = append(result, egressGatewayForExternalService(serviceName))

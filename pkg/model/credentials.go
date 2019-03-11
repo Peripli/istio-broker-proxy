@@ -1,7 +1,7 @@
 package model
 
 type Credentials struct {
-	AdditionalProperties AdditionalProperties
+	AdditionalProperties additionalProperties
 	Endpoints            []Endpoint
 }
 

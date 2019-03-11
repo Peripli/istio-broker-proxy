@@ -5,7 +5,7 @@ import "encoding/json"
 //Plan represents a service plan
 type Plan struct {
 	MetaData             map[string]json.RawMessage `json:"metadata"`
-	AdditionalProperties AdditionalProperties
+	AdditionalProperties additionalProperties
 }
 
 //UnmarshalJSON unmarshals to a service plan

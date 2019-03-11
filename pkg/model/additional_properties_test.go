@@ -43,7 +43,7 @@ func TestRemoveIntOrStringPropertyInvalidJson(t *testing.T) {
 }
 
 type MyAdditionalProperties struct {
-	AdditionalProperties AdditionalProperties
+	AdditionalProperties additionalProperties
 	StringMember         string
 	IntMember            int
 }
@@ -80,7 +80,7 @@ func TestAdditionalProperties(t *testing.T) {
 
 func TestAdditionalPropertiesInvalid(t *testing.T) {
 	g := NewGomegaWithT(t)
-	var additionalProperties AdditionalProperties
+	var additionalProperties additionalProperties
 
 	err := additionalProperties.UnmarshalJSON([]byte(`[]`), make(map[string]interface{}, 0))
 	g.Expect(err).To(HaveOccurred())
@@ -88,7 +88,7 @@ func TestAdditionalPropertiesInvalid(t *testing.T) {
 
 func TestAdditionalPropertiesInvalidMember(t *testing.T) {
 	g := NewGomegaWithT(t)
-	var additionalProperties AdditionalProperties
+	var additionalProperties additionalProperties
 	var endpoint int
 	err := additionalProperties.UnmarshalJSON([]byte(`{ "end_points" : "test"}`), map[string]interface{}{
 		"end_points": &endpoint,
