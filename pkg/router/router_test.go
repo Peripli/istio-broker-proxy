@@ -272,6 +272,50 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 						"uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
  					}
 					}`)
+	requestBody := []byte(`{
+					"network_data":
+					{
+                        "data":
+                        {
+                            "consumer_id": "147"
+                        }
+ 					}
+					}`)
+	handlerStub := newHandlerStub(http.StatusOK, body)
+	server, routerConfig := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(requestBody))
+	response := httptest.NewRecorder()
+	router := SetupRouter(ProducerInterceptor{IstioDirectory: os.TempDir(), NetworkProfile: "urn:local.test:public"}, *routerConfig)
+	router.ServeHTTP(response, request)
+	g.Expect(response.Code).To(Equal(http.StatusOK))
+
+	var bodyData struct {
+		Endpoints []interface{} `json:"endpoints"`
+	}
+
+	err := json.NewDecoder(response.Body).Decode(&bodyData)
+	g.Expect(err).NotTo(HaveOccurred(), "error while decoding body: %v ", response.Body)
+	g.Expect(bodyData.Endpoints).To(HaveLen(1))
+}
+
+func TestBindWithoutConsumerId(t *testing.T) {
+	g := NewGomegaWithT(t)
+	body := []byte(`{
+					"credentials":
+					{
+ 						"hostname": "10.11.241.0",
+ 						"port": "47637",
+                        "end_points": [
+                        {
+                            "host": "10.11.241.0",
+                            "port": 47637
+                        }],
+						"uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
+ 					}
+					}`)
 	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 
@@ -281,14 +325,12 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 	response := httptest.NewRecorder()
 	router := SetupRouter(ProducerInterceptor{IstioDirectory: os.TempDir(), NetworkProfile: "urn:local.test:public"}, *routerConfig)
 	router.ServeHTTP(response, request)
+	g.Expect(response.Code).To(Equal(http.StatusBadRequest))
+	var err model.HTTPError
+	json.Unmarshal(response.Body.Bytes(), &err)
+	g.Expect(err.Description).To(Equal("no consumer ID included in bind request"))
+	g.Expect(err.ErrorMsg).To(Equal("InvalidConsumerID"))
 
-	var bodyData struct {
-		Endpoints []interface{} `json:"endpoints"`
-	}
-
-	err := json.NewDecoder(response.Body).Decode(&bodyData)
-	g.Expect(err).NotTo(HaveOccurred(), "error while decoding body: %v ", response.Body)
-	g.Expect(bodyData.Endpoints).To(HaveLen(1))
 }
 
 func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAndEndpointIndex(t *testing.T) {
@@ -312,15 +354,25 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 						"uri": "postgres://mma4G8N0isoxe17v:redacted@10.11.241.0:47637/yLO2WoE0-mCcEppn"
  					}
 					}`)
+	requestBody := []byte(`{
+					"network_data":
+					{
+                        "data":
+                        {
+                            "consumer_id": "147"
+                        }
+ 					}
+					}`)
 	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
 
 	defer server.Close()
 
-	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(requestBody))
 	response := httptest.NewRecorder()
 	router := SetupRouter(producerConfig, *routerConfig)
 	router.ServeHTTP(response, request)
+	g.Expect(response.Code).To(Equal(http.StatusOK))
 
 	bodyString := response.Body.String()
 	g.Expect(bodyString).To(ContainSubstring("network_data"))

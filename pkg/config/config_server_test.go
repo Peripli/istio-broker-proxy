@@ -71,8 +71,7 @@ func TestServerGatewayFromGo(t *testing.T) {
 	gatewaySpec := createIngressGatewayForExternalService("postgres.istio.my.arbitrary.domain.io",
 		9000,
 		"postgres-server",
-		"client.my.client.domain.io",
-		"san")
+		"client.my.client.domain.io")
 
 	text, err := enrichAndtoText(gatewaySpec)
 	g.Expect(err).NotTo(HaveOccurred())

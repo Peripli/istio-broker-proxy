@@ -33,7 +33,7 @@ func createRawIngressVirtualServiceForExternalService(hostName string, port uint
 	return &v1alpha3.VirtualService{Tcp: tcpRoutes, Hosts: hosts, Gateways: gateways}
 }
 
-func createRawIngressGatewayForExternalService(hostName string, portNumber uint32, clientName string, san string) *v1alpha3.Gateway {
+func createRawIngressGatewayForExternalService(hostName string, portNumber uint32, clientName string) *v1alpha3.Gateway {
 	port := v1alpha3.Port{Number: portNumber, Name: "tls", Protocol: "TLS"}
 	hosts := []string{hostName}
 	certPath := "/etc/istio/certs/"

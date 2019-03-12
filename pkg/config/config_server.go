@@ -16,8 +16,8 @@ func createIngressVirtualServiceForExternalService(hostName string, port uint32,
 		virtualService, serviceName+"-virtual-service")
 }
 
-func createIngressGatewayForExternalService(hostName string, portNumber uint32, serviceName string, clientName string, san string) model.Config {
-	return wrapAsConfig(createRawIngressGatewayForExternalService(hostName, portNumber, clientName, san),
+func createIngressGatewayForExternalService(hostName string, portNumber uint32, serviceName string, clientName string) model.Config {
+	return wrapAsConfig(createRawIngressGatewayForExternalService(hostName, portNumber, clientName),
 		gateway, serviceName+"-gateway")
 }
 

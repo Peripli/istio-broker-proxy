@@ -47,7 +47,7 @@ type IstioObjectID struct {
 func CreateEntriesForExternalService(serviceName string, endpointServiceEntry string, portServiceEntry uint32, hostVirtualService string, clientName string, ingressPort uint32, providerSAN string) []istioModel.Config {
 	var configs []istioModel.Config
 
-	configs = append(configs, createIngressGatewayForExternalService(hostVirtualService, ingressPort, serviceName, clientName, providerSAN))
+	configs = append(configs, createIngressGatewayForExternalService(hostVirtualService, ingressPort, serviceName, clientName))
 	configs = append(configs, createIngressVirtualServiceForExternalService(hostVirtualService, portServiceEntry, serviceName))
 	configs = append(configs, createServiceEntryForExternalService(endpointServiceEntry, portServiceEntry, serviceName))
 
@@ -57,9 +57,9 @@ func CreateEntriesForExternalService(serviceName string, endpointServiceEntry st
 //CreateIstioConfigForProvider creates istio routing rules for provider
 func CreateIstioConfigForProvider(request *model.BindRequest, response *model.BindResponse, bindingID string, systemDomain string, providerSAN string) []istioModel.Config {
 	var istioConfig []istioModel.Config
+	consumerID := request.NetworkData.Data.ConsumerID
 	for index, endpoint := range response.Endpoints {
 		portServiceEntry := uint32(endpoint.Port)
-		consumerID := request.NetworkData.Data.ConsumerID
 		ingressPort := uint32(9000)
 
 		serviceName := createValidIdentifer(fmt.Sprintf("%d-%s", index, bindingID))

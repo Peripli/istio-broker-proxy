@@ -2,13 +2,13 @@ package router
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/Peripli/istio-broker-proxy/pkg/config"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
 	istioModel "istio.io/istio/pilot/pkg/model"
 	"log"
+	"net/http"
 	"os"
 	"path"
 )
@@ -33,15 +33,17 @@ func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) error {
 
 //PreBind see interface definition
 func (c ProducerInterceptor) PreBind(request model.BindRequest) (*model.BindRequest, error) {
+	// c.NetworkProfile (of provider) is already checked in main to be not empty
+	consumerID := request.NetworkData.Data.ConsumerID
+	if consumerID == "" {
+		return nil, model.HTTPError{ErrorMsg: "InvalidConsumerID", Description: "no consumer ID included in bind request", StatusCode: http.StatusBadRequest}
+	}
 	return &request, nil
 }
 
 //PostBind see interface definition
 func (c ProducerInterceptor) PostBind(request model.BindRequest, response model.BindResponse, bindingID string,
 	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
-	if c.NetworkProfile == "" {
-		return nil, errors.New("network profile not configured")
-	}
 	systemDomain := c.SystemDomain
 	providerID := c.ProviderID
 	if len(response.Endpoints) == 0 {
