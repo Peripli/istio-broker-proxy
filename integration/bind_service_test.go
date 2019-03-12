@@ -540,7 +540,7 @@ func waitForServiceBinding(kubectl *kubectl, g *GomegaWithT, namePrefix string) 
 			return false, reason
 		}
 
-		g.Expect(condition.Type).To(Equal(v1beta1.ServiceBindingConditionReady), string(condition.Reason))
+		g.Expect(condition.Type).To(Equal(v1beta1.ServiceBindingConditionReady), fmt.Sprintf("reason: %s", string(condition.Reason)))
 		return true, reason
 	}, "servicebinding")
 
