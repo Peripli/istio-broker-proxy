@@ -15,6 +15,7 @@ var serviceNamePrefix string
 var networkProfile string
 
 func main() {
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	SetupConfiguration()
 	flag.Parse()
 	engine := router.SetupRouter(configureInterceptor(router.NewInClusterConfigStore), routerConfig)
