@@ -1,18 +1,21 @@
 package api
 
-type RestResponse interface {
+//RESTResponse encapsulates operations for a RESTResponse
+type RESTResponse interface {
 	Into(response interface{}) error
 	Error() error
 }
 
-type RestRequest interface {
-	AppendPath(path string) RestRequest
-	Do() RestResponse
+//RESTRequest encapsulates operations for a RESTRequest
+type RESTRequest interface {
+	AppendPath(path string) RESTRequest
+	Do() RESTResponse
 }
 
-type RestClient interface {
-	Get() RestRequest
-	Post(body interface{}) RestRequest
-	Put(body interface{}) RestRequest
-	Delete() RestRequest
+//RESTClient encapsulates operations for a RESTClient
+type RESTClient interface {
+	Get() RESTRequest
+	Post(body interface{}) RESTRequest
+	Put(body interface{}) RESTRequest
+	Delete() RESTRequest
 }

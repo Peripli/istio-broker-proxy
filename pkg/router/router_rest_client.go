@@ -31,20 +31,20 @@ type restResponse struct {
 	url      string
 }
 
-func (client *restClient) Get() api.RestRequest {
+func (client *restClient) Get() api.RESTRequest {
 	return client.createRequest(http.MethodGet, make([]byte, 0), nil)
 }
 
-func (client *restClient) Delete() api.RestRequest {
+func (client *restClient) Delete() api.RESTRequest {
 	return client.createRequest(http.MethodDelete, make([]byte, 0), nil)
 }
 
-func (client *restClient) Post(request interface{}) api.RestRequest {
+func (client *restClient) Post(request interface{}) api.RESTRequest {
 	requestBody, err := json.Marshal(request)
 	return client.createRequest(http.MethodPost, requestBody, err)
 }
 
-func (client *restClient) Put(request interface{}) api.RestRequest {
+func (client *restClient) Put(request interface{}) api.RESTRequest {
 	requestBody, err := json.Marshal(request)
 	return client.createRequest(http.MethodPut, requestBody, err)
 }
@@ -53,13 +53,13 @@ func (client *restClient) createRequest(method string, body []byte, err error) *
 	return &restRequest{method: method, client: client, request: body, url: createNewURL(client.config.ForwardURL, client.request)}
 }
 
-func (o *restRequest) AppendPath(path string) api.RestRequest {
+func (o *restRequest) AppendPath(path string) api.RESTRequest {
 	// CAUTION: discards query
 	o.url = o.client.config.ForwardURL + o.client.request.URL.Path + path
 	return o
 }
 
-func (o *restRequest) Do() api.RestResponse {
+func (o *restRequest) Do() api.RESTResponse {
 	osbResponse := restResponse{err: o.err, url: o.url}
 	if o.err != nil {
 		return &osbResponse

@@ -6,12 +6,14 @@ import (
 	"net/http"
 )
 
+//HTTPError represents an error in the HTTP protocol
 type HTTPError struct {
 	ErrorMsg    string `json:"error"`
 	Description string `json:"description"`
 	StatusCode  int    `json:"-"`
 }
 
+//HTTPErrorFromError converts an error to an error of type HTTPError
 func HTTPErrorFromError(err error, statusCode int) *HTTPError {
 	switch t := err.(type) {
 	case *HTTPError:
@@ -28,6 +30,7 @@ func HTTPErrorFromError(err error, statusCode int) *HTTPError {
 	}
 }
 
+//HTTPErrorFromResponse returns an HTTPError if the provided request was unsuccessful
 func HTTPErrorFromResponse(statusCode int, body []byte, url string, method string) error {
 	okResponse := statusCode/100 == 2
 	if !okResponse {

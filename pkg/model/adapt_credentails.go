@@ -4,14 +4,15 @@ import (
 	"errors"
 )
 
+//AdaptCredentialsRequest in accordance with OSB-spec
 type AdaptCredentialsRequest struct {
 	Credentials      Credentials       `json:"credentials"`
 	EndpointMappings []EndpointMapping `json:"endpoint_mappings"`
 }
 
-type CredentialConverter func(credentials Credentials, endpointMappings []EndpointMapping) (*Credentials, error)
+type credentialConverter func(credentials Credentials, endpointMappings []EndpointMapping) (*Credentials, error)
 
-var converters = []CredentialConverter{
+var converters = []credentialConverter{
 	PostgresCredentialsConverter,
 	RabbitMQCredentialsConverter,
 	func(credentials Credentials, endpointMappings []EndpointMapping) (*Credentials, error) {
@@ -19,6 +20,7 @@ var converters = []CredentialConverter{
 	},
 }
 
+//Adapt credentials according to the specified EndpointMapping
 func Adapt(credentials Credentials, endpointMappings []EndpointMapping) (*BindResponse, error) {
 
 	if len(endpointMappings) == 0 {

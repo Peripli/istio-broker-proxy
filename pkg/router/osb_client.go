@@ -6,7 +6,7 @@ import (
 )
 
 type osbClient struct {
-	api.RestClient
+	api.RESTClient
 }
 
 func (client *osbClient) adaptCredentials(credentials model.Credentials, mapping []model.EndpointMapping) (*model.BindResponse, error) {

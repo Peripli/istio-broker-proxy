@@ -6,11 +6,13 @@ import (
 	"strconv"
 )
 
+//Endpoint represents a network endpoint
 type Endpoint struct {
 	Host string `json:"host"`
 	Port int    `json:"port"`
 }
 
+//UnmarshalJSON unmarshals JSON to an Endpoint
 func (ep *Endpoint) UnmarshalJSON(b []byte) error {
 	var untyped struct {
 		Host string      `json:"host"`

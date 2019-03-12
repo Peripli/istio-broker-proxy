@@ -1,5 +1,6 @@
 package model
 
+//BindRequest represents a bind request according to OSB-spec
 type BindRequest struct {
 	AdditionalProperties additionalProperties
 	NetworkData          NetworkDataRequest
@@ -11,15 +12,17 @@ type NetworkDataRequest struct {
 	Data             DataRequest `json:"data"`
 }
 
-//DataRequest represents the data section of an osb-NetworkProfile
+//DataRequest represents the data section of an osb-NetworkProfile in a request
 type DataRequest struct {
 	ConsumerID string `json:"consumer_id"`
 }
 
+//UnmarshalJSON to BindRequest
 func (bindRequest *BindRequest) UnmarshalJSON(b []byte) error {
 	return bindRequest.AdditionalProperties.UnmarshalJSON(b, map[string]interface{}{"network_data": &bindRequest.NetworkData})
 }
 
+//MarshalJSON from BindRequest
 func (bindRequest BindRequest) MarshalJSON() ([]byte, error) {
 	return bindRequest.AdditionalProperties.MarshalJSON(map[string]interface{}{"network_data": &bindRequest.NetworkData})
 }
