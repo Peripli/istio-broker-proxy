@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 set -euo pipefail
 
@@ -9,7 +9,10 @@ export CGO_ENABLED=0
 
 cd ${SCRIPT_DIR}
 
+golint  -set_exit_status ./pkg/...
+golint  -set_exit_status main.go
+
 #go get github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1
-go build -v ./pkg/config/client
+go build ./pkg/config/client
 ./client --help
-go build -v
+go build
