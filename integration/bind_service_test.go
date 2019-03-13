@@ -379,7 +379,7 @@ func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
 	kubectl.Delete("ServiceInstance", "postgres-instance")
 
 	var serviceEntries ServiceEntryList
-	kubectl.List(&serviceEntries, "-n", "catalog")
+	kubectl.List(&serviceEntries, "--all-namespaces")
 	matchingIstioObjectCount := 0
 	for _, serviceEntry := range serviceEntries.Items {
 		if strings.Contains(serviceEntry.Metadata.Name, bindID) {
@@ -389,7 +389,7 @@ func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
 	g.Expect(matchingIstioObjectCount).To(Equal(0))
 
 	var virtualServices VirtualServiceList
-	kubectl.List(&virtualServices, "-n", "catalog")
+	kubectl.List(&virtualServices, "--all-namespaces")
 
 	for _, virtualService := range virtualServices.Items {
 
@@ -400,7 +400,7 @@ func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
 	g.Expect(matchingIstioObjectCount).To(Equal(0))
 
 	var gateways GatewayList
-	kubectl.List(&gateways, "-n", "catalog")
+	kubectl.List(&gateways, "--all-namespaces")
 	matchingIstioObjectCount = 0
 
 	for _, gateway := range gateways.Items {
@@ -412,7 +412,7 @@ func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
 	g.Expect(matchingIstioObjectCount).To(Equal(0))
 
 	var destinationRules DestinationruleList
-	kubectl.List(&destinationRules, "-n", "catalog")
+	kubectl.List(&destinationRules, "--all-namespaces")
 	matchingIstioObjectCount = 0
 
 	for _, destinationRule := range destinationRules.Items {
