@@ -9,7 +9,7 @@ type ServiceBrokerInterceptor interface {
 	PreBind(request model.BindRequest) (*model.BindRequest, error)
 	PostBind(request model.BindRequest, response model.BindResponse, bindID string,
 		adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error)
-	PostDelete(bindID string) error
+	PostDelete(bindID string)
 	PostCatalog(catalog *model.Catalog) error
 	HasAdaptCredentials() bool
 }
@@ -30,8 +30,7 @@ func (c noOpInterceptor) HasAdaptCredentials() bool {
 	return false
 }
 
-func (c noOpInterceptor) PostDelete(bindID string) error {
-	return nil
+func (c noOpInterceptor) PostDelete(bindID string) {
 }
 
 func (c noOpInterceptor) PostCatalog(catalog *model.Catalog) error {

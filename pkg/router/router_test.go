@@ -648,9 +648,8 @@ func TestDeleteBinding(t *testing.T) {
 
 	response := httptest.NewRecorder()
 	var bindID = ""
-	router := SetupRouter(&DeleteInterceptor{deleteCallback: func(innerBindId string) error {
+	router := SetupRouter(&DeleteInterceptor{deleteCallback: func(innerBindId string) {
 		bindID = innerBindId
-		return nil
 	}}, *routerConfig)
 	router.ServeHTTP(response, request)
 
@@ -671,9 +670,8 @@ func TestDeleteBindingForBrokerAPI(t *testing.T) {
 
 	response := httptest.NewRecorder()
 	var bindID = ""
-	router := SetupRouter(&DeleteInterceptor{deleteCallback: func(innerBindId string) error {
+	router := SetupRouter(&DeleteInterceptor{deleteCallback: func(innerBindId string) {
 		bindID = innerBindId
-		return nil
 	}}, *routerConfig)
 	router.ServeHTTP(response, request)
 
@@ -751,9 +749,9 @@ func TestCorrectRequestParamForDelete(t *testing.T) {
 
 type DeleteInterceptor struct {
 	noOpInterceptor
-	deleteCallback func(bindID string) error
+	deleteCallback func(bindID string)
 }
 
-func (c DeleteInterceptor) PostDelete(bindID string) error {
-	return c.deleteCallback(bindID)
+func (c DeleteInterceptor) PostDelete(bindID string) {
+	c.deleteCallback(bindID)
 }

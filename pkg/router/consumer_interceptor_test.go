@@ -269,9 +269,9 @@ func TestConsumerPostDelete(t *testing.T) {
 
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
-
-	err = consumer.PostDelete("678")
 	g.Expect(err).NotTo(HaveOccurred())
+
+	consumer.PostDelete("678")
 	g.Expect(len(configStore.DeletedServices)).To(Equal(2))
 	g.Expect(len(configStore.DeletedIstioConfigs)).To(Equal(12))
 	g.Expect(configStore.DeletedIstioConfigs[0]).To(Equal("destination-rule:sidecar-to-egress-svc-0-678"))
@@ -295,14 +295,15 @@ func TestConsumerPostDeleteNoResourceLeaks(t *testing.T) {
 	consumer := ConsumerInterceptor{ConsumerID: "consumer-id", ConfigStore: &configStore}
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 
+	g.Expect(err).NotTo(HaveOccurred())
+
 	g.Expect(configStore.CreatedServices).To(HaveLen(2))
 	g.Expect(configStore.CreatedIstioConfigs).To(HaveLen(12))
 
 	configStore.CreatedServices = configStore.CreatedServices[1:]
 	configStore.CreatedIstioConfigs = append(configStore.CreatedIstioConfigs[0:3], configStore.CreatedIstioConfigs[5:]...)
 
-	err = consumer.PostDelete("678")
-	g.Expect(err).NotTo(HaveOccurred())
+	consumer.PostDelete("678")
 
 	g.Expect(configStore.CreatedServices).To(HaveLen(0))
 	g.Expect(configStore.CreatedIstioConfigs).To(HaveLen(0))

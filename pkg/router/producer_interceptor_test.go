@@ -110,13 +110,10 @@ func TestConfigFilesAreWrittenAndDeleted(t *testing.T) {
 	contentAsString := string(content)
 	g.Expect(contentAsString).To(ContainSubstring("9000"))
 
-	err = interceptor.PostDelete("123")
-	g.Expect(err).NotTo(HaveOccurred())
+	interceptor.PostDelete("123")
 	_, err = os.Stat(fileName)
 	g.Expect(err).To(HaveOccurred())
 
-	err = interceptor.PostDelete("123")
-	g.Expect(err).NotTo(HaveOccurred())
 }
 
 func TestConfigFilesBindFailsButFileIsCleanedUp(t *testing.T) {

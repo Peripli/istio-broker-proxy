@@ -66,13 +66,12 @@ func (c ProducerInterceptor) HasAdaptCredentials() bool {
 }
 
 //PostDelete see interface definition
-func (c ProducerInterceptor) PostDelete(bindID string) error {
+func (c ProducerInterceptor) PostDelete(bindID string) {
 	fileName := path.Join(c.IstioDirectory, bindID) + ".yml"
 	err := os.Remove(fileName)
 	if err != nil {
 		log.Printf("Ignoring error during removal of file %s: %v\n", fileName, err)
 	}
-	return nil
 }
 
 func (c ProducerInterceptor) writeIstioFilesForProvider(bindingID string, request *model.BindRequest, response *model.BindResponse) error {

@@ -102,13 +102,13 @@ func serviceName(index int, bindID string) string {
 }
 
 //PostDelete see interface definition
-func (c ConsumerInterceptor) PostDelete(bindID string) error {
-	return c.cleanUpConfig(bindID, func(index int, err error) bool {
+func (c ConsumerInterceptor) PostDelete(bindID string) {
+	c.cleanUpConfig(bindID, func(index int, err error) bool {
 		return err != nil && index > 2
 	})
 }
 
-func (c ConsumerInterceptor) cleanUpConfig(bindID string, endCleanupCondition func(index int, err error) bool) error {
+func (c ConsumerInterceptor) cleanUpConfig(bindID string, endCleanupCondition func(index int, err error) bool) {
 	i := 0
 	var err error
 
@@ -131,7 +131,6 @@ func (c ConsumerInterceptor) cleanUpConfig(bindID string, endCleanupCondition fu
 		}
 		i++
 	}
-	return nil
 }
 
 //HasAdaptCredentials see interface definition
