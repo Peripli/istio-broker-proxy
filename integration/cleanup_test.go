@@ -33,11 +33,11 @@ func TestCleanupOrphanedObjects(t *testing.T) {
 	counter := counter{0, 0}
 
 	kubectl.List(&serviceBindings)
-	kubectl.List(&virtualServiceList, "-n", "catalog")
-	kubectl.List(&serviceEntryList, "-n", "catalog")
-	kubectl.List(&destinationruleList, "-n", "catalog")
-	kubectl.List(&gatewayList, "-n", "catalog")
-	kubectl.List(&serviceList, "-n", "catalog")
+	kubectl.List(&virtualServiceList, "--all-namespaces")
+	kubectl.List(&serviceEntryList, "--all-namespaces")
+	kubectl.List(&destinationruleList, "--all-namespaces")
+	kubectl.List(&gatewayList, "--all-namespaces")
+	kubectl.List(&serviceList, "--all-namespaces")
 
 	cleanupIstioObjects(&virtualServiceList.IstioObjectList, serviceBindings, kubectl, &counter)
 	cleanupIstioObjects(&serviceEntryList.IstioObjectList, serviceBindings, kubectl, &counter)
