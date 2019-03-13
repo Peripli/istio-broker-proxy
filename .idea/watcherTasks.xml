@@ -25,5 +25,25 @@
         <env name="PATH" value="$GoBinDirs$" />
       </envs>
     </TaskOptions>
+    <TaskOptions isEnabled="true">
+      <option name="arguments" value="-set_exit_status $FileDir$" />
+      <option name="checkSyntaxErrors" value="true" />
+      <option name="description" />
+      <option name="exitCodeBehavior" value="ERROR" />
+      <option name="fileExtension" value="go" />
+      <option name="immediateSync" value="true" />
+      <option name="name" value="Golint" />
+      <option name="output" value="" />
+      <option name="outputFilters">
+        <array />
+      </option>
+      <option name="outputFromStdout" value="false" />
+      <option name="program" value="golint" />
+      <option name="runOnExternalChanges" value="true" />
+      <option name="scopeName" value="All Places" />
+      <option name="trackOnlyRoot" value="false" />
+      <option name="workingDir" value="" />
+      <envs />
+    </TaskOptions>
   </component>
 </project>
