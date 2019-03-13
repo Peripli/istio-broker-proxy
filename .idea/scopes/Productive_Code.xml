@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="Productive Code" pattern="file[istio-broker-proxy]:pkg/*||file:main.go" />
+</component>
