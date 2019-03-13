@@ -582,6 +582,7 @@ func waitForCompletion(g *GomegaWithT, test func() (bool, string), name string) 
 				log.Printf("Reason: %s", lastReason)
 			}
 			g.Expect(lastReason).NotTo(ContainSubstring("Failed"))
+			g.Expect(lastReason).NotTo(ContainSubstring("Error"))
 			time.Sleep(ITERATION_WAITING_TIME)
 			g.Expect(time.Now().Before(expiry)).To(BeTrue(), fmt.Sprintf("Timeout expired while waiting for: %s.\n Reason: %s", name, lastReason))
 		}
