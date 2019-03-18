@@ -373,10 +373,10 @@ func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
 	g := NewGomegaWithT(t)
 	kubectl := NewKubeCtl(g)
 
-	bindID := createServiceBinding(kubectl, g, "postgres", service_instance, service_binding)
+	bindID := createServiceBinding(kubectl, g, "postgres-delete-test", service_instance, service_binding)
 
-	kubectl.Delete("ServiceBinding", "postgres-binding")
-	kubectl.Delete("ServiceInstance", "postgres-instance")
+	kubectl.Delete("ServiceBinding", "postgres-binding-delete-test")
+	kubectl.Delete("ServiceInstance", "postgres-instance-delete-test")
 
 	var serviceEntries ServiceEntryList
 	kubectl.List(&serviceEntries, "--all-namespaces")
