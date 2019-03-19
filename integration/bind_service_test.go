@@ -21,7 +21,7 @@ import (
 const service_instance = `apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceInstance
 metadata:
-  name: postgres-instance
+  name: {{ .name }}
 spec:
   clusterServiceClassExternalName: postgresql
   clusterServicePlanExternalName: v9.4-dev`
@@ -29,7 +29,7 @@ spec:
 const service_binding = `apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceBinding
 metadata:
-  name: postgres-binding
+  name: {{ .name }}
 spec:
   instanceRef:
     name: postgres-instance`
@@ -358,6 +358,15 @@ func replaceHub(g *GomegaWithT, config string) string {
 	return string(writer.Bytes())
 }
 
+func replaceName(g *GomegaWithT, config string, name string) string {
+	tmpl, err := template.New("replace-hub").Parse(config)
+	g.Expect(err).NotTo(HaveOccurred())
+	//A docker HUB is required to run these tests
+	writer := &bytes.Buffer{}
+	tmpl.Execute(writer, map[string]string{"name": name})
+	return string(writer.Bytes())
+}
+
 func kubeCreateFile(kubectl *kubectl, g *GomegaWithT, basename string, script string, podName string) {
 	fileName := path.Join(os.TempDir(), basename)
 	file, err := os.Create(fileName)
@@ -375,8 +384,8 @@ func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
 
 	bindID := createServiceBinding(kubectl, g, "postgres-delete-test", service_instance, service_binding)
 
-	kubectl.Delete("ServiceBinding", "postgres-binding-delete-test")
-	kubectl.Delete("ServiceInstance", "postgres-instance-delete-test")
+	kubectl.Delete("ServiceBinding", "postgres-delete-test-binding")
+	kubectl.Delete("ServiceInstance", "postgres-delete-test-instance")
 
 	var serviceEntries ServiceEntryList
 	kubectl.List(&serviceEntries, "--all-namespaces")
@@ -462,12 +471,14 @@ func createServiceBinding(kubectl *kubectl, g *GomegaWithT, name string, service
 	// Test if list of available services is not empty
 	var classes v1beta1.ClusterServiceClassList
 	kubectl.List(&classes)
+	instanceName := name + "-instance"
+	bindingName := name + "-binding"
 	g.Expect(classes.Items).NotTo(BeEmpty(), "List of available services in OSB should not be empty")
-	kubectl.Delete("ServiceBinding", name+"-binding")
-	kubectl.Delete("ServiceInstance", name+"-instance")
-	kubectl.Apply([]byte(serviceConfig))
+	kubectl.Delete("ServiceBinding", bindingName)
+	kubectl.Delete("ServiceInstance", instanceName)
+	kubectl.Apply([]byte(replaceName(g, serviceConfig, instanceName)))
 	waitForServiceInstance(kubectl, g, name)
-	kubectl.Apply([]byte(bindingConfig))
+	kubectl.Apply([]byte(replaceName(g, bindingConfig, bindingName)))
 	serviceBinding := waitForServiceBinding(kubectl, g, name)
 	bindID := serviceBinding.Spec.ExternalID
 	var services v1.ServiceList
