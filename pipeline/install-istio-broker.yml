@@ -18,15 +18,15 @@ run:
         # *** Simple example broker ***
         EXAMPLE_DEPLOYMENT=/tmp/example-broker-deploy.yaml
         cat > $EXAMPLE_DEPLOYMENT <<EOF
-        ---
-        apiVersion: servicecatalog.k8s.io/v1beta1
-        kind: ClusterServiceBroker
-        metadata:
-          name: examplebroker
-          namespace: $NAMESPACE
-        spec:
-          url:  https://alex:bigsecret@cf-service-broker.cfapps.$LANDSCAPE_DOMAIN
-        EOF
+      ---
+      apiVersion: servicecatalog.k8s.io/v1beta1
+      kind: ClusterServiceBroker
+      metadata:
+        name: examplebroker
+        namespace: $NAMESPACE
+      spec:
+        url:  https://alex:bigsecret@cf-service-broker.cfapps.$LANDSCAPE_DOMAIN
+      EOF
         kubectl apply -f $EXAMPLE_DEPLOYMENT
       else
         export KUBECONFIG=`pwd`/istio-deployments/eps/canary/dev-chaining.kubeconfig
