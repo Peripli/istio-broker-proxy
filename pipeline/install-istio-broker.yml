@@ -12,6 +12,11 @@ run:
   args:
     - -cex
     - |
+      CID_IN_SECRET=kubectl get secret -n istio-system istio-egressgateway-certs -o yaml | yaml2json | jq -r '.data["client.crt"]' | base64 -D |openssl x509 -noout -text | grep DNS: | sed 's|.*DNS:||g'
+      if [ "$CID_IN_SECRET" != "$CONSUMER_ID" ]; then
+        echo "ConsumerId in deploy job and secret do not match!"
+        exit 1
+      fi
       # ***** DEV *****
       if [ "$STANDALONE" = true ]; then
         export KUBECONFIG=`pwd`/istio-deployments/gardener/canary/dev.kubeconfig
