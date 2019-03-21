@@ -15,6 +15,19 @@ run:
       # ***** DEV *****
       if [ "$STANDALONE" = true ]; then
         export KUBECONFIG=`pwd`/istio-deployments/gardener/canary/dev.kubeconfig
+        # *** Simple example broker ***
+        EXAMPLE_DEPLOYMENT=/tmp/example-broker-deploy.yaml
+        cat > $EXAMPLE_DEPLOYMENT <<EOF
+        ---
+        apiVersion: servicecatalog.k8s.io/v1beta1
+        kind: ClusterServiceBroker
+        metadata:
+          name: examplebroker
+          namespace: $NAMESPACE
+        spec:
+          url:  https://alex:bigsecret@cf-service-broker.cfapps.$LANDSCAPE_DOMAIN
+        EOF
+        kubectl apply -f $EXAMPLE_DEPLOYMENT
       else
         export KUBECONFIG=`pwd`/istio-deployments/eps/canary/dev-chaining.kubeconfig
       fi
@@ -39,19 +52,6 @@ run:
          peripli/istio-broker-proxy
 
       kubectl -n $NAMESPACE rollout status deployment istio-broker-proxy
-      # *** Simple example broker ***
-      EXAMPLE_DEPLOYMENT=/tmp/example-broker-deploy.yaml
-      cat > $EXAMPLE_DEPLOYMENT <<EOF
-      ---
-      apiVersion: servicecatalog.k8s.io/v1beta1
-      kind: ClusterServiceBroker
-      metadata:
-        name: examplebroker
-        namespace: $NAMESPACE
-      spec:
-        url:  https://alex:bigsecret@cf-service-broker.cfapps.dev01.aws.istio.sapcloud.io
-      EOF
-      kubectl apply -f $EXAMPLE_DEPLOYMENT
       kubectl get clusterservicebroker -n $NAMESPACE
       kubectl get pods -n $NAMESPACE
 params:
