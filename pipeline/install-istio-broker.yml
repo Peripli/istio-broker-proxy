@@ -43,7 +43,7 @@ run:
        --set config.consumer_id=$CONSUMER_ID \
        --set config.network_profile=$NETWORK_PROFILE \
        --set config.forward_url=$FORWARD_URL \
-       --set global.destination.landscape_domain=$LANDSCAPE_DOMAIN  \
+       --set global.destination.landscape_domain=cf.$LANDSCAPE_DOMAIN  \
        --set standalone.enabled=$STANDALONE \
        --set standalone.broker.user=$BROKER_USER \
        --set standalone.broker.password=$BROKER_PASSWORD \
