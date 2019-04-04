@@ -11,7 +11,7 @@ type fileConfigStore struct {
 
 var _ ConfigStore = &fileConfigStore{}
 
-func (f *fileConfigStore) CreateIstioConfig(bindID string, config model.Config) error {
+func (f *fileConfigStore) CreateIstioConfig(bindingID string, config []model.Config) error {
 	//var fileName string
 	//
 	//ymlPath := path.Join(f.istioDirectory, fileName) + ".yml"

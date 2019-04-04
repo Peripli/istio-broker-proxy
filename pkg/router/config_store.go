@@ -8,7 +8,7 @@ import (
 //ConfigStore encapsulates functions to modify istio config
 type ConfigStore interface {
 	CreateService(bindingID string, service *v1.Service) (*v1.Service, error)
-	CreateIstioConfig(bindID string, config model.Config) error
+	CreateIstioConfig(bindingID string, config []model.Config) error
 	DeleteService(string) error
 	DeleteIstioConfig(string, string) error
 	getNamespace() string

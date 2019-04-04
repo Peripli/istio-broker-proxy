@@ -69,10 +69,16 @@ func (k kubeConfigStore) CreateService(bindingID string, service *v1.Service) (*
 	return k.CoreV1().Services(k.namespace).Create(service)
 }
 
-func (k kubeConfigStore) CreateIstioConfig(bindingID string, config model.Config) error {
-	config.Labels["istio-broker-proxy-binding-id"] = bindingID
-	_, err := k.configClient.Create(config)
-	return err
+func (k kubeConfigStore) CreateIstioConfig(bindingID string, configurations []model.Config) error {
+	for _, config := range configurations {
+		config.Labels["istio-broker-proxy-binding-id"] = bindingID
+		_, err := k.configClient.Create(config)
+		if err != nil {
+			log.Printf("error creating %s: %s\n", config.Name, err.Error())
+			return err
+		}
+	}
+	return nil
 }
 
 func (k kubeConfigStore) DeleteService(serviceName string) error {
