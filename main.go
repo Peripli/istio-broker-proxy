@@ -14,6 +14,7 @@ var routerConfig router.Config
 var serviceNamePrefix string
 var networkProfile string
 var istioDirectory string
+var isKubeEnvironment bool
 
 func main() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
@@ -37,7 +38,11 @@ func configureInterceptor(configStoreFactory func() router.ConfigStore) router.S
 	} else if producerInterceptor.ProviderID != "" {
 		producerInterceptor.ServiceNamePrefix = serviceNamePrefix
 		producerInterceptor.NetworkProfile = networkProfile
-		producerInterceptor.ConfigStore = router.NewFileConfigStore(istioDirectory)
+		if isKubeEnvironment {
+			producerInterceptor.ConfigStore = configStoreFactory()
+		} else {
+			producerInterceptor.ConfigStore = router.NewFileConfigStore(istioDirectory)
+		}
 		err := producerInterceptor.WriteIstioConfigFiles(routerConfig.Port)
 		if err != nil {
 			panic(fmt.Sprintf("Unable to write istio-broker provider side configuration file: %v", err))
@@ -56,6 +61,7 @@ func SetupConfiguration() {
 
 	flag.IntVar(&producerInterceptor.LoadBalancerPort, "loadBalancerPort", 9000, "port of the load balancer of the landscape")
 	flag.StringVar(&istioDirectory, "istioDirectory", os.TempDir(), "Directory to store the istio configuration files")
+	flag.BoolVar(&isKubeEnvironment, "isKubeEnvironment", false, "True if running inside Kubernetes, else false")
 	flag.StringVar(&producerInterceptor.IPAddress, "ipAddress", "127.0.0.1", "IP address of ingress")
 	flag.StringVar(&producerInterceptor.PlanMetaData, "planMetaData", "{}", "Metadata which is added to each service")
 	flag.StringVar(&networkProfile, "networkProfile", "", "Network profile e.g. urn:local.test:public")

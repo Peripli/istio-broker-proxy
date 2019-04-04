@@ -5,6 +5,7 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/config"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"github.com/Peripli/istio-broker-proxy/pkg/profiles"
+	"log"
 	"net/http"
 )
 
@@ -62,7 +63,10 @@ func (c ProducerInterceptor) HasAdaptCredentials() bool {
 
 //PostDelete see interface definition
 func (c ProducerInterceptor) PostDelete(bindID string) {
-	c.ConfigStore.DeleteBinding(bindID)
+	err := c.ConfigStore.DeleteBinding(bindID)
+	if err != nil {
+		log.Printf("Ignoring error during removal of binding-id %s: %v\n", bindID, err)
+	}
 }
 
 func (c ProducerInterceptor) writeIstioFilesForProvider(bindingID string, request *model.BindRequest, response *model.BindResponse) error {
