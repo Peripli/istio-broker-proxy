@@ -31,11 +31,11 @@ func (m *mockConfigStore) getNamespace() string {
 	return "catalog"
 }
 
-func (m *mockConfigStore) CreateIstioConfig(object istioModel.Config) error {
+func (m *mockConfigStore) CreateIstioConfig(bindID string, config istioModel.Config) error {
 	if m.CreateObjectErr != nil && m.CreateObjectErrCount == len(m.CreatedIstioConfigs) {
 		return m.CreateObjectErr
 	}
-	m.CreatedIstioConfigs = append(m.CreatedIstioConfigs, object)
+	m.CreatedIstioConfigs = append(m.CreatedIstioConfigs, config)
 	return nil
 }
 

@@ -54,7 +54,7 @@ func TestKubernetesCreateIstioConfig(t *testing.T) {
 
 	clientcmd.ClusterDefaults.Server = ""
 	configStore := router.NewExternKubeConfigStore("default")
-	err := configStore.CreateIstioConfig(cfg)
+	err := configStore.CreateIstioConfig("", cfg)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	g.Expect(checkIfServiceExists(kubectl, "foo=bar")).To(BeTrue())
@@ -79,7 +79,7 @@ func TestKubernetesCreateIstioObjects(t *testing.T) {
 
 	for _, configuration := range configurations {
 
-		err := configStore.CreateIstioConfig(configuration)
+		err := configStore.CreateIstioConfig("", configuration)
 		g.Expect(err).NotTo(HaveOccurred(), "error creating %#v\n", configuration)
 	}
 
