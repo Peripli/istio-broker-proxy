@@ -13,7 +13,7 @@ import (
 	"os"
 )
 
-const BindingIDLabel = "istio-broker-proxy-binding-id"
+const bindingIDLabel = "istio-broker-proxy-binding-id"
 
 //NewInClusterConfigStore creates a new ConfigStore from within the cluster
 func NewInClusterConfigStore() ConfigStore {
@@ -71,7 +71,7 @@ func (k kubeConfigStore) CreateService(bindingID string, service *v1.Service) (*
 		service.Labels = make(map[string]string)
 	}
 	service.Namespace = k.namespace
-	service.Labels[BindingIDLabel] = bindingID
+	service.Labels[bindingIDLabel] = bindingID
 	return k.CoreV1().Services(k.namespace).Create(service)
 }
 
@@ -81,7 +81,7 @@ func (k kubeConfigStore) CreateIstioConfig(bindingID string, configurations []mo
 			config.Labels = make(map[string]string)
 		}
 		config.Namespace = k.namespace
-		config.Labels[BindingIDLabel] = bindingID
+		config.Labels[bindingIDLabel] = bindingID
 		_, err := k.configClient.Create(config)
 		if err != nil {
 			log.Printf("error creating %s: %s\n", config.Name, err.Error())
@@ -91,10 +91,10 @@ func (k kubeConfigStore) CreateIstioConfig(bindingID string, configurations []mo
 	return nil
 }
 
-func (k kubeConfigStore) DeleteBinding(bindingId string) error {
-	log.Printf("kubectl -n %s delete services -l %s=%s\n", BindingIDLabel, k.namespace, bindingId)
+func (k kubeConfigStore) DeleteBinding(bindingID string) error {
+	log.Printf("kubectl -n %s delete services -l %s=%s\n", bindingIDLabel, k.namespace, bindingID)
 	services := k.CoreV1().Services(k.namespace)
-	list, err := services.List(meta_v1.ListOptions{LabelSelector: BindingIDLabel + "=" + bindingId})
+	list, err := services.List(meta_v1.ListOptions{LabelSelector: bindingIDLabel + "=" + bindingID})
 	if err != nil {
 		return err
 	}
@@ -105,13 +105,13 @@ func (k kubeConfigStore) DeleteBinding(bindingId string) error {
 		}
 	}
 	for _, typ := range []string{"Gateway", "VirtualService", "DestinationRule", "ServiceEntry"} {
-		log.Printf("kubectl -n %s delete %s -l %s=%s\n", BindingIDLabel, k.namespace, typ, bindingId)
+		log.Printf("kubectl -n %s delete %s -l %s=%s\n", bindingIDLabel, k.namespace, typ, bindingID)
 		configs, err := k.configClient.List(typ, k.namespace)
 		if err != nil {
 			return err
 		}
 		for _, config := range configs {
-			if config.Labels != nil && config.Labels[BindingIDLabel] == bindingId {
+			if config.Labels != nil && config.Labels[bindingIDLabel] == bindingID {
 				err = k.configClient.Delete(typ, config.Name, k.namespace)
 				if err != nil {
 					return err

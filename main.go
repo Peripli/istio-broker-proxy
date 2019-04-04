@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/Peripli/istio-broker-proxy/pkg/router"
 	"log"
-	"os"
+	"strings"
 )
 
 var producerInterceptor router.ProducerInterceptor
@@ -14,7 +14,6 @@ var routerConfig router.Config
 var serviceNamePrefix string
 var networkProfile string
 var istioDirectory string
-var isKubeEnvironment bool
 
 func main() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
@@ -38,14 +37,14 @@ func configureInterceptor(configStoreFactory func() router.ConfigStore) router.S
 	} else if producerInterceptor.ProviderID != "" {
 		producerInterceptor.ServiceNamePrefix = serviceNamePrefix
 		producerInterceptor.NetworkProfile = networkProfile
-		if isKubeEnvironment {
+		if strings.HasPrefix(istioDirectory,"k8s://") {
 			producerInterceptor.ConfigStore = configStoreFactory()
 		} else {
 			producerInterceptor.ConfigStore = router.NewFileConfigStore(istioDirectory)
 		}
 		err := producerInterceptor.WriteIstioConfigFiles(routerConfig.Port)
 		if err != nil {
-			panic(fmt.Sprintf("Unable to write istio-broker provider side configuration file: %v", err))
+			panic(fmt.Sprintf("unable to write istio-broker provider side configuration file: %v", err))
 		}
 		interceptor = producerInterceptor
 	} else {
@@ -60,8 +59,7 @@ func SetupConfiguration() {
 	flag.StringVar(&producerInterceptor.ProviderID, "providerId", "", "The subject alternative name of the provider for which the service has a certificate")
 
 	flag.IntVar(&producerInterceptor.LoadBalancerPort, "loadBalancerPort", 9000, "port of the load balancer of the landscape")
-	flag.StringVar(&istioDirectory, "istioDirectory", os.TempDir(), "Directory to store the istio configuration files")
-	flag.BoolVar(&isKubeEnvironment, "isKubeEnvironment", false, "True if running inside Kubernetes, else false")
+	flag.StringVar(&istioDirectory, "istioDirectory", "", "Directory to store the istio configuration files. Use 'k8s://' to store the configuration to kubernetes")
 	flag.StringVar(&producerInterceptor.IPAddress, "ipAddress", "127.0.0.1", "IP address of ingress")
 	flag.StringVar(&producerInterceptor.PlanMetaData, "planMetaData", "{}", "Metadata which is added to each service")
 	flag.StringVar(&networkProfile, "networkProfile", "", "Network profile e.g. urn:local.test:public")

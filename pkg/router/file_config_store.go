@@ -18,6 +18,7 @@ type fileConfigStore struct {
 
 var _ ConfigStore = &fileConfigStore{}
 
+// NewFileConfigStore returns a new FileConfigStore for a given directory
 func NewFileConfigStore(dir string) ConfigStore {
 	return &fileConfigStore{istioDirectory: dir}
 }
@@ -32,7 +33,7 @@ func (f *fileConfigStore) CreateIstioConfig(bindingID string, configuration []mo
 	}
 	err = ioutil.WriteFile(ymlPath, []byte(fileContent), 0644)
 	if nil != err {
-		return fmt.Errorf("Unable to write istio configuration to file %s: %v\n", ymlPath, err)
+		return fmt.Errorf("unable to write istio configuration to file %s: %v", ymlPath, err)
 	}
 	return nil
 }
@@ -41,7 +42,7 @@ func (f *fileConfigStore) DeleteBinding(bindingID string) error {
 	fileName := path.Join(f.istioDirectory, bindingID) + ".yml"
 	err := os.Remove(fileName)
 	if err != nil {
-		return fmt.Errorf("Error during removal of file %s: %v\n", fileName, err)
+		return fmt.Errorf("Error during removal of file %s: %v", fileName, err)
 	}
 	return nil
 }

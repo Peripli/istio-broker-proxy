@@ -478,7 +478,7 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 	g.Expect(response.Code).To(Equal(500))
 	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HTTPError).Description).To(ContainSubstring("Unable to write istio configuration to file"))
+	g.Expect(err.(*model.HTTPError).Description).To(ContainSubstring("unable to write istio configuration to file"))
 }
 
 func TestBindWithInvalidRequest(t *testing.T) {

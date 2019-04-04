@@ -30,7 +30,7 @@ func TestFileConfigStoreInvalidDirectory(t *testing.T) {
 	err := fileCS.CreateIstioConfig("binding-id", []model.Config{})
 
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.Error()).To(ContainSubstring("Unable to write istio configuration to file"))
+	g.Expect(err.Error()).To(ContainSubstring("unable to write istio configuration to file"))
 }
 
 func TestFileConfigStoreDeleteBinding(t *testing.T) {
