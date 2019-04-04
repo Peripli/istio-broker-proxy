@@ -18,7 +18,7 @@ package router
 //	panic("implement me")
 //}
 //
-//func (f *fileConfigStore) DeleteService(string) error {
+//func (f *fileConfigStore) DeleteBinding(string) error {
 //	panic("implement me")
 //}
 //

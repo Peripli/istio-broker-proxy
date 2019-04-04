@@ -9,7 +9,6 @@ import (
 type ConfigStore interface {
 	CreateService(bindingID string, service *v1.Service) (*v1.Service, error)
 	CreateIstioConfig(bindingID string, config []model.Config) error
-	DeleteService(bindingID string) error
-	DeleteIstioConfig(string, string) error
+	DeleteBinding(bindingID string) error
 	getNamespace() string
 }

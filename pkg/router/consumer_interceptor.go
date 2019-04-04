@@ -106,28 +106,32 @@ func (c ConsumerInterceptor) PostDelete(bindID string) {
 }
 
 func (c ConsumerInterceptor) cleanUpConfig(bindID string, endCleanupCondition func(index int, err error) bool) {
-	i := 0
-	var err error
 
-	for {
-		serviceName := serviceName(i, bindID)
-		isFirstIteration := i == 0
-
-		for _, id := range config.DeleteEntriesForExternalServiceClient(serviceName) {
-			ignoredErr := c.ConfigStore.DeleteIstioConfig(id.Type, id.Name)
-			if ignoredErr != nil && isFirstIteration {
-				log.Printf("Ignoring error during removal of configuration %s: %s\n", id, ignoredErr.Error())
-			}
-		}
-		err = c.ConfigStore.DeleteService(serviceName)
-		if endCleanupCondition(i, err) {
-			break
-		}
-		if err != nil && isFirstIteration {
-			log.Printf("Ignoring error during removal of configuration %s: %s\n", serviceName, err.Error())
-		}
-		i++
+	err := c.ConfigStore.DeleteBinding(bindID)
+	if err != nil {
+		log.Printf("Ignoring error during removal of configuration %s: %s\n", bindID, err.Error())
 	}
+	//i := 0
+	//
+	//for {
+	//	serviceName := serviceName(i, bindID)
+	//	isFirstIteration := i == 0
+	//
+	//	for _, id := range config.DeleteEntriesForExternalServiceClient(serviceName) {
+	//		ignoredErr := c.ConfigStore.DeleteIstioConfig(id.Type, id.Name)
+	//		if ignoredErr != nil && isFirstIteration {
+	//			log.Printf("Ignoring error during removal of configuration %s: %s\n", id, ignoredErr.Error())
+	//		}
+	//	}
+	//	err = c.ConfigStore.DeleteBinding(bindID)
+	//	if endCleanupCondition(i, err) {
+	//		break
+	//	}
+	//	if err != nil && isFirstIteration {
+	//		log.Printf("Ignoring error during removal of configuration %s: %s\n", serviceName, err.Error())
+	//	}
+	//	i++
+	//}
 }
 
 //HasAdaptCredentials see interface definition

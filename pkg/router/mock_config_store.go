@@ -22,6 +22,10 @@ func (m *mockConfigStore) CreateService(bindingID string, service *v1.Service) (
 	if m.CreateServiceErr != nil {
 		return nil, m.CreateServiceErr
 	}
+	if service.Labels == nil {
+		service.Labels = make(map[string]string)
+	}
+	service.Labels["istio-broker-proxy-binding-id"] = bindingID
 	m.CreatedServices = append(m.CreatedServices, service)
 	service.Spec.ClusterIP = m.ClusterIP
 	return service, nil
@@ -33,6 +37,10 @@ func (m *mockConfigStore) getNamespace() string {
 
 func (m *mockConfigStore) CreateIstioConfig(bindingID string, configs []istioModel.Config) error {
 	for _, config := range configs {
+		if config.Labels == nil {
+			config.Labels = make(map[string]string)
+		}
+		config.Labels["istio-broker-proxy-binding-id"] = bindingID
 		if m.CreateObjectErr != nil && m.CreateObjectErrCount == len(m.CreatedIstioConfigs) {
 			return m.CreateObjectErr
 		}
@@ -41,28 +49,39 @@ func (m *mockConfigStore) CreateIstioConfig(bindingID string, configs []istioMod
 	return nil
 }
 
-func (m *mockConfigStore) DeleteService(serviceName string) error {
-	for index, c := range m.CreatedServices {
-		if c.Name == serviceName {
-			m.DeletedServices = append(m.DeletedServices, serviceName)
-			m.CreatedServices = append(m.CreatedServices[:index], m.CreatedServices[index+1:]...)
-			return nil
+func (m *mockConfigStore) deleteService(bindingID string) error {
+	found := 0
+	services := append([]*v1.Service{}, m.CreatedServices...)
+
+	for index, c := range services {
+		if c.Labels["istio-broker-proxy-binding-id"] == bindingID {
+			m.DeletedServices = append(m.DeletedServices, c.Name)
+			m.CreatedServices = append(m.CreatedServices[:index-found], m.CreatedServices[index-found+1:]...)
+			found++
 		}
 	}
-	errorMsg := fmt.Sprintf("error services %s not found", serviceName)
-	return errors.New(errorMsg)
+	if found == 0 {
+		errorMsg := fmt.Sprintf("error binding-id %s not found", bindingID)
+		return errors.New(errorMsg)
+	}
+	return nil
 }
 
-func (m *mockConfigStore) DeleteIstioConfig(configType string, configName string) error {
-	for index, c := range m.CreatedIstioConfigs {
-		if c.Name == configName {
-			m.DeletedIstioConfigs = append(m.DeletedIstioConfigs, configType+":"+configName)
-			m.CreatedIstioConfigs = append(m.CreatedIstioConfigs[:index], m.CreatedIstioConfigs[index+1:]...)
-			return nil
+func (m *mockConfigStore) DeleteBinding(bindingID string) error {
+	found := 0
+	configs := append([]istioModel.Config{}, m.CreatedIstioConfigs...)
+	for index, c := range configs {
+		if c.Labels["istio-broker-proxy-binding-id"] == bindingID {
+			m.DeletedIstioConfigs = append(m.DeletedIstioConfigs, c.Type+":"+c.Name)
+			m.CreatedIstioConfigs = append(m.CreatedIstioConfigs[:index-found], m.CreatedIstioConfigs[index-found+1:]...)
+			found++
 		}
 	}
-	errorMsg := fmt.Sprintf("error %s.networking.istio.io %s not found", configType, configName)
-	return errors.New(errorMsg)
+	if found == 0 {
+		errorMsg := fmt.Sprintf("error binding-id %s not found", bindingID)
+		return errors.New(errorMsg)
+	}
+	return m.deleteService(bindingID)
 }
 
 //NewMockConfigStore create a new ConfigStore with mocking capabilities

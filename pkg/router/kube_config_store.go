@@ -87,22 +87,35 @@ func (k kubeConfigStore) CreateIstioConfig(bindingID string, configurations []mo
 	return nil
 }
 
-func (k kubeConfigStore) DeleteService(serviceName string) error {
-	log.Printf("kubectl -n %s delete services %s\n", k.namespace, serviceName)
-	err := k.CoreV1().Services(k.namespace).Delete(serviceName, &meta_v1.DeleteOptions{})
+func (k kubeConfigStore) DeleteBinding(bindingId string) error {
+	log.Printf("kubectl -n %s delete services -l istio-broker-proxy-binding-id=%s\n", k.namespace, bindingId)
+	services := k.CoreV1().Services(k.namespace)
+	list, err := services.List(meta_v1.ListOptions{LabelSelector: "istio-broker-proxy-binding-id=" + bindingId})
 	if err != nil {
-		log.Printf("error %s\n", err.Error())
+		return err
 	}
-	return err
-}
+	for _, service := range list.Items {
+		err := k.CoreV1().Services(k.namespace).Delete(service.Name, &meta_v1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	for _, typ := range []string{"Gateway", "VirtualService", "DestinationRule", "ServiceEntry"} {
+		log.Printf("kubectl -n %s delete %s -l istio-broker-proxy-binding-id=%s\n", k.namespace, typ, bindingId)
+		configs, err := k.configClient.List(typ, k.namespace)
+		if err != nil {
+			return err
+		}
+		for _, config := range configs {
+			err = k.configClient.Delete(typ, config.Name, k.namespace)
+			if err != nil {
+				return err
+			}
 
-func (k kubeConfigStore) DeleteIstioConfig(configType string, configName string) error {
-	log.Printf("kubectl -n %s delete %s %s\n", k.namespace, configType, configName)
-	err := k.configClient.Delete(configType, configName, k.namespace)
-	if err != nil {
-		log.Printf("error %s\n", err.Error())
+		}
+
 	}
-	return err
+	return nil
 }
 
 //NewExternKubeConfigStore creates a new ConfigStore using the KUBECONFIG env variable
