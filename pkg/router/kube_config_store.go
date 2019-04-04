@@ -64,12 +64,13 @@ type kubeConfigStore struct {
 	configClient *crd.Client
 }
 
-func (k kubeConfigStore) CreateService(service *v1.Service) (*v1.Service, error) {
+func (k kubeConfigStore) CreateService(bindingID string, service *v1.Service) (*v1.Service, error) {
+	service.Labels["istio-broker-proxy-binding-id"] = bindingID
 	return k.CoreV1().Services(k.namespace).Create(service)
 }
 
-func (k kubeConfigStore) CreateIstioConfig(bindID string, config model.Config) error {
-	config.Labels["istio-broker-proxy-binding-id"] = bindID
+func (k kubeConfigStore) CreateIstioConfig(bindingID string, config model.Config) error {
+	config.Labels["istio-broker-proxy-binding-id"] = bindingID
 	_, err := k.configClient.Create(config)
 	return err
 }

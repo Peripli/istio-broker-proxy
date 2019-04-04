@@ -80,7 +80,7 @@ func CreateIstioObjectsInK8S(configStore ConfigStore, bindingID string, name str
 	service := &v1.Service{Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Port: servicePort, TargetPort: intstr.FromInt(servicePort)}}}}
 	service.Name = name
 	log.Println("Creating istio objects for", name)
-	service, err := configStore.CreateService(service)
+	service, err := configStore.CreateService(bindingID, service)
 	if err != nil {
 		log.Println("error creating service:", err.Error())
 		return "", err

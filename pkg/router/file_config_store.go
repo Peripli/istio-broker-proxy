@@ -37,7 +37,7 @@ func (f *fileConfigStore) DeleteIstioConfig(string, string) error {
 	panic("implement me")
 }
 
-func (f *fileConfigStore) CreateService(*v1.Service) (*v1.Service, error) {
+func (f *fileConfigStore) CreateService(bindingID string, service *v1.Service) (*v1.Service, error) {
 	panic("implement me")
 }
 

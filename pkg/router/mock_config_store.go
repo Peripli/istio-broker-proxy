@@ -18,7 +18,7 @@ type mockConfigStore struct {
 	DeletedIstioConfigs  []string
 }
 
-func (m *mockConfigStore) CreateService(service *v1.Service) (*v1.Service, error) {
+func (m *mockConfigStore) CreateService(bindingID string, service *v1.Service) (*v1.Service, error) {
 	if m.CreateServiceErr != nil {
 		return nil, m.CreateServiceErr
 	}
