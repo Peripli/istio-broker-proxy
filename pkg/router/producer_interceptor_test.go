@@ -12,12 +12,14 @@ import (
 
 func TestDefaultConfigurationIsWritten(t *testing.T) {
 	g := NewGomegaWithT(t)
+	configStore := &fileConfigStore{istioDirectory: os.TempDir()}
 	interceptor := ProducerInterceptor{
-		ProviderID:     "your-provider",
-		SystemDomain:   "services.domain",
-		IstioDirectory: os.TempDir()}
+		ProviderID:   "your-provider",
+		SystemDomain: "services.domain",
+		ConfigStore:  configStore,
+	}
 	interceptor.WriteIstioConfigFiles(147)
-	file, err := os.Open(path.Join(interceptor.IstioDirectory, "istio-broker.yml"))
+	file, err := os.Open(path.Join(configStore.istioDirectory, "istio-broker.yml"))
 	g.Expect(err).NotTo(HaveOccurred())
 	content, err := ioutil.ReadAll(file)
 	contentAsString := string(content)
@@ -30,10 +32,11 @@ func TestDefaultConfigurationIsWritten(t *testing.T) {
 
 func TestWriteIstioConfigFilesReturnsError(t *testing.T) {
 	g := NewGomegaWithT(t)
+	configStore := &fileConfigStore{istioDirectory: "/not-existing"}
 	interceptor := ProducerInterceptor{
-		ProviderID:     "your-provider",
-		SystemDomain:   "services.domain",
-		IstioDirectory: "/not-existing"}
+		ProviderID:   "your-provider",
+		SystemDomain: "services.domain",
+		ConfigStore:  configStore}
 	err := interceptor.WriteIstioConfigFiles(147)
 	g.Expect(err).To(HaveOccurred())
 }
@@ -43,16 +46,16 @@ func TestYmlFileIsCorrectlyWritten(t *testing.T) {
 	///var/vcap/packages/istio-broker/bin/istio-broker --port 8000 --forwardUrl https://10.11.252.10:9293/cf
 	// --systemdomain istio.my.arbitrary.domain.io --ProviderID cf-service.istio.my.arbitrary.domain.io
 	// --LoadBalancerPort 9000 --istioDirectory /var/vcap/store/istio-config --ipAddress 10.0.81.0
+	configStore := &fileConfigStore{istioDirectory: os.TempDir()}
 	interceptor := ProducerInterceptor{
 		ProviderID:       "prefix.istio.my.arbitrary.domain.io",
 		SystemDomain:     "istio.my.arbitrary.domain.io",
 		LoadBalancerPort: 9000,
 		IPAddress:        "10.0.81.0",
-		IstioDirectory:   os.TempDir(),
-	}
+		ConfigStore:      configStore}
 	interceptor.WriteIstioConfigFiles(8000)
 
-	file, err := os.Open(path.Join(interceptor.IstioDirectory, "istio-broker.yml"))
+	file, err := os.Open(path.Join(configStore.istioDirectory, "istio-broker.yml"))
 	g.Expect(err).NotTo(HaveOccurred())
 	content, err := ioutil.ReadAll(file)
 	contentAsString := string(content)
@@ -66,12 +69,13 @@ func TestYmlFileIsCorrectlyWritten(t *testing.T) {
 
 func TestEndpointsAreTransferedFromCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
+	configStore := &fileConfigStore{istioDirectory: os.TempDir()}
 	interceptor := ProducerInterceptor{
 		ProviderID:       "cf-service.istio.my.arbitrary.domain.io",
 		SystemDomain:     "istio.my.arbitrary.domain.io",
 		LoadBalancerPort: 9000,
 		IPAddress:        "10.0.81.0",
-		IstioDirectory:   os.TempDir(),
+		ConfigStore:      configStore,
 		NetworkProfile:   "urn:local.test:public",
 	}
 	endpoints := []model.Endpoint{{"test.local", 5757}}
@@ -87,12 +91,13 @@ func TestEndpointsAreTransferedFromCredentials(t *testing.T) {
 
 func TestConfigFilesAreWrittenAndDeleted(t *testing.T) {
 	g := NewGomegaWithT(t)
+	configStore := &fileConfigStore{istioDirectory: os.TempDir()}
 	interceptor := ProducerInterceptor{
 		ProviderID:       "cf-service.istio.my.arbitrary.domain.io",
 		SystemDomain:     "istio.my.arbitrary.domain.io",
 		LoadBalancerPort: 9000,
 		IPAddress:        "10.0.81.0",
-		IstioDirectory:   os.TempDir(),
+		ConfigStore:      configStore,
 		NetworkProfile:   "urn:local.test:public",
 	}
 	endpoints := []model.Endpoint{{"test.local", 5757}}
@@ -102,7 +107,7 @@ func TestConfigFilesAreWrittenAndDeleted(t *testing.T) {
 		},
 	}, "123", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
-	fileName := path.Join(interceptor.IstioDirectory, "123.yml")
+	fileName := path.Join(configStore.istioDirectory, "123.yml")
 	file, err := os.Open(fileName)
 	g.Expect(err).NotTo(HaveOccurred())
 	content, err := ioutil.ReadAll(file)
@@ -119,12 +124,13 @@ func TestConfigFilesAreWrittenAndDeleted(t *testing.T) {
 func TestConfigFilesBindFailsButFileIsCleanedUp(t *testing.T) {
 	g := NewGomegaWithT(t)
 	tempDir := os.TempDir()
+	configStore := &fileConfigStore{istioDirectory: tempDir}
 	interceptor := ProducerInterceptor{
 		ProviderID:       "cf-service.istio.my.arbitrary.domain.io",
 		SystemDomain:     "istio.my.arbitrary.domain.io",
 		LoadBalancerPort: 9000,
 		IPAddress:        "10.0.81.0",
-		IstioDirectory:   tempDir,
+		ConfigStore:      configStore,
 		NetworkProfile:   "urn:local.test:public",
 	}
 	endpoints := []model.Endpoint{{"test.local", 5757}}

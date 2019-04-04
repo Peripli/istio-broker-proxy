@@ -85,7 +85,7 @@ func CreateIstioObjectsInK8S(configStore ConfigStore, bindingID string, name str
 		log.Println("error creating service:", err.Error())
 		return "", err
 	}
-	configurations := config.CreateEntriesForExternalServiceClient(service.Name, endpoint.Host, service.Spec.ClusterIP, 9000, configStore.getNamespace(), systemDomain)
+	configurations := config.CreateEntriesForExternalServiceClient(service.Name, endpoint.Host, service.Spec.ClusterIP, 9000, systemDomain)
 	err = configStore.CreateIstioConfig(bindingID, configurations)
 	if err != nil {
 		return "", err
@@ -111,27 +111,6 @@ func (c ConsumerInterceptor) cleanUpConfig(bindID string, endCleanupCondition fu
 	if err != nil {
 		log.Printf("Ignoring error during removal of configuration %s: %s\n", bindID, err.Error())
 	}
-	//i := 0
-	//
-	//for {
-	//	serviceName := serviceName(i, bindID)
-	//	isFirstIteration := i == 0
-	//
-	//	for _, id := range config.DeleteEntriesForExternalServiceClient(serviceName) {
-	//		ignoredErr := c.ConfigStore.DeleteIstioConfig(id.Type, id.Name)
-	//		if ignoredErr != nil && isFirstIteration {
-	//			log.Printf("Ignoring error during removal of configuration %s: %s\n", id, ignoredErr.Error())
-	//		}
-	//	}
-	//	err = c.ConfigStore.DeleteBinding(bindID)
-	//	if endCleanupCondition(i, err) {
-	//		break
-	//	}
-	//	if err != nil && isFirstIteration {
-	//		log.Printf("Ignoring error during removal of configuration %s: %s\n", serviceName, err.Error())
-	//	}
-	//	i++
-	//}
 }
 
 //HasAdaptCredentials see interface definition

@@ -80,38 +80,26 @@ func createValidIdentifer(identifer string) string {
 
 }
 
-//DeleteEntriesForExternalServiceClient creates a list of istio config to delete for a service on the consumer side
-func DeleteEntriesForExternalServiceClient(serviceName string) []IstioObjectID {
-	result := make([]IstioObjectID, 0)
-	result = append(result, sidecarDestinationRuleForExternalService(serviceName))
-	result = append(result, egressDestinationRuleForExternalService(serviceName))
-	result = append(result, egressGatewayForExternalService(serviceName))
-	result = append(result, egressVirtualServiceForExternalService(serviceName))
-	result = append(result, meshVirtualServiceForExternalService(serviceName))
-	result = append(result, egressExternServiceEntryForExternalService(serviceName))
-	return result
-}
-
 //CreateEntriesForExternalServiceClient creates istio routing config for a service for the consumer side
-func CreateEntriesForExternalServiceClient(serviceName string, hostName string, serviceIP string, port int, namespace string, systemDomain string) []istioModel.Config {
+func CreateEntriesForExternalServiceClient(serviceName string, hostName string, serviceIP string, port int, systemDomain string) []istioModel.Config {
 	var configs []istioModel.Config
 
-	serviceEntry := createEgressExternServiceEntryForExternalService(hostName, uint32(port), serviceName, namespace)
+	serviceEntry := createEgressExternServiceEntryForExternalService(hostName, uint32(port), serviceName)
 	configs = append(configs, serviceEntry)
 
-	virtualService := createMeshVirtualServiceForExternalService(hostName, 443, serviceName, serviceIP, namespace)
+	virtualService := createMeshVirtualServiceForExternalService(hostName, 443, serviceName, serviceIP)
 	configs = append(configs, virtualService)
 
-	virtualService = createEgressVirtualServiceForExternalService(hostName, uint32(port), serviceName, 443, namespace)
+	virtualService = createEgressVirtualServiceForExternalService(hostName, uint32(port), serviceName, 443)
 	configs = append(configs, virtualService)
 
-	gateway := createEgressGatewayForExternalService(hostName, 443, serviceName, namespace)
+	gateway := createEgressGatewayForExternalService(hostName, 443, serviceName)
 	configs = append(configs, gateway)
 
-	destinationRule := createEgressDestinationRuleForExternalService(hostName, uint32(port), serviceName, namespace, systemDomain)
+	destinationRule := createEgressDestinationRuleForExternalService(hostName, uint32(port), serviceName, systemDomain)
 	configs = append(configs, destinationRule)
 
-	destinationRule = createSidecarDestinationRuleForExternalService(hostName, serviceName, namespace)
+	destinationRule = createSidecarDestinationRuleForExternalService(hostName, serviceName)
 	configs = append(configs, destinationRule)
 
 	return configs

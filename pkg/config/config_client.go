@@ -7,36 +7,35 @@ import (
 	"istio.io/istio/pilot/pkg/model"
 )
 
-func createEgressVirtualServiceForExternalService(hostName string, port uint32, serviceName string, gatewayPort uint32, namespace string) model.Config {
+func createEgressVirtualServiceForExternalService(hostName string, port uint32, serviceName string, gatewayPort uint32) model.Config {
 	gatewayName := egressVirtualServiceForExternalService(serviceName).Name
 	gatewayHost := fmt.Sprintf("istio-egressgateway-%s", serviceName)
 	matchGateways := []string{gatewayHost}
 	match := v1alpha3.L4MatchAttributes{Gateways: matchGateways, Port: gatewayPort}
 	config := createGeneralVirtualServiceForExternalService(hostName, port, serviceName, gatewayName, gatewayHost, match, hostName)
 
-	return enrichWithIstioDefaults(config, namespace)
+	return enrichWithIstioDefaults(config)
 }
 
 func egressVirtualServiceForExternalService(serviceName string) IstioObjectID {
 	return IstioObjectID{model.VirtualService.Type, fmt.Sprintf("egress-gateway-%s", serviceName)}
 }
 
-func createMeshVirtualServiceForExternalService(hostName string, port uint32, serviceName string, serviceIP string, namespace string) model.Config {
+func createMeshVirtualServiceForExternalService(hostName string, port uint32, serviceName string, serviceIP string) model.Config {
 	gatewayName := meshVirtualServiceForExternalService(serviceName).Name
 	matchGateways := []string{"mesh"}
 	match := v1alpha3.L4MatchAttributes{Gateways: matchGateways, DestinationSubnets: []string{serviceIP}}
 	config := createGeneralVirtualServiceForExternalService(serviceName, port, serviceName, gatewayName, "mesh", match, "istio-egressgateway.istio-system.svc.cluster.local")
 
-	return enrichWithIstioDefaults(config, namespace)
+	return enrichWithIstioDefaults(config)
 }
 
 func meshVirtualServiceForExternalService(serviceName string) IstioObjectID {
 	return IstioObjectID{model.VirtualService.Type, fmt.Sprintf("mesh-to-egress-%s", serviceName)}
 }
 
-func enrichWithIstioDefaults(config model.Config, namespace string) model.Config {
+func enrichWithIstioDefaults(config model.Config) model.Config {
 	schema := schemas[config.Type]
-	config.Namespace = namespace
 	istioObject, _ := crd.ConvertConfig(schema, config)
 	enrichedConfig, _ := crd.ConvertObject(schema, istioObject, "")
 	return *enrichedConfig
@@ -56,7 +55,7 @@ func createGeneralVirtualServiceForExternalService(hostName string, port uint32,
 	return config
 }
 
-func createEgressGatewayForExternalService(hostName string, portNumber uint32, serviceName string, namespace string) model.Config {
+func createEgressGatewayForExternalService(hostName string, portNumber uint32, serviceName string) model.Config {
 	portName := fmt.Sprintf("tcp-port-%d", portNumber)
 	port := v1alpha3.Port{Number: portNumber, Name: portName, Protocol: "TLS"}
 	hosts := []string{hostName}
@@ -73,14 +72,14 @@ func createEgressGatewayForExternalService(hostName string, portNumber uint32, s
 	config.Type = gateway
 	config.Name = egressGatewayForExternalService(serviceName).Name
 
-	return enrichWithIstioDefaults(config, namespace)
+	return enrichWithIstioDefaults(config)
 }
 
 func egressGatewayForExternalService(serviceName string) IstioObjectID {
 	return IstioObjectID{model.Gateway.Type, fmt.Sprintf("istio-egressgateway-%s", serviceName)}
 }
 
-func createEgressDestinationRuleForExternalService(hostName string, portNumber uint32, serviceName string, namespace string, systemDomain string) model.Config {
+func createEgressDestinationRuleForExternalService(hostName string, portNumber uint32, serviceName string, systemDomain string) model.Config {
 	port := v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: portNumber}}
 	tls := createTLSSettings(hostName, systemDomain)
 	portLevelSettings := []*v1alpha3.TrafficPolicy_PortTrafficPolicy{{Tls: &tls, Port: &port}}
@@ -91,7 +90,7 @@ func createEgressDestinationRuleForExternalService(hostName string, portNumber u
 	config.Type = destinationRule
 	config.Name = egressDestinationRuleForExternalService(serviceName).Name
 
-	return enrichWithIstioDefaults(config, namespace)
+	return enrichWithIstioDefaults(config)
 }
 
 func egressDestinationRuleForExternalService(serviceName string) IstioObjectID {
@@ -113,13 +112,13 @@ func createTLSSettings(hostName string, systemDomain string) v1alpha3.TLSSetting
 	return tls
 }
 
-func createEgressExternServiceEntryForExternalService(hostName string, portNumber uint32, serviceName string, namespace string) model.Config {
+func createEgressExternServiceEntryForExternalService(hostName string, portNumber uint32, serviceName string) model.Config {
 	portName := fmt.Sprintf("%s-port", serviceName)
 	name := egressExternServiceEntryForExternalService(serviceName).Name
 
 	config := createGeneralServiceEntryForExternalService(name, hostName, portNumber, portName, "TLS")
 
-	return enrichWithIstioDefaults(config, namespace)
+	return enrichWithIstioDefaults(config)
 }
 
 func egressExternServiceEntryForExternalService(serviceName string) IstioObjectID {
@@ -138,7 +137,7 @@ func createGeneralServiceEntryForExternalService(serviceEntryName string, hostNa
 	return config
 }
 
-func createSidecarDestinationRuleForExternalService(hostName string, serviceName string, namespace string) model.Config {
+func createSidecarDestinationRuleForExternalService(hostName string, serviceName string) model.Config {
 	sni := hostName
 	mode := v1alpha3.TLSSettings_ISTIO_MUTUAL
 
@@ -149,7 +148,7 @@ func createSidecarDestinationRuleForExternalService(hostName string, serviceName
 	config := model.Config{Spec: &destinationRuleSpec}
 	config.Type = destinationRule
 	config.Name = sidecarDestinationRuleForExternalService(serviceName).Name
-	return enrichWithIstioDefaults(config, namespace)
+	return enrichWithIstioDefaults(config)
 }
 
 func sidecarDestinationRuleForExternalService(serviceName string) IstioObjectID {

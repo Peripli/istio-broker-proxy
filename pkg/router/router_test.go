@@ -57,6 +57,9 @@ const validUpdateCredentialsRequest = `{
 	}]
 }`
 
+func configStore() ConfigStore {
+	return &fileConfigStore{istioDirectory: os.TempDir()}
+}
 func TestDoNotSkipVerifyTLSIfNotConfigured(t *testing.T) {
 	g := NewGomegaWithT(t)
 
@@ -288,7 +291,7 @@ func TestCreateServiceBindingContainsEndpoints(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(requestBody))
 	response := httptest.NewRecorder()
-	router := SetupRouter(ProducerInterceptor{IstioDirectory: os.TempDir(), NetworkProfile: "urn:local.test:public"}, *routerConfig)
+	router := SetupRouter(ProducerInterceptor{ConfigStore: configStore(), NetworkProfile: "urn:local.test:public"}, *routerConfig)
 	router.ServeHTTP(response, request)
 	g.Expect(response.Code).To(Equal(http.StatusOK))
 
@@ -323,7 +326,7 @@ func TestBindWithoutConsumerId(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(body))
 	response := httptest.NewRecorder()
-	router := SetupRouter(ProducerInterceptor{IstioDirectory: os.TempDir(), NetworkProfile: "urn:local.test:public"}, *routerConfig)
+	router := SetupRouter(ProducerInterceptor{ConfigStore: configStore(), NetworkProfile: "urn:local.test:public"}, *routerConfig)
 	router.ServeHTTP(response, request)
 	g.Expect(response.Code).To(Equal(http.StatusBadRequest))
 	var err model.HTTPError
@@ -338,7 +341,7 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 		SystemDomain:     "my.arbitrary.domain.io",
 		ProviderID:       "your-provider",
 		LoadBalancerPort: 9000,
-		IstioDirectory:   os.TempDir(),
+		ConfigStore:      configStore(),
 		NetworkProfile:   "urn:local.test:public"}
 	g := NewGomegaWithT(t)
 	body := []byte(`{
@@ -382,10 +385,11 @@ func TestAddIstioNetworkDataProvidesEndpointHostsBasedOnSystemDomainServiceIdAnd
 }
 
 func TestIstioConfigFilesAreWritten(t *testing.T) {
+	configStore := &fileConfigStore{istioDirectory: os.TempDir()}
 	producerInterceptor := ProducerInterceptor{
 		SystemDomain:   "services.cf.dev99.sc6.my.arbitrary.domain.io",
 		ProviderID:     "your-provider",
-		IstioDirectory: os.TempDir(),
+		ConfigStore:    configStore,
 		NetworkProfile: "urn:local.test:public"}
 	g := NewGomegaWithT(t)
 	responseBody := []byte(`{
@@ -420,7 +424,7 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 	router := SetupRouter(producerInterceptor, *routerConfig)
 	router.ServeHTTP(response, request)
 
-	file, err := os.Open(path.Join(producerInterceptor.IstioDirectory, "456.yml"))
+	file, err := os.Open(path.Join(configStore.istioDirectory, "456.yml"))
 	g.Expect(err).NotTo(HaveOccurred())
 	content, err := ioutil.ReadAll(file)
 	contentAsString := string(content)
@@ -432,10 +436,11 @@ func TestIstioConfigFilesAreWritten(t *testing.T) {
 }
 
 func TestIstioConfigFilesAreNotWritable(t *testing.T) {
+	configStore := &fileConfigStore{istioDirectory: "/non-existing-directory"}
 	producerConfig := ProducerInterceptor{
 		SystemDomain:   "services.cf.dev99.sc6.my.arbitrary.domain.io",
 		ProviderID:     "your-provider",
-		IstioDirectory: "/non-existing-directory",
+		ConfigStore:    configStore,
 		NetworkProfile: "urn:local.test:public",
 	}
 	g := NewGomegaWithT(t)
