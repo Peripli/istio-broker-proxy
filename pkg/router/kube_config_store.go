@@ -65,12 +65,18 @@ type kubeConfigStore struct {
 }
 
 func (k kubeConfigStore) CreateService(bindingID string, service *v1.Service) (*v1.Service, error) {
+	if service.Labels == nil {
+		service.Labels = make(map[string]string)
+	}
 	service.Labels["istio-broker-proxy-binding-id"] = bindingID
 	return k.CoreV1().Services(k.namespace).Create(service)
 }
 
 func (k kubeConfigStore) CreateIstioConfig(bindingID string, configurations []model.Config) error {
 	for _, config := range configurations {
+		if config.Labels == nil {
+			config.Labels = make(map[string]string)
+		}
 		config.Labels["istio-broker-proxy-binding-id"] = bindingID
 		_, err := k.configClient.Create(config)
 		if err != nil {
