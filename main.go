@@ -17,8 +17,8 @@ var networkProfile string
 var configStore string
 
 
-func newConfigStore(configStoreUrl string) (router.ConfigStore, error) {
-	uri , err := url.Parse(configStoreUrl)
+func newConfigStore(configStoreURL string) (router.ConfigStore, error) {
+	uri , err := url.Parse(configStoreURL)
 	if err != nil {
 		return nil, err
 	}
@@ -30,8 +30,8 @@ func newConfigStore(configStoreUrl string) (router.ConfigStore, error) {
 	}
 }
 
-func newConfigStoreOrFail(configStoreUrl string) router.ConfigStore {
-	store, err := newConfigStore(configStoreUrl)
+func newConfigStoreOrFail(configStoreURL string) router.ConfigStore {
+	store, err := newConfigStore(configStoreURL)
 	if err != nil {
 		panic(err)
 	}
