@@ -24,9 +24,17 @@ func TestKubernetesCreateService(t *testing.T) {
 	kubectl.Delete("Service", service.Name)
 
 	configStore := router.NewExternKubeConfigStore("default")
-	service, err := configStore.CreateService("", service)
+	service, err := configStore.CreateService("123456789-1", service)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(service.Spec.ClusterIP).ToNot(BeEmpty())
+
+	err = configStore.DeleteBinding("123456789-1")
+	g.Expect(err).ToNot(HaveOccurred())
+	var services v1.ServiceList
+	kubectl.List(&services, "-n","default")
+	for _, s := range services.Items {
+		g.Expect(s.Name).ToNot(Equal("test-config-store"))
+	}
 
 }
 
@@ -54,12 +62,13 @@ func TestKubernetesCreateIstioConfig(t *testing.T) {
 
 	clientcmd.ClusterDefaults.Server = ""
 	configStore := router.NewExternKubeConfigStore("default")
-	err := configStore.CreateIstioConfig("", []model.Config{cfg})
+	err := configStore.CreateIstioConfig("123456789", []model.Config{cfg})
 	g.Expect(err).ToNot(HaveOccurred())
 
 	g.Expect(checkIfServiceExists(kubectl, "foo=bar")).To(BeTrue())
 
-	kubectl.Delete("ServiceEntry", cfg.Name)
+	err = configStore.DeleteBinding("123456789")
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(checkIfServiceExists(kubectl, "foo=bar")).To(BeFalse())
 }
 

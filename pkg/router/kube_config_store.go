@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"log"
 	"os"
+	"strings"
 )
 
 const bindingIDLabel = "istio-broker-proxy-binding-id"
@@ -92,7 +93,7 @@ func (k kubeConfigStore) CreateIstioConfig(bindingID string, configurations []mo
 }
 
 func (k kubeConfigStore) DeleteBinding(bindingID string) error {
-	log.Printf("kubectl -n %s delete services -l %s=%s\n", bindingIDLabel, k.namespace, bindingID)
+	log.Printf("kubectl -n %s delete services -l %s=%s\n", k.namespace, bindingIDLabel, bindingID)
 	services := k.CoreV1().Services(k.namespace)
 	list, err := services.List(meta_v1.ListOptions{LabelSelector: bindingIDLabel + "=" + bindingID})
 	if err != nil {
@@ -104,8 +105,8 @@ func (k kubeConfigStore) DeleteBinding(bindingID string) error {
 			return err
 		}
 	}
-	for _, typ := range []string{"Gateway", "VirtualService", "DestinationRule", "ServiceEntry"} {
-		log.Printf("kubectl -n %s delete %s -l %s=%s\n", bindingIDLabel, k.namespace, typ, bindingID)
+	for _, typ := range []string{"gateway", "virtual-service", "destination-rule", "service-entry"} {
+		log.Printf("kubectl -n %s delete %s -l %s=%s\n", k.namespace, strings.Replace(typ,"-","",-1), bindingIDLabel, bindingID)
 		configs, err := k.configClient.List(typ, k.namespace)
 		if err != nil {
 			return err
