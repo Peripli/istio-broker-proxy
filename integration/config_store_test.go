@@ -71,7 +71,7 @@ func TestKubernetesCreateIstioObjects(t *testing.T) {
 	clientcmd.ClusterDefaults.Server = ""
 	configStore := router.NewExternKubeConfigStore("not-used")
 
-	configurations := config.CreateEntriesForExternalServiceClient("svc-0-f1b32107-c8a5-11e8-b8be-02caceffa7f1", "test.istio.my.arbitrary.domain.io", "1.1.1.1", 1234, "catalog", "my.arbitrary.domain.io")
+	configurations := config.CreateEntriesForExternalServiceClient("svc-0-f1b32107-c8a5-11e8-b8be-02caceffa7f1", "test.istio.my.arbitrary.domain.io", "1.1.1.1", 1234,  "my.arbitrary.domain.io")
 
 	g.Expect(configurations).To(HaveLen(6))
 
