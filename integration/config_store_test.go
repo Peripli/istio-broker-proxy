@@ -69,7 +69,7 @@ func TestKubernetesCreateIstioObjects(t *testing.T) {
 	g := NewGomegaWithT(t)
 	kubectl := NewKubeCtl(g)
 	clientcmd.ClusterDefaults.Server = ""
-	configStore := router.NewExternKubeConfigStore("not-used")
+	configStore := router.NewExternKubeConfigStore("catalog")
 
 	configurations := config.CreateEntriesForExternalServiceClient("svc-0-f1b32107-c8a5-11e8-b8be-02caceffa7f1", "test.istio.my.arbitrary.domain.io", "1.1.1.1", 1234,  "my.arbitrary.domain.io")
 
