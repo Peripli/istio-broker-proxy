@@ -15,6 +15,7 @@ func main() {
 	var portServiceEntry int
 	var clientConfig bool
 	var help bool
+	var delete bool
 
 	flag.BoolVar(&clientConfig, "client", false, "Create client configuration")
 	flag.StringVar(&serviceName, "service", "<service>", "name of the service")
@@ -23,6 +24,7 @@ func main() {
 	flag.StringVar(&endpointServiceEntry, "endpoint", "<0.0.0.0>", "endpoint(ip) of the service entry")
 	flag.IntVar(&portServiceEntry, "port", 99999, "port of the service entry")
 	flag.BoolVar(&help, "help", false, "Print usage")
+	flag.BoolVar(&delete, "delete", false, "Delete client config instead of creating")
 
 	flag.Parse()
 	if help {
@@ -30,14 +32,20 @@ func main() {
 		return
 	}
 
-	createOutput(clientConfig, serviceName, hostVirtualService, portServiceEntry, endpointServiceEntry, systemDomain)
+	createOutput(clientConfig, serviceName, hostVirtualService, portServiceEntry, endpointServiceEntry, systemDomain,delete )
 }
 
-func createOutput(clientConfig bool, serviceName string, hostVirtualService string, portServiceEntry int, endpointServiceEntry string, systemDomain string) {
+func createOutput(clientConfig bool, serviceName string, hostVirtualService string, portServiceEntry int, endpointServiceEntry string, systemDomain string, delete bool) {
 	var configs []model.Config
 	if clientConfig {
 		configStore := router.NewExternKubeConfigStore("catalog")
-		_, err := router.CreateIstioObjectsInK8S(configStore, "client-binding-id", serviceName, m.Endpoint{Host: hostVirtualService, Port: 9000}, systemDomain)
+		var err error
+		if delete {
+			err = configStore.DeleteBinding("client-binding-id")
+
+		} else {
+			_, err = router.CreateIstioObjectsInK8S(configStore, "client-binding-id", serviceName, m.Endpoint{Host: hostVirtualService, Port: 9000}, systemDomain)
+		}
 		if err != nil {
 			fmt.Printf("error occured: %s", err.Error())
 			os.Exit(1)
