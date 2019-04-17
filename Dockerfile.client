@@ -1,0 +1,6 @@
+FROM scratch
+
+WORKDIR /app
+ADD client /app/client
+
+ENTRYPOINT [ "/app/client" ]
