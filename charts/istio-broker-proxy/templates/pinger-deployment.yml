@@ -1,0 +1,27 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: pinger-http
+    version: v1
+  name: pinger-http
+spec:
+  selector:
+    matchLabels:
+      app: pinger-http
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: pinger-http
+        version: v1
+    spec:
+      containers:
+        - args:
+            - --interval
+            - "10"
+            - --address
+            - http://pinger.catalog.svc.cluster.local:5555
+          image: gcr.io/peripli/pinger
+          imagePullPolicy: Always
+          name: pinger

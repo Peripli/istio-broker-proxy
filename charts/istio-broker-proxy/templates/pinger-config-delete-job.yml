@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pinger-config-delete
+  annotations:
+    "helm.sh/hook": "pre-delete"
+spec:
+  template:
+    spec:
+      containers:
+        - name: pinger-config-delete
+          image: gcr.io/peripli/client
+          command: [ "/app/client", "-client","-delete" ]
+      restartPolicy: Never
+  backoffLimit: 4
