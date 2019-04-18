@@ -4,6 +4,7 @@ metadata:
   name: pinger-config-delete
   annotations:
     "helm.sh/hook": "pre-delete"
+    "helm.sh/hook-delete-policy": hook-succeeded
 spec:
   template:
     spec:
@@ -12,4 +13,4 @@ spec:
           image: gcr.io/peripli/client
           command: [ "/app/client", "-client","-delete" ]
       restartPolicy: Never
-  backoffLimit: 4
+  backoffLimit: 2

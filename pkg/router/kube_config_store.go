@@ -5,6 +5,7 @@ import (
 	"istio.io/istio/pilot/pkg/config/kube/crd"
 	"istio.io/istio/pilot/pkg/model"
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -100,13 +101,16 @@ func (k kubeConfigStore) DeleteBinding(bindingID string) error {
 		return err
 	}
 	for _, service := range list.Items {
+		log.Printf("kubectl -n %s delete service -l %s=%s --ignore-not-found=true\n", k.namespace,  bindingIDLabel, bindingID)
 		err := k.CoreV1().Services(k.namespace).Delete(service.Name, &meta_v1.DeleteOptions{})
 		if err != nil {
-			return err
+			if ! errors.IsNotFound(err) {
+				return err
+			}
 		}
 	}
 	for _, typ := range []string{"gateway", "virtual-service", "destination-rule", "service-entry"} {
-		log.Printf("kubectl -n %s delete %s -l %s=%s\n", k.namespace, strings.Replace(typ,"-","",-1), bindingIDLabel, bindingID)
+		log.Printf("kubectl -n %s delete %s -l %s=%s --ignore-not-found=true\n", k.namespace, strings.Replace(typ,"-","",-1), bindingIDLabel, bindingID)
 		configs, err := k.configClient.List(typ, k.namespace)
 		if err != nil {
 			return err
@@ -115,7 +119,9 @@ func (k kubeConfigStore) DeleteBinding(bindingID string) error {
 			if config.Labels != nil && config.Labels[bindingIDLabel] == bindingID {
 				err = k.configClient.Delete(typ, config.Name, k.namespace)
 				if err != nil {
-					return err
+					if ! errors.IsNotFound(err) {
+						return err
+					}
 				}
 			}
 		}

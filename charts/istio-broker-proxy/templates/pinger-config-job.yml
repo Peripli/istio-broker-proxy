@@ -8,6 +8,6 @@ spec:
       containers:
         - name: pinger-config
           image: gcr.io/peripli/client
-          command: [ "/app/client","-client","-port","5555","-service","pinger","-virtual-service","pinger","-system-domain", "istio.{{.Values.global.destination.landscape_domain}}" ]
+          command: [ "/app/client","-client","-port","5555","-service","pinger","-virtual-service","pinger.istio.{{.Values.global.destination.landscape_domain}}","-system-domain", "istio.{{.Values.global.destination.landscape_domain}}" ]
       restartPolicy: Never
-  backoffLimit: 4
+  backoffLimit: 1
