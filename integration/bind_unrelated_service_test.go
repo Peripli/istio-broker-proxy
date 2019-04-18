@@ -8,16 +8,25 @@ import (
 	"testing"
 )
 
+const service_instance_example_service = `---
+apiVersion: servicecatalog.k8s.io/v1beta1
+kind: ServiceInstance
+metadata:
+  name: integration-test-instance
+spec:
+  clusterServiceClassExternalName: example-service
+  clusterServicePlanExternalName: plan-one`
+
 const service_instance_no_istio_provider = `---
 apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceInstance
 metadata:
   name: integration-test-instance
 spec:
-  clusterServiceClassExternalName: example-service-integration-test
-  clusterServicePlanExternalName: integration-test-plan-one`
+  clusterServiceClassExternalName: alternate-example-service
+  clusterServicePlanExternalName: plan-one`
 
-const service_instance_config_no_istio_provider = `---
+const service_binding_example_service = `---
 apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceBinding
 metadata:
@@ -26,8 +35,68 @@ spec:
   instanceRef:
     name: integration-test-instance`
 
+
+
 type ServiceInstanceList struct {
 	v1.ServiceList
+}
+
+func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
+	skipWithoutKubeconfigSet(t)
+
+	g := NewGomegaWithT(t)
+	kubectl := NewKubeCtl(g)
+
+	bindID := createServiceBinding(kubectl, g, "integration-test", service_instance_example_service, service_binding_example_service)
+
+	kubectl.Delete("ServiceBinding", "integration-test-binding")
+	kubectl.Delete("ServiceInstance", "integration-test-instance")
+
+	var serviceEntries ServiceEntryList
+	kubectl.List(&serviceEntries, "--all-namespaces")
+	matchingIstioObjectCount := 0
+	for _, serviceEntry := range serviceEntries.Items {
+		if strings.Contains(serviceEntry.Metadata.Name, bindID) {
+			matchingIstioObjectCount += 1
+		}
+	}
+	g.Expect(matchingIstioObjectCount).To(Equal(0))
+
+	var virtualServices VirtualServiceList
+	kubectl.List(&virtualServices, "--all-namespaces")
+
+	for _, virtualService := range virtualServices.Items {
+
+		if strings.Contains(virtualService.Metadata.Name, bindID) {
+			matchingIstioObjectCount += 1
+		}
+	}
+	g.Expect(matchingIstioObjectCount).To(Equal(0))
+
+	var gateways GatewayList
+	kubectl.List(&gateways, "--all-namespaces")
+	matchingIstioObjectCount = 0
+
+	for _, gateway := range gateways.Items {
+
+		if strings.Contains(gateway.Metadata.Name, bindID) {
+			matchingIstioObjectCount += 1
+		}
+	}
+	g.Expect(matchingIstioObjectCount).To(Equal(0))
+
+	var destinationRules DestinationruleList
+	kubectl.List(&destinationRules, "--all-namespaces")
+	matchingIstioObjectCount = 0
+
+	for _, destinationRule := range destinationRules.Items {
+
+		if strings.Contains(destinationRule.Metadata.Name, bindID) {
+			matchingIstioObjectCount += 1
+		}
+	}
+	g.Expect(matchingIstioObjectCount).To(Equal(0))
+
 }
 
 func TestServiceBindingWithNoMatchingIstioProvider(t *testing.T) {
@@ -36,7 +105,7 @@ func TestServiceBindingWithNoMatchingIstioProvider(t *testing.T) {
 	g := NewGomegaWithT(t)
 	kubectl := NewKubeCtl(g)
 
-	createServiceBindingButNoIstioResources(kubectl, g, "integration-test", service_instance_no_istio_provider, service_instance_config_no_istio_provider)
+	createServiceBindingButNoIstioResources(kubectl, g, "integration-test", service_instance_no_istio_provider, service_binding_example_service)
 }
 
 func createServiceBindingButNoIstioResources(kubectl *kubectl, g *GomegaWithT, namePrefix string, serviceConfig string, bindingConfig string) string {

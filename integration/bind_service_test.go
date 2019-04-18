@@ -138,6 +138,12 @@ func skipWithoutKubeconfigSet(t *testing.T) {
 	}
 }
 
+func skipWithoutEnableBackingServicesSet(t *testing.T) {
+	if os.Getenv("ENABLE_BACKING_SERVICES") == "" {
+		t.Skip("ENABLE_BACKING_SERVICES not set, skipping integration test.")
+	}
+}
+
 type IstioObjectList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata.
@@ -217,6 +223,7 @@ func init() {
 
 func TestPostgresServiceBinding(t *testing.T) {
 	skipWithoutKubeconfigSet(t)
+	skipWithoutEnableBackingServicesSet(t)
 
 	g := NewGomegaWithT(t)
 	kubectl := NewKubeCtl(g)
@@ -255,6 +262,7 @@ func TestPostgresServiceBinding(t *testing.T) {
 
 func TestPostgresServiceBindingOtherNamespace(t *testing.T) {
 	skipWithoutKubeconfigSet(t)
+	skipWithoutEnableBackingServicesSet(t)
 
 	g := NewGomegaWithT(t)
 	kubectl := NewKubeCtl(g)
@@ -297,6 +305,7 @@ func TestPostgresServiceBindingOtherNamespace(t *testing.T) {
 
 func TestPostgresBenchmark(t *testing.T) {
 	skipWithoutKubeconfigSet(t)
+	skipWithoutEnableBackingServicesSet(t)
 
 	g := NewGomegaWithT(t)
 	kubectl := NewKubeCtl(g)
@@ -376,66 +385,9 @@ func kubeCreateFile(kubectl *kubectl, g *GomegaWithT, basename string, script st
 	kubectl.run("cp", fileName, "default/"+podName+":"+basename)
 }
 
-func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
-	skipWithoutKubeconfigSet(t)
-
-	g := NewGomegaWithT(t)
-	kubectl := NewKubeCtl(g)
-
-	bindID := createServiceBinding(kubectl, g, "postgres-delete-test", service_instance, service_binding)
-
-	kubectl.Delete("ServiceBinding", "postgres-delete-test-binding")
-	kubectl.Delete("ServiceInstance", "postgres-delete-test-instance")
-
-	var serviceEntries ServiceEntryList
-	kubectl.List(&serviceEntries, "--all-namespaces")
-	matchingIstioObjectCount := 0
-	for _, serviceEntry := range serviceEntries.Items {
-		if strings.Contains(serviceEntry.Metadata.Name, bindID) {
-			matchingIstioObjectCount += 1
-		}
-	}
-	g.Expect(matchingIstioObjectCount).To(Equal(0))
-
-	var virtualServices VirtualServiceList
-	kubectl.List(&virtualServices, "--all-namespaces")
-
-	for _, virtualService := range virtualServices.Items {
-
-		if strings.Contains(virtualService.Metadata.Name, bindID) {
-			matchingIstioObjectCount += 1
-		}
-	}
-	g.Expect(matchingIstioObjectCount).To(Equal(0))
-
-	var gateways GatewayList
-	kubectl.List(&gateways, "--all-namespaces")
-	matchingIstioObjectCount = 0
-
-	for _, gateway := range gateways.Items {
-
-		if strings.Contains(gateway.Metadata.Name, bindID) {
-			matchingIstioObjectCount += 1
-		}
-	}
-	g.Expect(matchingIstioObjectCount).To(Equal(0))
-
-	var destinationRules DestinationruleList
-	kubectl.List(&destinationRules, "--all-namespaces")
-	matchingIstioObjectCount = 0
-
-	for _, destinationRule := range destinationRules.Items {
-
-		if strings.Contains(destinationRule.Metadata.Name, bindID) {
-			matchingIstioObjectCount += 1
-		}
-	}
-	g.Expect(matchingIstioObjectCount).To(Equal(0))
-
-}
-
 func TestRabbitMqServiceBinding(t *testing.T) {
 	skipWithoutKubeconfigSet(t)
+	skipWithoutEnableBackingServicesSet(t)
 
 	g := NewGomegaWithT(t)
 	kubectl := NewKubeCtl(g)
