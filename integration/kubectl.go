@@ -92,6 +92,12 @@ func (self kubectl) Read(result interface{}, name string) {
 	self.g.Expect(err).ShouldNot(HaveOccurred())
 }
 
+func (self kubectl) Describe(result interface{}, name string) string {
+	kind := reflect.TypeOf(result).Elem().Name()
+	response := self.run("describe", kind, name)
+	return string(response)
+}
+
 func (self kubectl) Exec(podName string, args ...string) {
 	cmd := append([]string{"exec", podName}, args...)
 	self.runTailingOutput(cmd...)

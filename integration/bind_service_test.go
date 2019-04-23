@@ -492,7 +492,8 @@ func waitForServiceBinding(kubectl *kubectl, g *GomegaWithT, namePrefix string) 
 	var serviceBinding v1beta1.ServiceBinding
 
 	waitForCompletion(g, func() (bool, string) {
-		kubectl.Read(&serviceBinding, namePrefix+"-binding")
+		name := namePrefix + "-binding"
+		kubectl.Read(&serviceBinding, name)
 		statusLen := len(serviceBinding.Status.Conditions)
 		if statusLen == 0 {
 			return false, ""
@@ -503,7 +504,11 @@ func waitForServiceBinding(kubectl *kubectl, g *GomegaWithT, namePrefix string) 
 			return false, reason
 		}
 
-		g.Expect(condition.Type).To(Equal(v1beta1.ServiceBindingConditionReady), fmt.Sprintf("reason: %s", string(condition.Reason)))
+		if v1beta1.ServiceBindingConditionReady != condition.Type {
+			log.Println(kubectl.Describe(&serviceBinding, name))
+			g.Expect(condition.Type).To(Equal(v1beta1.ServiceBindingConditionReady), fmt.Sprintf("reason: %s", string(condition.Reason)))
+		}
+
 		return true, reason
 	}, "servicebinding")
 
@@ -514,7 +519,8 @@ func waitForServiceInstance(kubectl *kubectl, g *GomegaWithT, namePrefix string)
 	var serviceInstance v1beta1.ServiceInstance
 
 	waitForCompletion(g, func() (bool, string) {
-		kubectl.Read(&serviceInstance, namePrefix+"-instance")
+		name := namePrefix+"-instance"
+		kubectl.Read(&serviceInstance, name)
 		statusLen := len(serviceInstance.Status.Conditions)
 		if statusLen == 0 {
 			return false, ""
@@ -527,7 +533,10 @@ func waitForServiceInstance(kubectl *kubectl, g *GomegaWithT, namePrefix string)
 			return false, reason
 		}
 
-		g.Expect(condition.Type).To(Equal(v1beta1.ServiceInstanceConditionReady))
+		if v1beta1.ServiceInstanceConditionReady != condition.Type {
+			log.Println(kubectl.Describe(&serviceInstance, name))
+			g.Expect(condition.Type).To(Equal(v1beta1.ServiceInstanceConditionReady))
+		}
 		return true, reason
 	}, "serviceinstance")
 	return serviceInstance
