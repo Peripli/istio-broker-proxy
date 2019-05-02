@@ -1,9 +1,12 @@
 package integration
 
 import (
+	"encoding/json"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	. "github.com/onsi/gomega"
 	"k8s.io/api/core/v1"
+	"log"
+	"net/http"
 	"strings"
 	"testing"
 )
@@ -39,6 +42,30 @@ spec:
 
 type ServiceInstanceList struct {
 	v1.ServiceList
+}
+
+func TestServiceBindingCanReachCF(t *testing.T) {
+	skipWithoutKubeconfigSet(t)
+
+	g := NewGomegaWithT(t)
+	kubectl := NewKubeCtl(g)
+
+	createServiceBinding(kubectl, g, "integration-test", service_instance_example_service, service_binding_example_service)
+
+	var serviceSecret v1.Secret
+	kubectl.Read(&serviceSecret, "integration-test-binding")
+
+	url := string(serviceSecret.Data["url"]) + "payload"
+	log.Printf("Service URL is: %s", url)
+	resp, err := http.Get(url)
+	g.Expect(err).To(BeNil())
+	g.Expect(resp.StatusCode).To(Equal(200))
+
+	var body interface{}
+	defer resp.Body.Close()
+	err = json.NewDecoder(resp.Body).Decode(&body)
+	g.Expect(err).To(BeNil())
+	g.Expect(body.(map[string]interface{})["body"]).To(Equal("payload"))
 }
 
 func TestServiceBindingIstioObjectsDeletedProperly(t *testing.T) {
