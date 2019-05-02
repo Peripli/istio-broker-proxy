@@ -47,12 +47,7 @@ func main() {
 }
 
 func configureInterceptor(configStoreFactory func(configStoreUrl string) router.ConfigStore) router.ServiceBrokerInterceptor {
-	options := log.DefaultOptions()
-	options.SetOutputLevel(log.DefaultScopeName, log.Level(logLevel))
-	options.SetStackTraceLevel(log.DefaultScopeName, log.FatalLevel)
-	log.Configure(options)
-	outLevel, _ := options.GetOutputLevel(log.DefaultScopeName)
-	log.Infof("Log level is set to %#v", outLevel)
+	configureLogging()
 
 	if networkProfile == "" {
 		panic("networkProfile not configured")
@@ -77,6 +72,16 @@ func configureInterceptor(configStoreFactory func(configStoreUrl string) router.
 		interceptor = router.NewNoOpInterceptor()
 	}
 	return interceptor
+}
+
+func configureLogging(){
+	options := log.DefaultOptions()
+	options.SetOutputLevel(log.DefaultScopeName, log.Level(logLevel))
+	options.SetStackTraceLevel(log.DefaultScopeName, log.FatalLevel)
+	log.Configure(options)
+
+	outLevel, _ := options.GetOutputLevel(log.DefaultScopeName)
+	log.Infof("Log level is set to %#v", outLevel)
 }
 
 // SetupConfiguration sets up the configuration (e.g. initializing the available command line parameters)

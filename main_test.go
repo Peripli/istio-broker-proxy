@@ -80,9 +80,9 @@ func TestLogLevelDebug(t *testing.T) {
 	g := NewGomegaWithT(t)
 	fmt.Printf("%s",os.Getenv("LOG") )
 	if os.Getenv("LOG") == "1" {
-		args := strings.Split("--logLevel 5 --networkProfile xxx.yyy", " ")
+		args := strings.Split("--logLevel 5", " ")
 		flag.CommandLine.Parse(args)
-		configureInterceptor(newMockConfigStore)
+		configureLogging()
 		log.Debugf("Debug logging enabled")
 		log.Sync()
 		return
@@ -104,7 +104,7 @@ func TestDefaultLogLevelInfo(t *testing.T) {
 	fmt.Printf("%s",os.Getenv("LOG") )
 	if os.Getenv("LOG") == "1" {
 		flag.CommandLine.Parse([]string{})
-		configureInterceptor(newMockConfigStore)
+		configureLogging()
 		return
 	}
 	cmd := exec.Command(os.Args[0], "-test.run=TestDefaultLogLevelInfo")
@@ -121,7 +121,7 @@ func TestNoDebugMessageInInfo(t *testing.T) {
 	if os.Getenv("LOG") == "1" {
 		args := strings.Split("--logLevel 4 --networkProfile xxx.yyy", " ")
 		flag.CommandLine.Parse(args)
-		configureInterceptor(newMockConfigStore)
+		configureLogging()
 		log.Debugf("Debug logging enabled")
 		return
 	}
