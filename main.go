@@ -86,7 +86,7 @@ func configureLogging(){
 
 // SetupConfiguration sets up the configuration (e.g. initializing the available command line parameters)
 func SetupConfiguration() {
-	flag.IntVar(&logLevel, "logLevel", 4, "")
+	flag.IntVar(&logLevel, "logLevel", 4, "Log level (0=None, 1=Fatal, 2=Error, 3=Warn, 4=Info, 5=Debug")
 	flag.StringVar(&producerInterceptor.SystemDomain, "systemdomain", "", "system domain of the landscape")
 	flag.StringVar(&producerInterceptor.ProviderID, "providerId", "", "The subject alternative name of the provider for which the service has a certificate")
 

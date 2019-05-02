@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"github.com/Peripli/istio-broker-proxy/pkg/router"
 	. "github.com/onsi/gomega"
+	"istio.io/istio/pkg/log"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
-	"istio.io/istio/pkg/log"
 )
 
 
