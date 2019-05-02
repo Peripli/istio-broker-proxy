@@ -6,8 +6,8 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"github.com/gin-gonic/gin"
 	"io"
-	"log"
 	"net/http"
+	"istio.io/istio/pkg/log"
 )
 
 const (
@@ -76,7 +76,7 @@ func (client osbProxy) forwardWithCallback(ctx *gin.Context, postCallback func(c
 	writer := ctx.Writer
 	request := ctx.Request
 
-	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
+	log.Infof("Received request: %v %v", request.Method, request.URL.Path)
 
 	url := createNewURL(client.config.ForwardURL, request)
 	proxyRequest, err := client.config.HTTPRequestFactory(request.Method, url, request.Body)
@@ -87,7 +87,7 @@ func (client osbProxy) forwardWithCallback(ctx *gin.Context, postCallback func(c
 		httpError(ctx, err, http.StatusBadGateway)
 		return
 	}
-	log.Printf("Request forwarded %v: %s\n", request.URL, response.Status)
+	log.Infof("Request forwarded %v: %s\n", request.URL, response.Status)
 
 	defer response.Body.Close()
 
@@ -118,7 +118,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 	}
 
 	osbClient := interceptedOsbClient{&osbClient{&restClient{client.Client, request, client.config}}, client.interceptor}
-	log.Printf("Received request: %v %v", request.Method, request.URL.Path)
+	log.Infof("Received request: %v %v", request.Method, request.URL.Path)
 	bindingID := ctx.Params.ByName("binding_id")
 	bindResponse, err := osbClient.Bind(bindingID, &bindRequest)
 	if err != nil {
@@ -129,7 +129,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 }
 
 func httpError(ctx *gin.Context, err error, statusCode int) {
-	log.Printf("ERROR: %s\n", err.Error())
+	log.Errorf("ERROR: %s\n", err.Error())
 	httpError := model.HTTPErrorFromError(err, statusCode)
 	ctx.AbortWithStatusJSON(httpError.StatusCode, httpError)
 }

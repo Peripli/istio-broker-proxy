@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"istio.io/istio/pilot/pkg/model"
 	"k8s.io/api/core/v1"
-	"log"
+	"istio.io/istio/pkg/log"
 	"os"
 	"path"
 )
@@ -25,7 +25,7 @@ func NewFileConfigStore(dir string) ConfigStore {
 
 func (f *fileConfigStore) CreateIstioConfig(bindingID string, configuration []model.Config) error {
 	ymlPath := path.Join(f.istioDirectory, bindingID) + ".yml"
-	log.Printf("PATH to istio config: %v\n", ymlPath)
+	log.Debugf("PATH to istio config: %v\n", ymlPath)
 
 	fileContent, err := config.ToYamlDocuments(configuration)
 	if nil != err {

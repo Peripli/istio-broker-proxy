@@ -10,7 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"log"
+	"istio.io/istio/pkg/log"
 	"os"
 	"strings"
 )
@@ -58,7 +58,7 @@ func getNamespace() (string, error) {
 		return "", err
 	}
 	namespace := string(content)
-	log.Println("Using namespace", namespace)
+	log.Infoa("Using namespace", namespace)
 	return namespace, nil
 }
 
@@ -86,7 +86,7 @@ func (k kubeConfigStore) CreateIstioConfig(bindingID string, configurations []mo
 		config.Labels[bindingIDLabel] = bindingID
 		_, err := k.configClient.Create(config)
 		if err != nil {
-			log.Printf("error creating %s: %s\n", config.Name, err.Error())
+			log.Errorf("error creating %s: %s\n", config.Name, err.Error())
 			return err
 		}
 	}
@@ -94,14 +94,14 @@ func (k kubeConfigStore) CreateIstioConfig(bindingID string, configurations []mo
 }
 
 func (k kubeConfigStore) DeleteBinding(bindingID string) error {
-	log.Printf("kubectl -n %s delete services -l %s=%s\n", k.namespace, bindingIDLabel, bindingID)
+	log.Infof("kubectl -n %s delete services -l %s=%s\n", k.namespace, bindingIDLabel, bindingID)
 	services := k.CoreV1().Services(k.namespace)
 	list, err := services.List(meta_v1.ListOptions{LabelSelector: bindingIDLabel + "=" + bindingID})
 	if err != nil {
 		return err
 	}
 	for _, service := range list.Items {
-		log.Printf("kubectl -n %s delete service -l %s=%s --ignore-not-found=true\n", k.namespace,  bindingIDLabel, bindingID)
+		log.Infof("kubectl -n %s delete service -l %s=%s --ignore-not-found=true\n", k.namespace,  bindingIDLabel, bindingID)
 		err := k.CoreV1().Services(k.namespace).Delete(service.Name, &meta_v1.DeleteOptions{})
 		if err != nil {
 			if ! errors.IsNotFound(err) {
@@ -110,7 +110,7 @@ func (k kubeConfigStore) DeleteBinding(bindingID string) error {
 		}
 	}
 	for _, typ := range []string{"gateway", "virtual-service", "destination-rule", "service-entry"} {
-		log.Printf("kubectl -n %s delete %s -l %s=%s --ignore-not-found=true\n", k.namespace, strings.Replace(typ,"-","",-1), bindingIDLabel, bindingID)
+		log.Infof("kubectl -n %s delete %s -l %s=%s --ignore-not-found=true\n", k.namespace, strings.Replace(typ,"-","",-1), bindingIDLabel, bindingID)
 		configs, err := k.configClient.List(typ, k.namespace)
 		if err != nil {
 			return err

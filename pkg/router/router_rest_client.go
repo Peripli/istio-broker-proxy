@@ -7,7 +7,7 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/api"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"io/ioutil"
-	"log"
+	"istio.io/istio/pkg/log"
 	"net/http"
 )
 
@@ -67,7 +67,7 @@ func (o *restRequest) Do() api.RESTResponse {
 	var proxyRequest *http.Request
 	proxyRequest, osbResponse.err = o.client.config.HTTPRequestFactory(o.method, o.url, bytes.NewReader(o.request))
 	if osbResponse.err != nil {
-		log.Printf("error during create request: %s\n", osbResponse.err.Error())
+		log.Errorf("error during create request: %s\n", osbResponse.err.Error())
 		return &osbResponse
 	}
 	proxyRequest.Header = o.client.request.Header
@@ -75,16 +75,16 @@ func (o *restRequest) Do() api.RESTResponse {
 	var response *http.Response
 	response, osbResponse.err = o.client.Do(proxyRequest)
 	if osbResponse.err != nil {
-		log.Printf("error during execute request: %s\n", osbResponse.err.Error())
+		log.Errorf("error during execute request: %s\n", osbResponse.err.Error())
 		return &osbResponse
 	}
-	log.Printf("response status from %s: %s\n", o.url, response.Status)
+	log.Infof("response status from %s: %s\n", o.url, response.Status)
 
 	defer response.Body.Close()
 
 	osbResponse.response, osbResponse.err = ioutil.ReadAll(response.Body)
 	if nil != osbResponse.err {
-		log.Printf("error during read response: %s\n", osbResponse.err.Error())
+		log.Errorf("error during read response: %s\n", osbResponse.err.Error())
 		return &osbResponse
 	}
 
@@ -104,7 +104,7 @@ func (o *restResponse) Into(result interface{}) error {
 
 	if nil != o.err {
 		o.err = fmt.Errorf("Can't unmarshal response from %s: %s", o.url, o.err.Error())
-		log.Printf("ERROR: %s\n", o.err.Error())
+		log.Errorf("ERROR: %s\n", o.err.Error())
 		return o.err
 	}
 	return nil

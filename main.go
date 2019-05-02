@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/Peripli/istio-broker-proxy/pkg/router"
-	"log"
+	"istio.io/istio/pkg/log"
 	"net/url"
 )
 
@@ -15,6 +15,7 @@ var routerConfig router.Config
 var serviceNamePrefix string
 var networkProfile string
 var configStore string
+var logLevel int
 
 
 func newConfigStore(configStoreURL string) (router.ConfigStore, error) {
@@ -39,7 +40,6 @@ func newConfigStoreOrFail(configStoreURL string) router.ConfigStore {
 }
 
 func main() {
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	SetupConfiguration()
 	flag.Parse()
 	engine := router.SetupRouter(configureInterceptor(newConfigStoreOrFail), routerConfig)
@@ -47,10 +47,17 @@ func main() {
 }
 
 func configureInterceptor(configStoreFactory func(configStoreUrl string) router.ConfigStore) router.ServiceBrokerInterceptor {
+	options := log.DefaultOptions()
+	options.SetOutputLevel(log.DefaultScopeName, log.Level(logLevel))
+	options.SetStackTraceLevel(log.DefaultScopeName, log.FatalLevel)
+	log.Configure(options)
+	outLevel, _ := options.GetOutputLevel(log.DefaultScopeName)
+	log.Infof("Log level is set to %#v", outLevel)
+
 	if networkProfile == "" {
 		panic("networkProfile not configured")
 	}
-	log.Printf("Running on port %d\n", routerConfig.Port)
+	log.Infof("Running on port %d\n", routerConfig.Port)
 	var interceptor router.ServiceBrokerInterceptor
 	if consumerInterceptor.ConsumerID != "" {
 		consumerInterceptor.ServiceNamePrefix = serviceNamePrefix
@@ -74,6 +81,7 @@ func configureInterceptor(configStoreFactory func(configStoreUrl string) router.
 
 // SetupConfiguration sets up the configuration (e.g. initializing the available command line parameters)
 func SetupConfiguration() {
+	flag.IntVar(&logLevel, "logLevel", 4, "")
 	flag.StringVar(&producerInterceptor.SystemDomain, "systemdomain", "", "system domain of the landscape")
 	flag.StringVar(&producerInterceptor.ProviderID, "providerId", "", "The subject alternative name of the provider for which the service has a certificate")
 

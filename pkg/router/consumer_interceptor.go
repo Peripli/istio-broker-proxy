@@ -7,7 +7,7 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"log"
+	"istio.io/istio/pkg/log"
 	"strings"
 )
 
@@ -40,7 +40,7 @@ func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.
 
 	networkDataMatches := (c.NetworkProfile == response.NetworkData.NetworkProfileID)
 	if !networkDataMatches {
-		log.Println("Ignoring bind request for network id:", response.NetworkData.NetworkProfileID)
+		log.Infoa("Ignoring bind request for network id:", response.NetworkData.NetworkProfileID)
 		return &response, nil
 	}
 
@@ -53,7 +53,7 @@ func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.
 		return index >= len(response.NetworkData.Data.Endpoints)
 	}
 
-	log.Printf("Number of endpoints: %d\n", len(response.NetworkData.Data.Endpoints))
+	log.Debugf("Number of endpoints: %d\n", len(response.NetworkData.Data.Endpoints))
 	for index, endpoint := range response.NetworkData.Data.Endpoints {
 		clusterIP, err := CreateIstioObjectsInK8S(c.ConfigStore, bindID, serviceName(index, bindID), endpoint, response.NetworkData.Data.ProviderID)
 		if err != nil {
@@ -79,10 +79,10 @@ func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.
 func CreateIstioObjectsInK8S(configStore ConfigStore, bindingID string, name string, endpoint model.Endpoint, systemDomain string) (string, error) {
 	service := &v1.Service{Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Port: servicePort, TargetPort: intstr.FromInt(servicePort)}}}}
 	service.Name = name
-	log.Println("Creating istio objects for", name)
+	log.Infoa("Creating istio objects for", name)
 	service, err := configStore.CreateService(bindingID, service)
 	if err != nil {
-		log.Println("error creating service:", err.Error())
+		log.Errora("error creating service:", err.Error())
 		return "", err
 	}
 	configurations := config.CreateEntriesForExternalServiceClient(service.Name, endpoint.Host, service.Spec.ClusterIP, 9000, systemDomain)
@@ -109,7 +109,7 @@ func (c ConsumerInterceptor) cleanUpConfig(bindID string, endCleanupCondition fu
 
 	err := c.ConfigStore.DeleteBinding(bindID)
 	if err != nil {
-		log.Printf("Ignoring error during removal of configuration %s: %s\n", bindID, err.Error())
+		log.Warnf("Ignoring error during removal of configuration %s: %s\n", bindID, err.Error())
 	}
 }
 

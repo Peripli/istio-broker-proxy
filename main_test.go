@@ -1,12 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"flag"
+	"fmt"
 	"github.com/Peripli/istio-broker-proxy/pkg/router"
 	. "github.com/onsi/gomega"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
+	"istio.io/istio/pkg/log"
 )
 
 
@@ -70,4 +74,62 @@ func TestNewConfigStoreInvalidURL(t *testing.T) {
 	g := NewGomegaWithT(t)
 	_, err := newConfigStore("\x7f")
 	g.Expect(err).To(HaveOccurred())
+}
+
+func TestLogLevelDebug(t *testing.T) {
+	g := NewGomegaWithT(t)
+	fmt.Printf("%s",os.Getenv("LOG") )
+	if os.Getenv("LOG") == "1" {
+		args := strings.Split("--logLevel 5 --networkProfile xxx.yyy", " ")
+		flag.CommandLine.Parse(args)
+		configureInterceptor(newMockConfigStore)
+		log.Debugf("Debug logging enabled")
+		log.Sync()
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestLogLevelDebug")
+	cmd.Env = append(os.Environ(), "LOG=1")
+	var out,err bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &err
+	cmd.Run()
+	fmt.Println(out.String())
+	fmt.Println(err.String())
+	g.Expect(out.String()).To(ContainSubstring("Log level is set to 5"))
+	g.Expect(out.String()).To(ContainSubstring("Debug logging enabled"))
+}
+
+func TestDefaultLogLevelInfo(t *testing.T) {
+	g := NewGomegaWithT(t)
+	fmt.Printf("%s",os.Getenv("LOG") )
+	if os.Getenv("LOG") == "1" {
+		flag.CommandLine.Parse([]string{})
+		configureInterceptor(newMockConfigStore)
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestDefaultLogLevelInfo")
+	cmd.Env = append(os.Environ(), "LOG=1")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Run()
+	g.Expect(out.String()).To(ContainSubstring("Log level is set to 4"))
+}
+
+func TestNoDebugMessageInInfo(t *testing.T) {
+	g := NewGomegaWithT(t)
+	fmt.Printf("%s",os.Getenv("LOG") )
+	if os.Getenv("LOG") == "1" {
+		args := strings.Split("--logLevel 4 --networkProfile xxx.yyy", " ")
+		flag.CommandLine.Parse(args)
+		configureInterceptor(newMockConfigStore)
+		log.Debugf("Debug logging enabled")
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestDefaultLogLevelInfo")
+	cmd.Env = append(os.Environ(), "LOG=1")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Run()
+	g.Expect(out.String()).To(ContainSubstring("Log level is set to 4"))
+	g.Expect(out.String()).NotTo(ContainSubstring("Debug logging enabled"))
 }
