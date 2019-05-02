@@ -3,11 +3,29 @@ package config
 import (
 	"fmt"
 	"istio.io/api/networking/v1alpha3"
+	"net"
 )
 
 const ingressCertName = "cf-service"
 
 func createRawServiceEntryForExternalService(endpointAddress string, portNumber uint32, serviceName string) *v1alpha3.ServiceEntry {
+	ip := net.ParseIP(endpointAddress)
+	if ip == nil {
+		return createRawServiceEntryForDNSExternalService(endpointAddress, portNumber, serviceName)
+	}
+	return createRawServiceEntryForStaticExternalService(endpointAddress, portNumber, serviceName)
+}
+
+func createRawServiceEntryForDNSExternalService(endpointAddress string, portNumber uint32, serviceName string) *v1alpha3.ServiceEntry {
+	hosts := []string{endpointAddress}
+	portName := fmt.Sprintf("%s-%d", serviceName, portNumber)
+
+	ports := v1alpha3.Port{Number: portNumber, Name: portName, Protocol: "TCP"}
+	resolution := v1alpha3.ServiceEntry_DNS
+	return &v1alpha3.ServiceEntry{Hosts: hosts, Ports: []*v1alpha3.Port{&ports}, Resolution: resolution}
+}
+
+func createRawServiceEntryForStaticExternalService(endpointAddress string, portNumber uint32, serviceName string) *v1alpha3.ServiceEntry {
 	hosts := []string{createServiceHost(serviceName)}
 	portName := fmt.Sprintf("%s-%d", serviceName, portNumber)
 

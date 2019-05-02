@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	. "github.com/onsi/gomega"
 	"testing"
 )
@@ -46,7 +47,7 @@ spec:
         port:
           number: 47637
 `
-	serviceEntryYml = `apiVersion: networking.istio.io/v1alpha3
+	staticServiceEntryYml = `apiVersion: networking.istio.io/v1alpha3
 kind: ServiceEntry
 metadata:
   creationTimestamp: null
@@ -62,6 +63,21 @@ spec:
     number: 47637
     protocol: TCP
   resolution: STATIC
+`
+	dnsServiceEntryYml = `apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  creationTimestamp: null
+  name: postgres-server-service-entry
+  namespace: default
+spec:
+  hosts:
+  - postgres.example.com
+  ports:
+  - name: postgres-server-47637
+    number: 47637
+    protocol: TCP
+  resolution: DNS
 `
 )
 
@@ -90,13 +106,26 @@ func TestServerVirtualServiceFromGo(t *testing.T) {
 	g.Expect(text).To(Equal(virtualServiceIngressYml))
 }
 
-func TestServiceEntryFromGo(t *testing.T) {
+func TestStaticServiceEntryFromGo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	serviceEntrySpec := createServiceEntryForExternalService("10.11.241.0", 47637, "postgres-server")
 
 	text, err := enrichAndtoText(serviceEntrySpec)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(text).To(Equal(serviceEntryYml))
+	g.Expect(text).To(Equal(staticServiceEntryYml))
 	g.Expect(serviceEntrySpec.Type).To(Equal(serviceEntry))
 }
+
+func TestDNSServiceEntryFromGo(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	serviceEntrySpec := createServiceEntryForExternalService("postgres.example.com", 47637, "postgres-server")
+
+	text, err := enrichAndtoText(serviceEntrySpec)
+	g.Expect(err).NotTo(HaveOccurred())
+	fmt.Println(text)
+	g.Expect(text).To(Equal(dnsServiceEntryYml))
+	g.Expect(serviceEntrySpec.Type).To(Equal(serviceEntry))
+}
+
