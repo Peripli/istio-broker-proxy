@@ -42,13 +42,12 @@ func newConfigStoreOrFail(configStoreURL string) router.ConfigStore {
 func main() {
 	SetupConfiguration()
 	flag.Parse()
+	configureLogging()
 	engine := router.SetupRouter(configureInterceptor(newConfigStoreOrFail), routerConfig)
 	engine.Run(fmt.Sprintf(":%d", routerConfig.Port))
 }
 
 func configureInterceptor(configStoreFactory func(configStoreUrl string) router.ConfigStore) router.ServiceBrokerInterceptor {
-	configureLogging()
-
 	if networkProfile == "" {
 		panic("networkProfile not configured")
 	}
