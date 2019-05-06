@@ -9,28 +9,16 @@ import (
 const ingressCertName = "cf-service"
 
 func createRawServiceEntryForExternalService(endpointAddress string, portNumber uint32, serviceName string) *v1alpha3.ServiceEntry {
+	resolution := v1alpha3.ServiceEntry_STATIC
 	ip := net.ParseIP(endpointAddress)
 	if ip == nil {
-		return createRawServiceEntryForDNSExternalService(endpointAddress, portNumber, serviceName)
+		resolution = v1alpha3.ServiceEntry_DNS
 	}
-	return createRawServiceEntryForStaticExternalService(endpointAddress, portNumber, serviceName)
-}
 
-func createRawServiceEntryForDNSExternalService(endpointAddress string, portNumber uint32, serviceName string) *v1alpha3.ServiceEntry {
-	hosts := []string{endpointAddress}
-	portName := fmt.Sprintf("%s-%d", serviceName, portNumber)
-
-	ports := v1alpha3.Port{Number: portNumber, Name: portName, Protocol: "TCP"}
-	resolution := v1alpha3.ServiceEntry_DNS
-	return &v1alpha3.ServiceEntry{Hosts: hosts, Ports: []*v1alpha3.Port{&ports}, Resolution: resolution}
-}
-
-func createRawServiceEntryForStaticExternalService(endpointAddress string, portNumber uint32, serviceName string) *v1alpha3.ServiceEntry {
 	hosts := []string{createServiceHost(serviceName)}
 	portName := fmt.Sprintf("%s-%d", serviceName, portNumber)
 
 	ports := v1alpha3.Port{Number: portNumber, Name: portName, Protocol: "TCP"}
-	resolution := v1alpha3.ServiceEntry_STATIC
 	endpoint := v1alpha3.ServiceEntry_Endpoint{Address: endpointAddress}
 	return &v1alpha3.ServiceEntry{Hosts: hosts, Ports: []*v1alpha3.Port{&ports}, Resolution: resolution,
 		Endpoints: []*v1alpha3.ServiceEntry_Endpoint{&endpoint}}

@@ -7,6 +7,7 @@ import (
 	"k8s.io/api/core/v1"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -50,14 +51,18 @@ func TestServiceBindingCanReachCF(t *testing.T) {
 	g := NewGomegaWithT(t)
 	kubectl := NewKubeCtl(g)
 
-	createServiceBinding(kubectl, g, "integration-test", service_instance_example_service, service_binding_example_service)
+	bindID := createServiceBinding(kubectl, g, "integration-test", service_instance_example_service, service_binding_example_service)
 
 	var serviceSecret v1.Secret
 	kubectl.Read(&serviceSecret, "integration-test-binding")
 
-	url := string(serviceSecret.Data["url"]) + "payload"
+	url, err := url.Parse(string(serviceSecret.Data["url"]) + "payload")
+	g.Expect(err).To(BeNil())
 	log.Printf("Service URL is: %s", url)
-	resp, err := http.Get(url)
+	url.Host = "svc-0-" + bindID + ".catalog.svc.cluster.local:5555"
+	url.Scheme = "http"
+	log.Printf("Reconstructed Service URL is: %s", url)
+	resp, err := http.Get(url.String())
 	g.Expect(err).To(BeNil())
 	g.Expect(resp.StatusCode).To(Equal(200))
 

@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	. "github.com/onsi/gomega"
 	"testing"
 )
@@ -71,8 +70,10 @@ metadata:
   name: postgres-server-service-entry
   namespace: default
 spec:
+  endpoints:
+  - address: postgres.example.com
   hosts:
-  - postgres.example.com
+  - postgres-server.service-fabrik
   ports:
   - name: postgres-server-47637
     number: 47637
@@ -124,7 +125,6 @@ func TestDNSServiceEntryFromGo(t *testing.T) {
 
 	text, err := enrichAndtoText(serviceEntrySpec)
 	g.Expect(err).NotTo(HaveOccurred())
-	fmt.Println(text)
 	g.Expect(text).To(Equal(dnsServiceEntryYml))
 	g.Expect(serviceEntrySpec.Type).To(Equal(serviceEntry))
 }
