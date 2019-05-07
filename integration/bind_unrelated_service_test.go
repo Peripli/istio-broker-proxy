@@ -5,14 +5,13 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	. "github.com/onsi/gomega"
 	"k8s.io/api/core/v1"
-	"log"
-	"net/http"
 	"net/url"
 	"strings"
 	"testing"
 )
 
-const service_instance_example_service = `---
+const (
+	service_instance_example_service = `---
 apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceInstance
 metadata:
@@ -21,7 +20,7 @@ spec:
   clusterServiceClassExternalName: example-service
   clusterServicePlanExternalName: plan-one`
 
-const service_instance_no_istio_provider = `---
+ service_instance_no_istio_provider = `---
 apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceInstance
 metadata:
@@ -30,7 +29,7 @@ spec:
   clusterServiceClassExternalName: alternate-example-service
   clusterServicePlanExternalName: plan-one`
 
-const service_binding_example_service = `---
+service_binding_example_service = `---
 apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceBinding
 metadata:
@@ -39,6 +38,23 @@ spec:
   instanceRef:
     name: integration-test-instance`
 
+client_config_curl = `---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: client-curl
+spec:
+  template:
+    metadata:
+      labels:
+        app: client-curl
+    spec:
+      containers:
+      - image: gcr.io/peripli/curl
+        imagePullPolicy: Always
+        name: curl
+`
+)
 
 
 type ServiceInstanceList struct {
@@ -52,24 +68,22 @@ func TestServiceBindingCanReachCF(t *testing.T) {
 	kubectl := NewKubeCtl(g)
 
 	bindID := createServiceBinding(kubectl, g, "integration-test", service_instance_example_service, service_binding_example_service)
+	podName := runClientPod(kubectl, client_config_curl, "client-curl")
+	g.Expect(podName).To(ContainSubstring("client-curl"))
 
 	var serviceSecret v1.Secret
 	kubectl.Read(&serviceSecret, "integration-test-binding")
 
 	url, err := url.Parse(string(serviceSecret.Data["url"]) + "payload")
-	g.Expect(err).To(BeNil())
-	log.Printf("Service URL is: %s", url)
-	url.Host = "svc-0-" + bindID + ".catalog.svc.cluster.local:5555"
-	url.Scheme = "http"
-	log.Printf("Reconstructed Service URL is: %s", url)
-	resp, err := http.Get(url.String())
-	g.Expect(err).To(BeNil())
-	g.Expect(resp.StatusCode).To(Equal(200))
+	g.Expect(err).NotTo(HaveOccurred())
 
+	serviceName := "svc-0-" + bindID + ".catalog.svc.cluster.local:5555"
+	kubectl.Exec(podName, "-c", "curl", "-i", "--", "curl", "-o", "body.json", "-v", "--connect-to", url.Host + ":443:" + serviceName, url.String())
+
+	bodyString := kubeFetchFile(kubectl, g, "body.json", podName)
 	var body interface{}
-	defer resp.Body.Close()
-	err = json.NewDecoder(resp.Body).Decode(&body)
-	g.Expect(err).To(BeNil())
+	err = json.Unmarshal([]byte(bodyString), &body)
+	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(body.(map[string]interface{})["body"]).To(Equal("payload"))
 }
 

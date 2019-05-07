@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	. "github.com/onsi/gomega"
+	"io/ioutil"
 	"istio.io/istio/pilot/pkg/model"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -383,6 +384,14 @@ func kubeCreateFile(kubectl *kubectl, g *GomegaWithT, basename string, script st
 	file.Write([]byte(script))
 	file.Close()
 	kubectl.run("cp", fileName, "default/"+podName+":"+basename)
+}
+
+func kubeFetchFile(kubectl *kubectl, g *GomegaWithT, basename string, podName string) string {
+	fileName := path.Join(os.TempDir(), basename)
+	kubectl.run("cp", "default/"+podName+":"+basename, fileName)
+	file, err := ioutil.ReadFile(fileName)
+	g.Expect(err).NotTo(HaveOccurred())
+	return string(file)
 }
 
 func TestRabbitMqServiceBinding(t *testing.T) {
