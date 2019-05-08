@@ -5,6 +5,7 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	. "github.com/onsi/gomega"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"testing"
@@ -204,4 +205,104 @@ func TestEnrichInvalidMetaData(t *testing.T) {
 	catalog := model.Catalog{[]model.Service{{Plans: []model.Plan{model.Plan{}}}}}
 	err := interceptor.PostCatalog(&catalog)
 	g.Expect(err).To(HaveOccurred())
+}
+
+func TestPreProvisionValidNetworkProfile(t *testing.T) {
+	g := NewGomegaWithT(t)
+	configStore := &fileConfigStore{istioDirectory: os.TempDir()}
+	interceptor := ProducerInterceptor{
+		ProviderID:   "your-provider",
+		SystemDomain: "services.domain",
+		ConfigStore:  configStore,
+		NetworkProfile: "test",
+	}
+	request := model.ProvisionRequest{
+		NetworkProfiles:[]model.NetworkProfile{{ID:"test"} },
+	}
+	provisionRequest, err := interceptor.PreProvision(request)
+
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(provisionRequest.NetworkProfiles).To(BeEmpty())
+}
+
+func TestPreProvisionWithNoMatchingNetworkProfile(t *testing.T) {
+	g := NewGomegaWithT(t)
+	configStore := &fileConfigStore{istioDirectory: os.TempDir()}
+	interceptor := ProducerInterceptor{
+		ProviderID:   "your-provider",
+		SystemDomain: "services.domain",
+		ConfigStore:  configStore,
+	}
+	request := model.ProvisionRequest{
+		NetworkProfiles:[]model.NetworkProfile{{ID:"123"} },
+	}
+	_, err := interceptor.PreProvision(request)
+
+	g.Expect(err).To(HaveOccurred())
+	httpError := model.HTTPErrorFromError(err,0)
+	g.Expect(httpError.StatusCode).To(Equal(http.StatusBadRequest))
+	g.Expect(httpError.ErrorMsg).To(Equal("InvalidConsumerNetworkProfile"))
+
+}
+
+
+func TestPreProvisionWithEmptyNetworkProfile(t *testing.T) {
+	g := NewGomegaWithT(t)
+	configStore := &fileConfigStore{istioDirectory: os.TempDir()}
+	interceptor := ProducerInterceptor{
+		ProviderID:   "your-provider",
+		SystemDomain: "services.domain",
+		ConfigStore:  configStore,
+	}
+	request := model.ProvisionRequest{}
+	_, err := interceptor.PreProvision(request)
+
+	g.Expect(err).To(HaveOccurred())
+	httpError := model.HTTPErrorFromError(err,0)
+	g.Expect(httpError.StatusCode).To(Equal(http.StatusBadRequest))
+	g.Expect(httpError.ErrorMsg).To(Equal("InvalidConsumerNetworkProfile"))
+
+}
+
+func TestPostProvision(t *testing.T) {
+	g := NewGomegaWithT(t)
+	configStore := &fileConfigStore{istioDirectory: os.TempDir()}
+	interceptor := ProducerInterceptor{
+		ProviderID:   "your-provider",
+		SystemDomain: "services.domain",
+		ConfigStore:  configStore,
+		NetworkProfile: "test.xxx",
+	}
+	request := model.ProvisionRequest{
+	}
+	response := model.ProvisionResponse{
+	}
+	provisionResponse, err := interceptor.PostProvision(request,response)
+
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(provisionResponse.NetworkProfiles).To(ConsistOf(model.NetworkProfile{ID:"test.xxx"}))
+
+}
+
+func TestPostProvisionInvalidNetworkProfile(t *testing.T) {
+	g := NewGomegaWithT(t)
+	configStore := &fileConfigStore{istioDirectory: os.TempDir()}
+	interceptor := ProducerInterceptor{
+		ProviderID:   "your-provider",
+		SystemDomain: "services.domain",
+		ConfigStore:  configStore,
+	}
+	request := model.ProvisionRequest{
+	}
+	response := model.ProvisionResponse{
+		NetworkProfiles:[]model.NetworkProfile{{ID:"123"} },
+	}
+	_, err := interceptor.PostProvision(request,response)
+
+	g.Expect(err).To(HaveOccurred())
+	httpError := model.HTTPErrorFromError(err,0)
+	g.Expect(httpError.StatusCode).To(Equal(http.StatusInternalServerError))
+	g.Expect(httpError.ErrorMsg).To(Equal("InvalidServerNetworkProfile"))
+	g.Expect(httpError.Description).To(ContainSubstring("123"))
+
 }

@@ -21,6 +21,36 @@ type ProducerInterceptor struct {
 	ConfigStore       ConfigStore
 }
 
+//PreProvision see interface definition
+func (c ProducerInterceptor) PreProvision(request model.ProvisionRequest) (*model.ProvisionRequest, error) {
+	matched := 0
+	unmatched := 0
+	for _, profile := range request.NetworkProfiles{
+		if profile.ID == c.NetworkProfile {
+			matched++
+		} else {
+			unmatched++
+		}
+	}
+	if matched == 0 || unmatched != 0 {
+		return nil, model.HTTPError{ErrorMsg: "InvalidConsumerNetworkProfile", Description: "NetworkProfile was not found or is invalid", StatusCode: http.StatusBadRequest}
+	}
+	request.NetworkProfiles = make([]model.NetworkProfile,0)
+	return &request, nil
+}
+
+//PostProvision see interface definition
+func (c ProducerInterceptor) PostProvision(request model.ProvisionRequest, response model.ProvisionResponse) (*model.ProvisionResponse, error) {
+	if len(response.NetworkProfiles) != 0 {
+		networkProfiles, _ := json.Marshal(response.NetworkProfiles)
+		return nil, model.HTTPError{ErrorMsg: "InvalidServerNetworkProfile", Description: "Non-empty NetworkProfile returned from server: " + string(networkProfiles), StatusCode: http.StatusInternalServerError}
+	}
+	response.NetworkProfiles = []model.NetworkProfile{{ID: c.NetworkProfile}}
+	return &response, nil
+}
+
+var _ ServiceBrokerInterceptor = &ProducerInterceptor{}
+
 //WriteIstioConfigFiles creates istio config for control plane route
 func (c *ProducerInterceptor) WriteIstioConfigFiles(port int) error {
 	return c.ConfigStore.CreateIstioConfig("istio-broker",

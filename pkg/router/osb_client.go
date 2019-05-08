@@ -41,3 +41,8 @@ func (client *osbClient) unbind() error {
 		Do().
 		Error()
 }
+
+func (client *osbClient) provision(request *model.ProvisionRequest) (response *model.ProvisionResponse, err error) {
+	err = client.Put(request).Do().Into(&response)
+	return
+}

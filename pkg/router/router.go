@@ -51,7 +51,7 @@ func (client osbProxy) forward(ctx *gin.Context) {
 	})
 }
 
-func (client osbProxy) deleteBinding(ctx *gin.Context) {
+func (client osbProxy) forwardUnbindRequest(ctx *gin.Context) {
 	bindingID := ctx.Params.ByName("binding_id")
 	osbClient := interceptedOsbClient{&osbClient{&restClient{client.Client, ctx.Request, client.config}}, client.interceptor}
 	err := osbClient.Unbind(bindingID)
@@ -128,6 +128,26 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, bindResponse)
 }
 
+func (client osbProxy) forwardProvisionRequest(ctx *gin.Context) {
+	request := ctx.Request
+
+	var provisionRequest model.ProvisionRequest
+	err := ctx.ShouldBindJSON(&provisionRequest)
+	if err != nil {
+		httpError(ctx, err, http.StatusBadRequest)
+		return
+	}
+
+	osbClient := interceptedOsbClient{&osbClient{&restClient{client.Client, request, client.config}}, client.interceptor}
+	log.Infof("Received request: %v %v", request.Method, request.URL.Path)
+	provisionResponse, err := osbClient.Provision(&provisionRequest)
+	if err != nil {
+		httpError(ctx, err, http.StatusInternalServerError)
+		return
+	}
+	ctx.JSON(http.StatusOK, provisionResponse)
+}
+
 func httpError(ctx *gin.Context, err error, statusCode int) {
 	log.Errorf("ERROR: %s\n", err.Error())
 	httpError := model.HTTPErrorFromError(err, statusCode)
@@ -159,7 +179,8 @@ func createNewPath(req *http.Request) string {
 
 func registerConsumerRelevantRoutes(prefix string, mux *gin.Engine, client *osbProxy) {
 	mux.PUT(prefix+"/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardBindRequest)
-	mux.DELETE(prefix+"/v2/service_instances/:instance_id/service_bindings/:binding_id", client.deleteBinding)
+	mux.DELETE(prefix+"/v2/service_instances/:instance_id/service_bindings/:binding_id", client.forwardUnbindRequest)
+	mux.PUT(prefix+"/v2/service_instances/:instance_id", client.forwardProvisionRequest)
 	mux.GET(prefix+"/v2/catalog", client.forwardCatalog)
 }
 

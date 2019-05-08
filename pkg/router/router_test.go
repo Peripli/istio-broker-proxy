@@ -641,7 +641,7 @@ func TestCorrectUrlForwarded(t *testing.T) {
 	g.Expect(handlerStub.spy.url).To(Equal("http://xxxxx.xx/somepath"))
 }
 
-func TestDeleteBinding(t *testing.T) {
+func TestUnbindRequest(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
 	handlerStub := newHandlerStub(http.StatusOK, body)
@@ -663,7 +663,7 @@ func TestDeleteBinding(t *testing.T) {
 	g.Expect(handlerStub.spy.url).To(ContainSubstring("parameter=true"))
 }
 
-func TestDeleteBindingForBrokerAPI(t *testing.T) {
+func TestUnbindForBrokerAPI(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
 	handlerStub := newHandlerStub(http.StatusOK, body)
@@ -685,7 +685,7 @@ func TestDeleteBindingForBrokerAPI(t *testing.T) {
 	g.Expect(handlerStub.spy.url).To(ContainSubstring("parameter=false"))
 }
 
-func TestDeleteBindingNotFound(t *testing.T) {
+func TestUnbindNotFound(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
 	handlerStub := newHandlerStub(http.StatusNotFound, body)
@@ -752,6 +752,37 @@ func TestCorrectRequestParamForDelete(t *testing.T) {
 	g.Expect(handlerStub.spy.url).To(Equal("http://xxxxx.xx/delete?plan_id=myplan"))
 }
 
+
+
+func TestProvision(t *testing.T) {
+	g := NewGomegaWithT(t)
+	body := []byte{'{', '}'}
+	handlerStub := newHandlerStub(http.StatusOK, body)
+	server, routerConfig := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123", bytes.NewReader(body))
+	response := httptest.NewRecorder()
+
+	var preProvisioned, postProvisioned bool
+	interceptor := ProvisionInterceptor{
+		preProvisionCallback: func(){preProvisioned = true},
+		postProvisionCallback: func(){postProvisioned = true},
+	}
+	router := SetupRouter(&interceptor, *routerConfig)
+	router.ServeHTTP(response, request)
+
+	g.Expect(response.Code).To(Equal(http.StatusOK))
+	var provisionResponse model.ProvisionResponse
+	_ = json.Unmarshal(response.Body.Bytes(), &provisionResponse)
+
+	g.Expect(preProvisioned).To(BeTrue())
+	g.Expect(postProvisioned).To(BeTrue())
+}
+
+
+
 type DeleteInterceptor struct {
 	noOpInterceptor
 	deleteCallback func(bindID string)
@@ -759,4 +790,20 @@ type DeleteInterceptor struct {
 
 func (c DeleteInterceptor) PostUnbind(bindID string) {
 	c.deleteCallback(bindID)
+}
+
+type ProvisionInterceptor struct {
+	noOpInterceptor
+	preProvisionCallback func()
+	postProvisionCallback func()
+}
+
+func (c ProvisionInterceptor) PreProvision(request model.ProvisionRequest) (*model.ProvisionRequest, error) {
+	c.preProvisionCallback()
+	return &request,nil
+}
+
+func (c ProvisionInterceptor) PostProvision(request model.ProvisionRequest, response model.ProvisionResponse) (*model.ProvisionResponse, error) {
+	c.postProvisionCallback()
+	return &response, nil
 }

@@ -43,3 +43,17 @@ func (c *interceptedOsbClient) Unbind(bindID string) error {
 	}
 	return nil
 }
+
+func (c *interceptedOsbClient) Provision(provisionRequest *model.ProvisionRequest) (*model.ProvisionResponse, error) {
+	provisionRequest, err := c.Interceptor.PreProvision(*provisionRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	provisionResponse, err := c.OsbClient.provision(provisionRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Interceptor.PostProvision(*provisionRequest, *provisionResponse)
+}

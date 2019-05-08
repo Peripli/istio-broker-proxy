@@ -6,6 +6,7 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"github.com/gin-gonic/gin/json"
 	. "github.com/onsi/gomega"
+	"net/http"
 	"testing"
 )
 
@@ -348,4 +349,67 @@ func TestBindAdaptEndpointsOnlyIfNetworkProfilesMatch(t *testing.T) {
 	binding, err := consumer.PostBind(model.BindRequest{}, bindResponseSingleEndpoint, "555", adaptError)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(*binding).To(Equal(bindResponseSingleEndpoint))
+}
+
+func TestPreProvisionRequestInvalidNetworkProfile(t *testing.T) {
+	g := NewGomegaWithT(t)
+	consumer := ConsumerInterceptor{
+		ConsumerID: "consumer-id",
+		NetworkProfile: "urn:my.test:public",
+	}
+
+	request := model.ProvisionRequest{NetworkProfiles: []model.NetworkProfile{{ID: "test:x.y:public"}}}
+	_, err := consumer.PreProvision(request)
+
+	g.Expect(err).To(HaveOccurred())
+	httpError := model.HTTPErrorFromError(err,0)
+	g.Expect(httpError.StatusCode).To(Equal(http.StatusBadRequest))
+	g.Expect(httpError.ErrorMsg).To(Equal("InvalidNetworkProfile"))
+}
+
+func TestPreProvisionAddsNetworkProfile(t *testing.T) {
+	g := NewGomegaWithT(t)
+	consumer := ConsumerInterceptor{
+		ConsumerID: "consumer-id",
+		NetworkProfile: "urn:my.test:public",
+	}
+
+	request := model.ProvisionRequest{}
+	provisionRequest, err := consumer.PreProvision(request)
+
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(provisionRequest.NetworkProfiles).To(ConsistOf(model.NetworkProfile{ID:"urn:my.test:public"}))
+}
+
+func TestPostProvisionRemovesNetworkProfile(t *testing.T) {
+	g := NewGomegaWithT(t)
+	consumer := ConsumerInterceptor{
+		ConsumerID: "consumer-id",
+		NetworkProfile: "urn:my.test:public",
+	}
+
+	request := model.ProvisionRequest{}
+	response := model.ProvisionResponse{NetworkProfiles: []model.NetworkProfile{{ID:"urn:my.test:public"}}}
+	provisionRequest, err := consumer.PostProvision(request, response)
+
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(provisionRequest.NetworkProfiles).To(BeEmpty())
+}
+
+func TestPostProvisionWithInvalidNetworkProfile(t *testing.T) {
+	g := NewGomegaWithT(t)
+	consumer := ConsumerInterceptor{
+		ConsumerID:     "consumer-id",
+		NetworkProfile: "urn:my.test:public",
+	}
+
+	request := model.ProvisionRequest{}
+	response := model.ProvisionResponse{NetworkProfiles: []model.NetworkProfile{{ID: "urn:x.y:public"}}}
+	_, err := consumer.PostProvision(request, response)
+
+	g.Expect(err).To(HaveOccurred())
+	httpError := model.HTTPErrorFromError(err,0)
+	g.Expect(httpError.StatusCode).To(Equal(http.StatusInternalServerError))
+	g.Expect(httpError.ErrorMsg).To(Equal("InvalidProducerNetworkProfile"))
+	g.Expect(httpError.Description).To(ContainSubstring("urn:x.y:public"))
 }

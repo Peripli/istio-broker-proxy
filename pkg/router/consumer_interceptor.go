@@ -1,6 +1,7 @@
 package router
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Peripli/istio-broker-proxy/pkg/config"
@@ -8,6 +9,7 @@ import (
 	"istio.io/istio/pkg/log"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"net/http"
 	"strings"
 )
 
@@ -22,6 +24,35 @@ type ConsumerInterceptor struct {
 	ServiceNamePrefix string
 	NetworkProfile    string
 }
+//PreProvision see interface definition
+func (c ConsumerInterceptor) PreProvision(request model.ProvisionRequest) (*model.ProvisionRequest, error) {
+	if len(request.NetworkProfiles) != 0 {
+		return nil, model.HTTPError{ErrorMsg: "InvalidNetworkProfile", Description: "Non-empty NetworkProfile" , StatusCode: http.StatusBadRequest}
+	}
+	request.NetworkProfiles = []model.NetworkProfile{{ID: c.NetworkProfile}}
+	return &request, nil
+}
+//PostProvision see interface definition
+func (c ConsumerInterceptor) PostProvision(request model.ProvisionRequest, response model.ProvisionResponse) (*model.ProvisionResponse, error) {
+	matched := 0
+	unmatched := 0
+	for _, profile := range response.NetworkProfiles{
+		if profile.ID == c.NetworkProfile {
+			matched++
+		} else {
+			unmatched++
+		}
+	}
+
+	if matched == 0 || unmatched != 0 {
+		networkProfiles, _ := json.Marshal(response.NetworkProfiles)
+		return nil, model.HTTPError{ErrorMsg: "InvalidProducerNetworkProfile", Description: "NetworkProfile was not found or is invalid: " + string(networkProfiles), StatusCode: http.StatusInternalServerError}
+	}
+	response.NetworkProfiles = make([]model.NetworkProfile,0)
+	return &response, nil
+}
+
+var _ ServiceBrokerInterceptor = &ConsumerInterceptor{}
 
 //PreBind see interface definition
 func (c ConsumerInterceptor) PreBind(request model.BindRequest) (*model.BindRequest, error) {
