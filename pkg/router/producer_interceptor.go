@@ -50,7 +50,7 @@ func (c ProducerInterceptor) PostBind(request model.BindRequest, response model.
 
 	err := c.writeIstioFilesForProvider(bindingID, &request, &response)
 	if err != nil {
-		c.PostDelete(bindingID)
+		c.PostUnbind(bindingID)
 		return nil, err
 	}
 	return &response, nil
@@ -61,8 +61,8 @@ func (c ProducerInterceptor) HasAdaptCredentials() bool {
 	return true
 }
 
-//PostDelete see interface definition
-func (c ProducerInterceptor) PostDelete(bindID string) {
+//PostUnbind see interface definition
+func (c ProducerInterceptor) PostUnbind(bindID string) {
 	err := c.ConfigStore.DeleteBinding(bindID)
 	if err != nil {
 		log.Warnf("Ignoring error during removal of binding-id %s: %v\n", bindID, err)

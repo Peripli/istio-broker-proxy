@@ -37,7 +37,7 @@ func (c *interceptedOsbClient) Bind(bindingID string, bindRequest *model.BindReq
 
 func (c *interceptedOsbClient) Unbind(bindID string) error {
 	err := c.OsbClient.unbind()
-	c.Interceptor.PostDelete(bindID)
+	c.Interceptor.PostUnbind(bindID)
 	if err != nil {
 		return err
 	}

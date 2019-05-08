@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/Peripli/istio-broker-proxy/pkg/config"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
+	"istio.io/istio/pkg/log"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"istio.io/istio/pkg/log"
 	"strings"
 )
 
@@ -98,8 +98,8 @@ func serviceName(index int, bindID string) string {
 	return name
 }
 
-//PostDelete see interface definition
-func (c ConsumerInterceptor) PostDelete(bindID string) {
+//PostUnbind see interface definition
+func (c ConsumerInterceptor) PostUnbind(bindID string) {
 	c.cleanUpConfig(bindID, func(index int, err error) bool {
 		return err != nil && index > 2
 	})

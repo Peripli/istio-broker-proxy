@@ -115,7 +115,7 @@ func TestConfigFilesAreWrittenAndDeleted(t *testing.T) {
 	contentAsString := string(content)
 	g.Expect(contentAsString).To(ContainSubstring("9000"))
 
-	interceptor.PostDelete("123")
+	interceptor.PostUnbind("123")
 	_, err = os.Stat(fileName)
 	g.Expect(err).To(HaveOccurred())
 

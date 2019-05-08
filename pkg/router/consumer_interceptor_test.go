@@ -263,7 +263,7 @@ func TestCreateObjectErrorIsHandled(t *testing.T) {
 	g.Expect(err.Error()).To(Equal("Test object error"))
 }
 
-func TestConsumerPostDelete(t *testing.T) {
+func TestConsumerPostUnbind(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := mockConfigStore{}
 
@@ -271,7 +271,7 @@ func TestConsumerPostDelete(t *testing.T) {
 	_, err := consumer.PostBind(model.BindRequest{}, bindResponseTwoEndpoints, "678", adapt)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	consumer.PostDelete("678")
+	consumer.PostUnbind("678")
 	g.Expect(len(configStore.DeletedServices)).To(Equal(2))
 	g.Expect(len(configStore.DeletedIstioConfigs)).To(Equal(12))
 	g.Expect(configStore.DeletedIstioConfigs).Should(ContainElement(Equal("destination-rule:sidecar-to-egress-svc-0-678")))
@@ -288,7 +288,7 @@ func TestConsumerPostDelete(t *testing.T) {
 	g.Expect(configStore.DeletedIstioConfigs).Should(ContainElement(Equal("service-entry:svc-1-678-service")))
 }
 
-func TestConsumerPostDeleteNoResourceLeaks(t *testing.T) {
+func TestConsumerPostUnbindNoResourceLeaks(t *testing.T) {
 	g := NewGomegaWithT(t)
 	configStore := mockConfigStore{}
 
@@ -303,7 +303,7 @@ func TestConsumerPostDeleteNoResourceLeaks(t *testing.T) {
 	configStore.CreatedServices = configStore.CreatedServices[1:]
 	configStore.CreatedIstioConfigs = append(configStore.CreatedIstioConfigs[0:3], configStore.CreatedIstioConfigs[5:]...)
 
-	consumer.PostDelete("678")
+	consumer.PostUnbind("678")
 
 	g.Expect(configStore.CreatedServices).To(HaveLen(0))
 	g.Expect(configStore.CreatedIstioConfigs).To(HaveLen(0))
