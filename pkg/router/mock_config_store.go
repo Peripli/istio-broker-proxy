@@ -6,7 +6,7 @@ import (
 	istioModel "istio.io/istio/pilot/pkg/model"
 	"k8s.io/api/core/v1"
 )
-
+//MockConfigStore is the configStore to use in unit test with some spy functionality
 type MockConfigStore struct {
 	CreatedServices      []*v1.Service
 	CreatedIstioConfigs  []istioModel.Config
@@ -18,6 +18,7 @@ type MockConfigStore struct {
 	DeletedIstioConfigs  []string
 }
 
+//CreateService stores the service that would be created
 func (m *MockConfigStore) CreateService(bindingID string, service *v1.Service) (*v1.Service, error) {
 	if m.CreateServiceErr != nil {
 		return nil, m.CreateServiceErr
@@ -35,6 +36,7 @@ func (m *MockConfigStore) getNamespace() string {
 	return "catalog"
 }
 
+//CreateIstioConfig stores the configs that would be created
 func (m *MockConfigStore) CreateIstioConfig(bindingID string, configs []istioModel.Config) error {
 	for _, config := range configs {
 		if config.Labels == nil {
@@ -67,6 +69,7 @@ func (m *MockConfigStore) deleteService(bindingID string) error {
 	return nil
 }
 
+//DeleteBinding stores the objects that would have been deleted if they have been created via this store
 func (m *MockConfigStore) DeleteBinding(bindingID string) error {
 	found := 0
 	configs := append([]istioModel.Config{}, m.CreatedIstioConfigs...)
