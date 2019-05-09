@@ -11,6 +11,6 @@ spec:
       containers:
         - name: pinger-config-delete
           image: gcr.io/peripli/client
-          command: [ "/app/client", "-client","-delete" ]
+          command: [ "/app/client", "-client","-delete","-service","pinger" ]
       restartPolicy: Never
   backoffLimit: 2
