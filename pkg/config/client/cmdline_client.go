@@ -18,7 +18,7 @@ func main() {
 	var delete bool
 
 	flag.BoolVar(&clientConfig, "client", false, "Create client configuration")
-	flag.StringVar(&serviceName, "service", "pinger", "name of the service")
+	flag.StringVar(&serviceName, "service", "<service>", "name of the service")
 	flag.StringVar(&hostVirtualService, "virtual-service", "<host>", "host of virtual service")
 	flag.StringVar(&systemDomain, "system-domain", "<system-domain>", "system domain")
 	flag.StringVar(&endpointServiceEntry, "endpoint", "<0.0.0.0>", "endpoint(ip) of the service entry")
