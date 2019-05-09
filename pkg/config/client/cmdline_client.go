@@ -32,13 +32,17 @@ func main() {
 		return
 	}
 
-	createOutput(clientConfig, serviceName, hostVirtualService, portServiceEntry, endpointServiceEntry, systemDomain,delete )
+	var configStore router.ConfigStore
+	if clientConfig {
+		configStore = router.NewExternKubeConfigStore("catalog")
+	}
+
+	createOutput(clientConfig, serviceName, hostVirtualService, portServiceEntry, endpointServiceEntry, systemDomain, delete, configStore )
 }
 
-func createOutput(clientConfig bool, serviceName string, hostVirtualService string, portServiceEntry int, endpointServiceEntry string, systemDomain string, delete bool) {
+func createOutput(clientConfig bool, serviceName string, hostVirtualService string, portServiceEntry int, endpointServiceEntry string, systemDomain string, delete bool, configStore router.ConfigStore) {
 	var configs []model.Config
 	if clientConfig {
-		configStore := router.NewExternKubeConfigStore("catalog")
 		var err error
 		if delete {
 			err = configStore.DeleteBinding("client-binding-id")
