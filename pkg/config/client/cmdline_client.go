@@ -44,11 +44,12 @@ func createOutput(clientConfig bool, serviceName string, hostVirtualService stri
 	var configs []model.Config
 	if clientConfig {
 		var err error
+		id := fmt.Sprintf("client-binding-%s", serviceName)
 		if delete {
-			err = configStore.DeleteBinding("client-binding-id")
+			err = configStore.DeleteBinding(id)
 
 		} else {
-			_, err = router.CreateIstioObjectsInK8S(configStore, "client-binding-id", serviceName, m.Endpoint{Host: hostVirtualService, Port: 9000}, systemDomain)
+			_, err = router.CreateIstioObjectsInK8S(configStore, id, serviceName, m.Endpoint{Host: hostVirtualService, Port: 9000}, systemDomain)
 		}
 		if err != nil {
 			fmt.Printf("error occured: %s", err.Error())

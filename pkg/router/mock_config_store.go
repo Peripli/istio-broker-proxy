@@ -7,7 +7,7 @@ import (
 	"k8s.io/api/core/v1"
 )
 
-type mockConfigStore struct {
+type MockConfigStore struct {
 	CreatedServices      []*v1.Service
 	CreatedIstioConfigs  []istioModel.Config
 	ClusterIP            string
@@ -18,7 +18,7 @@ type mockConfigStore struct {
 	DeletedIstioConfigs  []string
 }
 
-func (m *mockConfigStore) CreateService(bindingID string, service *v1.Service) (*v1.Service, error) {
+func (m *MockConfigStore) CreateService(bindingID string, service *v1.Service) (*v1.Service, error) {
 	if m.CreateServiceErr != nil {
 		return nil, m.CreateServiceErr
 	}
@@ -31,11 +31,11 @@ func (m *mockConfigStore) CreateService(bindingID string, service *v1.Service) (
 	return service, nil
 }
 
-func (m *mockConfigStore) getNamespace() string {
+func (m *MockConfigStore) getNamespace() string {
 	return "catalog"
 }
 
-func (m *mockConfigStore) CreateIstioConfig(bindingID string, configs []istioModel.Config) error {
+func (m *MockConfigStore) CreateIstioConfig(bindingID string, configs []istioModel.Config) error {
 	for _, config := range configs {
 		if config.Labels == nil {
 			config.Labels = make(map[string]string)
@@ -49,7 +49,7 @@ func (m *mockConfigStore) CreateIstioConfig(bindingID string, configs []istioMod
 	return nil
 }
 
-func (m *mockConfigStore) deleteService(bindingID string) error {
+func (m *MockConfigStore) deleteService(bindingID string) error {
 	found := 0
 	services := append([]*v1.Service{}, m.CreatedServices...)
 
@@ -67,7 +67,7 @@ func (m *mockConfigStore) deleteService(bindingID string) error {
 	return nil
 }
 
-func (m *mockConfigStore) DeleteBinding(bindingID string) error {
+func (m *MockConfigStore) DeleteBinding(bindingID string) error {
 	found := 0
 	configs := append([]istioModel.Config{}, m.CreatedIstioConfigs...)
 	for index, c := range configs {
@@ -86,5 +86,5 @@ func (m *mockConfigStore) DeleteBinding(bindingID string) error {
 
 //NewMockConfigStore create a new ConfigStore with mocking capabilities
 func NewMockConfigStore() ConfigStore {
-	return &mockConfigStore{}
+	return &MockConfigStore{}
 }
