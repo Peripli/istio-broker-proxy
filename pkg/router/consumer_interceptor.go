@@ -110,7 +110,7 @@ func (c ConsumerInterceptor) PostBind(request model.BindRequest, response model.
 func CreateIstioObjectsInK8S(configStore ConfigStore, bindingID string, name string, endpoint model.Endpoint, systemDomain string) (string, error) {
 	service := &v1.Service{Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Port: servicePort, TargetPort: intstr.FromInt(servicePort)}}}}
 	service.Name = name
-	log.Infoa("Creating istio objects for", name)
+	log.Infoa("Creating istio objects for ", name)
 	service, err := configStore.CreateService(bindingID, service)
 	if err != nil {
 		log.Errora("error creating service:", err.Error())
