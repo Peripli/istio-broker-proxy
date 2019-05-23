@@ -386,9 +386,10 @@ func kubeCreateFile(kubectl *kubectl, g *GomegaWithT, basename string, script st
 	kubectl.run("cp", fileName, "default/"+podName+":"+basename)
 }
 
-func kubeFetchFile(kubectl *kubectl, g *GomegaWithT, basename string, podName string) string {
+func kubeFetchFile(kubectl *kubectl, g *GomegaWithT, basename string, podName string, containerName string) string {
 	fileName := path.Join(os.TempDir(), basename)
-	kubectl.run("cp", "default/"+podName+":"+basename, fileName)
+	out := kubectl.run("cp", "-c", containerName, "default/"+podName+":"+basename, fileName)
+	fmt.Print(string(out))
 	file, err := ioutil.ReadFile(fileName)
 	g.Expect(err).NotTo(HaveOccurred())
 	return string(file)

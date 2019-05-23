@@ -80,7 +80,7 @@ func TestServiceBindingCanReachCF(t *testing.T) {
 	serviceName := "svc-0-" + bindID + ".catalog.svc.cluster.local:5555"
 	kubectl.Exec(podName, "-c", "curl", "-i", "--", "curl", "-o", "body.json", "-v", "--connect-to", url.Host + ":443:" + serviceName, url.String())
 
-	bodyString := kubeFetchFile(kubectl, g, "body.json", podName)
+	bodyString := kubeFetchFile(kubectl, g, "body.json", podName, "curl")
 	var body interface{}
 	err = json.Unmarshal([]byte(bodyString), &body)
 	g.Expect(err).NotTo(HaveOccurred())
