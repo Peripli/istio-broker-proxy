@@ -21,7 +21,7 @@ type Config struct {
 	SkipVerifyTLS      bool
 	Port               int
 	HTTPClientFactory  func(tr *http.Transport) *http.Client
-	HTTPRequestFactory func(method string, url string, body io.Reader) (*http.Request, error)
+	HTTPRequestFactory func(method string, url string, header http.Header, body io.Reader) (*http.Request, error)
 }
 
 type osbProxy struct {
@@ -79,9 +79,11 @@ func (client osbProxy) forwardWithCallback(ctx *gin.Context, postCallback func(c
 	log.Infof("Received request: %v %v", request.Method, request.URL.Path)
 
 	url := createNewURL(client.config.ForwardURL, request)
-	proxyRequest, err := client.config.HTTPRequestFactory(request.Method, url, request.Body)
-	proxyRequest.Header = request.Header
-
+	proxyRequest, err := client.config.HTTPRequestFactory(request.Method, url, request.Header, request.Body)
+	if err != nil {
+		httpError(ctx, err, http.StatusInternalServerError)
+		return
+	}
 	response, err := client.Do(proxyRequest)
 	if err != nil {
 		httpError(ctx, err, http.StatusBadGateway)
@@ -159,8 +161,19 @@ func httpClientFactory(tr *http.Transport) *http.Client {
 	return client
 }
 
-func httpRequestFactory(method string, url string, body io.Reader) (*http.Request, error) {
-	return http.NewRequest(method, url, body)
+func httpRequestFactory(method string, url string, header http.Header, body io.Reader) (*http.Request, error) {
+	request, err:= http.NewRequest(method, url, body)
+	if err != nil {
+		log.Errorf("error during create request: %s\n", err.Error())
+		return nil, err
+	}
+	if header != nil {
+		request.Header = header
+	}else{
+		request.Header = http.Header{}
+	}
+	request.Header.Add("X-Istio-Broker-Versions", "exampleHash")
+	return request, nil
 }
 
 func createNewURL(newBaseURL string, req *http.Request) string {

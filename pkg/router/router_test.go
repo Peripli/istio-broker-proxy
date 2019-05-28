@@ -781,7 +781,37 @@ func TestProvision(t *testing.T) {
 	g.Expect(postProvisioned).To(BeTrue())
 }
 
+func TestSetBrokerVersionHeader(t *testing.T){
+	g := NewGomegaWithT(t)
+	request, err := httpRequestFactory(http.MethodGet,"", nil, bytes.NewReader([]byte{}))
 
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(request).NotTo(BeNil())
+	g.Expect(request.Header.Get("X-Istio-Broker-Versions")).To(Equal("exampleHash"))
+}
+
+func TestAddBrokerVersionHeader(t *testing.T){
+	g := NewGomegaWithT(t)
+	header := http.Header{}
+	header.Add("X-test-header", "testValue")
+	request, err := httpRequestFactory(http.MethodGet,"", header, bytes.NewReader([]byte{}))
+
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(request).NotTo(BeNil())
+	g.Expect(request.Header.Get("X-test-header")).To(Equal("testValue"))
+	g.Expect(request.Header.Get("X-Istio-Broker-Versions")).To(Equal("exampleHash"))
+}
+
+func TestAppendBrokerVersion(t *testing.T){
+	g := NewGomegaWithT(t)
+	header := http.Header{}
+	header.Add("X-Istio-Broker-Versions", "testHash0")
+	request, err := httpRequestFactory(http.MethodGet,"", header, bytes.NewReader([]byte{}))
+
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(request).NotTo(BeNil())
+	g.Expect(request.Header["X-Istio-Broker-Versions"]).To(ConsistOf("testHash0", "exampleHash"))
+}
 
 type DeleteInterceptor struct {
 	noOpInterceptor

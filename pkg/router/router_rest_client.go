@@ -65,12 +65,11 @@ func (o *restRequest) Do() api.RESTResponse {
 		return &osbResponse
 	}
 	var proxyRequest *http.Request
-	proxyRequest, osbResponse.err = o.client.config.HTTPRequestFactory(o.method, o.url, bytes.NewReader(o.request))
+	proxyRequest, osbResponse.err = o.client.config.HTTPRequestFactory(o.method, o.url, o.client.request.Header, bytes.NewReader(o.request))
 	if osbResponse.err != nil {
 		log.Errorf("error during create request: %s\n", osbResponse.err.Error())
 		return &osbResponse
 	}
-	proxyRequest.Header = o.client.request.Header
 
 	var response *http.Response
 	response, osbResponse.err = o.client.Do(proxyRequest)
