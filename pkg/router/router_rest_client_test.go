@@ -113,21 +113,3 @@ func TestRouterRestClientWithInvalidJsonErrorResponse(t *testing.T) {
 	g.Expect(err.(*model.HTTPError).Description).To(Equal("invalid JSON 'error: Internal server error\ndescription: \n': from call to GET http://xxxxx.xx"))
 	g.Expect(handlerStub.spy.method).To(Equal(http.MethodGet))
 }
-
-
-
-func TestAddVersionHeaderToResponse(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	handlerStub := newHandlerStubWithFunc(http.StatusOK, func(body []byte) []byte {
-		return []byte(`{"member1": "string","member2": 1}`)
-	})
-	server, routerConfig := injectClientStub(handlerStub)
-	defer server.Close()
-	client := &restClient{routerConfig.HTTPClientFactory(&http.Transport{}), &http.Request{URL: &url.URL{}}, *routerConfig}
-	restRequest := client.createRequest(http.MethodGet, []byte{}, nil)
-	response := restRequest.Do()
-
-	g.Expect(response).NotTo(BeNil())
-	g.Expect(handlerStub.spy.header.Get("X-Istio-Broker-Versions")).To(Equal("exampleHash"))
-}

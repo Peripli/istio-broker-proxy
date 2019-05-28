@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -783,15 +784,16 @@ func TestProvision(t *testing.T) {
 
 func TestSetBrokerVersionHeader(t *testing.T){
 	g := NewGomegaWithT(t)
+	commitHash = "xxx"
 	request, err := httpRequestFactory(http.MethodGet,"", nil, bytes.NewReader([]byte{}))
-
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(request).NotTo(BeNil())
-	g.Expect(request.Header.Get("X-Istio-Broker-Versions")).To(Equal("exampleHash"))
+	g.Expect(request.Header.Get("X-Istio-Broker-Versions")).To(Equal("xxx"))
 }
 
 func TestAddBrokerVersionHeader(t *testing.T){
 	g := NewGomegaWithT(t)
+	commitHash = "xxx"
 	header := http.Header{}
 	header.Add("X-test-header", "testValue")
 	request, err := httpRequestFactory(http.MethodGet,"", header, bytes.NewReader([]byte{}))
@@ -799,18 +801,77 @@ func TestAddBrokerVersionHeader(t *testing.T){
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(request).NotTo(BeNil())
 	g.Expect(request.Header.Get("X-test-header")).To(Equal("testValue"))
-	g.Expect(request.Header.Get("X-Istio-Broker-Versions")).To(Equal("exampleHash"))
+	g.Expect(request.Header.Get("X-Istio-Broker-Versions")).To(Equal("xxx"))
 }
 
 func TestAppendBrokerVersion(t *testing.T){
 	g := NewGomegaWithT(t)
+	commitHash = "xxx"
 	header := http.Header{}
-	header.Add("X-Istio-Broker-Versions", "testHash0")
+	header.Add("X-Istio-Broker-Versions", "yyy")
 	request, err := httpRequestFactory(http.MethodGet,"", header, bytes.NewReader([]byte{}))
 
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(request).NotTo(BeNil())
-	g.Expect(request.Header["X-Istio-Broker-Versions"]).To(ConsistOf("testHash0", "exampleHash"))
+	g.Expect(request.Header["X-Istio-Broker-Versions"]).To(ConsistOf("yyy", "xxx"))
+}
+
+
+func TestAddVersionHeaderForGet(t *testing.T) {
+	g := NewGomegaWithT(t)
+	commitHash = "xxx"
+	body := []byte(`{}`)
+	handlerStub := newHandlerStub(http.StatusOK, body)
+	server := httptest.NewServer(handlerStub)
+	client := server.Client()
+
+	routerConfig := Config{ForwardURL: "https://httpbin.org"}
+	routerConfig.HTTPClientFactory = func(tr *http.Transport) *http.Client {
+		return client
+	}
+	var spyHeader http.Header
+	routerConfig.HTTPRequestFactory = func(method string, url string, header http.Header, body io.Reader) (*http.Request, error) {
+		request, err := httpRequestFactory(method, server.URL, header, body)
+		spyHeader = request.Header
+		return request, err
+	}
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/v2/catalog", bytes.NewReader(make([]byte, 0)))
+	response := httptest.NewRecorder()
+	router := SetupRouter(ConsumerInterceptor{}, routerConfig)
+	router.ServeHTTP(response, request)
+	g.Expect(response.Code).To(Equal(http.StatusOK))
+	g.Expect(spyHeader["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
+}
+
+
+func TestAddVersionHeaderForForward(t *testing.T) {
+	g := NewGomegaWithT(t)
+	commitHash = "xxx"
+	body := []byte(`{}`)
+	handlerStub := newHandlerStub(http.StatusOK, body)
+	server := httptest.NewServer(handlerStub)
+	client := server.Client()
+
+	routerConfig := Config{ForwardURL: "https://httpbin.org"}
+	routerConfig.HTTPClientFactory = func(tr *http.Transport) *http.Client {
+		return client
+	}
+	var spyHeader http.Header
+	routerConfig.HTTPRequestFactory = func(method string, url string, header http.Header, body io.Reader) (*http.Request, error) {
+		request, err := httpRequestFactory(method, server.URL, header, body)
+		spyHeader = request.Header
+		return request, err
+	}
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org", bytes.NewReader(make([]byte, 0)))
+	response := httptest.NewRecorder()
+	router := SetupRouter(ConsumerInterceptor{}, routerConfig)
+	router.ServeHTTP(response, request)
+	g.Expect(response.Code).To(Equal(http.StatusOK))
+	g.Expect(spyHeader["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
 }
 
 type DeleteInterceptor struct {

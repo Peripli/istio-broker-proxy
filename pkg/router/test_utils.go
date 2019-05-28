@@ -50,7 +50,7 @@ func injectClientStub(handler *handlerStub) (*httptest.Server, *Config) {
 		handler.spy.tr = tr
 		return client
 	}
-	routerConfig.HTTPRequestFactory = func(method string, url string, body io.Reader) (*http.Request, error) {
+	routerConfig.HTTPRequestFactory = func(method string, url string, header http.Header, body io.Reader) (*http.Request, error) {
 		handler.spy.method = method
 		handler.spy.url = url
 		buf := new(bytes.Buffer)

@@ -6,14 +6,16 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"github.com/gin-gonic/gin"
 	"io"
-	"net/http"
 	"istio.io/istio/pkg/log"
+	"net/http"
 )
 
 const (
 	// DefaultPort for istio-broker-proxy HTTP endpoint
 	DefaultPort = 8080
 )
+
+var commitHash string
 
 //Config contains various config
 type Config struct {
@@ -172,7 +174,7 @@ func httpRequestFactory(method string, url string, header http.Header, body io.R
 	}else{
 		request.Header = http.Header{}
 	}
-	request.Header.Add("X-Istio-Broker-Versions", "exampleHash")
+	request.Header.Add("X-Istio-Broker-Versions", commitHash)
 	return request, nil
 }
 
