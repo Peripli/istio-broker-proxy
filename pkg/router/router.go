@@ -13,6 +13,7 @@ import (
 const (
 	// DefaultPort for istio-broker-proxy HTTP endpoint
 	DefaultPort        = 8080
+	// IstioBrokerVersion is a header entry that contains the commit-shas of istio-broker-proxy
 	IstioBrokerVersion = "X-Istio-Broker-Versions"
 )
 
