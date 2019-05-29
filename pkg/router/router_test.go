@@ -874,6 +874,119 @@ func TestAddVersionHeaderForForward(t *testing.T) {
 	g.Expect(spyHeader["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
 }
 
+func TestAddVersionToGetCatalogResponse(t *testing.T) {
+	g := NewGomegaWithT(t)
+	commitHash = "xxx"
+	body := []byte(`{}`)
+	handlerStub := newHandlerStub(http.StatusOK, body)
+	server, routerConfig := injectClientStub(handlerStub)
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/v2/catalog", bytes.NewReader(make([]byte, 0)))
+	response := httptest.NewRecorder()
+	router := SetupRouter(ConsumerInterceptor{}, *routerConfig)
+	router.ServeHTTP(response, request)
+
+	g.Expect(response.Code).To(Equal(http.StatusOK))
+	g.Expect(response.Header()["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
+}
+
+func TestAddVersionDuringForward(t *testing.T) {
+	g := NewGomegaWithT(t)
+	commitHash = "xxx"
+	body := []byte(`{}`)
+	handlerStub := newHandlerStub(http.StatusOK, body)
+	server, routerConfig := injectClientStub(handlerStub)
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/some/path", bytes.NewReader(make([]byte, 0)))
+	response := httptest.NewRecorder()
+	router := SetupRouter(ConsumerInterceptor{}, *routerConfig)
+	router.ServeHTTP(response, request)
+
+	g.Expect(response.Code).To(Equal(http.StatusOK))
+	g.Expect(response.Header()["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
+}
+
+func TestAddVersionToBindResponses(t *testing.T) {
+	g := NewGomegaWithT(t)
+	commitHash = "xxx"
+
+	body := []byte(`{}`)
+	requestBody := []byte(`{
+					"network_data":
+					{
+                        "data":
+                        {
+                            "consumer_id": "147"
+                        }
+ 					}
+					}`)
+	handlerStub := newHandlerStub(http.StatusOK, body)
+	server, routerConfig := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(requestBody))
+	response := httptest.NewRecorder()
+	router := SetupRouter(ProducerInterceptor{ConfigStore: configStore(), NetworkProfile: "urn:local.test:public"}, *routerConfig)
+	router.ServeHTTP(response, request)
+
+	g.Expect(response.Code).To(Equal(http.StatusOK))//StatusCreated
+	g.Expect(response.Header()["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
+}
+
+func TestAddVersionToUnbindResponse(t *testing.T) {
+	g := NewGomegaWithT(t)
+	commitHash = "xxx"
+	body := []byte{'{', '}'}
+	handlerStub := newHandlerStub(http.StatusOK, body)
+	server, routerConfig := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodDelete, "https://blahblubs.org/v2/service_instances/123/service_bindings/456?parameter=true", bytes.NewReader(body))
+
+	response := httptest.NewRecorder()
+	var bindID = ""
+	router := SetupRouter(&DeleteInterceptor{deleteCallback: func(innerBindId string) {
+		bindID = innerBindId
+	}}, *routerConfig)
+	router.ServeHTTP(response, request)
+
+	g.Expect(bindID).To(Equal("456"))
+	g.Expect(response.Code).To(Equal(http.StatusOK))
+	g.Expect(response.Header()["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
+}
+
+func TestAddVersionToProvision(t *testing.T) {
+	g := NewGomegaWithT(t)
+	body := []byte{'{', '}'}
+	handlerStub := newHandlerStub(http.StatusOK, body)
+	server, routerConfig := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123", bytes.NewReader(body))
+	response := httptest.NewRecorder()
+
+	var preProvisioned, postProvisioned bool
+	interceptor := ProvisionInterceptor{
+		preProvisionCallback: func(){preProvisioned = true},
+		postProvisionCallback: func(){postProvisioned = true},
+	}
+	router := SetupRouter(&interceptor, *routerConfig)
+	router.ServeHTTP(response, request)
+
+	g.Expect(response.Code).To(Equal(http.StatusOK))
+	var provisionResponse model.ProvisionResponse
+	_ = json.Unmarshal(response.Body.Bytes(), &provisionResponse)
+
+	g.Expect(preProvisioned).To(BeTrue())
+	g.Expect(postProvisioned).To(BeTrue())
+	g.Expect(response.Header()["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
+}
+
 type DeleteInterceptor struct {
 	noOpInterceptor
 	deleteCallback func(bindID string)

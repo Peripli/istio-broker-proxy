@@ -12,7 +12,8 @@ import (
 
 const (
 	// DefaultPort for istio-broker-proxy HTTP endpoint
-	DefaultPort = 8080
+	DefaultPort        = 8080
+	IstioBrokerVersion = "X-Istio-Broker-Versions"
 )
 
 var commitHash string
@@ -61,6 +62,7 @@ func (client osbProxy) forwardUnbindRequest(ctx *gin.Context) {
 		httpError(ctx, err, http.StatusInternalServerError)
 		return
 	}
+	addIstioBrokerVersionHeader(ctx)
 	ctx.JSON(http.StatusOK, map[string]string{})
 }
 
@@ -71,6 +73,7 @@ func (client osbProxy) forwardCatalog(ctx *gin.Context) {
 		httpError(ctx, err, http.StatusInternalServerError)
 		return
 	}
+	addIstioBrokerVersionHeader(ctx)
 	ctx.JSON(http.StatusOK, catalog)
 }
 
@@ -102,6 +105,8 @@ func (client osbProxy) forwardWithCallback(ctx *gin.Context, postCallback func(c
 			return
 		}
 	}
+	response.Header.Add(IstioBrokerVersion, commitHash)
+	log.Infof("Added header %s with value %s\n", IstioBrokerVersion, commitHash)
 
 	for name, values := range response.Header {
 		writer.Header()[name] = values
@@ -129,6 +134,7 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 		httpError(ctx, err, http.StatusInternalServerError)
 		return
 	}
+	addIstioBrokerVersionHeader(ctx)
 	ctx.JSON(http.StatusOK, bindResponse)
 }
 
@@ -149,7 +155,13 @@ func (client osbProxy) forwardProvisionRequest(ctx *gin.Context) {
 		httpError(ctx, err, http.StatusInternalServerError)
 		return
 	}
+	addIstioBrokerVersionHeader(ctx)
 	ctx.JSON(http.StatusOK, provisionResponse)
+}
+
+func addIstioBrokerVersionHeader(ctx *gin.Context) {
+	ctx.Header(IstioBrokerVersion, commitHash)
+	log.Infof("Added header %s with value %s\n", IstioBrokerVersion, commitHash)
 }
 
 func httpError(ctx *gin.Context, err error, statusCode int) {
@@ -164,17 +176,19 @@ func httpClientFactory(tr *http.Transport) *http.Client {
 }
 
 func httpRequestFactory(method string, url string, header http.Header, body io.Reader) (*http.Request, error) {
-	request, err:= http.NewRequest(method, url, body)
+	request, err := http.NewRequest(method, url, body)
 	if err != nil {
 		log.Errorf("error during create request: %s\n", err.Error())
 		return nil, err
 	}
 	if header != nil {
 		request.Header = header
-	}else{
+	} else {
 		request.Header = http.Header{}
 	}
-	request.Header.Add("X-Istio-Broker-Versions", commitHash)
+	request.Header.Add(IstioBrokerVersion, commitHash)
+	log.Infof("Added header %s with value %s\n", IstioBrokerVersion, commitHash)
+
 	return request, nil
 }
 
