@@ -29,7 +29,6 @@ The traffic from a consumer app to a managed service will be routed via an Istio
 **Consumer Side**
 
 
-
 1. A _ServiceEntry_: One Kubernetes service for the consumer to address (one per endpoint) defines a virtual IP, which is used to distinguish dispatch services on the sidecar.
 1. One _VirtualService_ on mesh: route from the sidecar to the egress gateway (destinationSubnets points to the VIP of the kubernetes service (1) created in the cluster).
 1. A _DestinationRule_ sets up mTLS Istio-mutual between sidecar and egress gateway, sets SNI to <service-name>.<producer-id> so that the request can be dispatched on the egress gateway.
