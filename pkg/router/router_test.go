@@ -782,6 +782,22 @@ func TestProvision(t *testing.T) {
 	g.Expect(postProvisioned).To(BeTrue())
 }
 
+func TestFailedProvision(t *testing.T) {
+	g := NewGomegaWithT(t)
+	body := []byte{'{', '}'}
+	handlerStub := newHandlerStub(http.StatusForbidden, body)
+	server, routerConfig := injectClientStub(handlerStub)
+
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123", bytes.NewReader(body))
+	response := httptest.NewRecorder()
+
+	router := SetupRouter(noOpInterceptor{}, *routerConfig)
+	router.ServeHTTP(response, request)
+
+	g.Expect(response.Code).To(Equal(http.StatusForbidden))
+}
 func TestSetBrokerVersionInRequestFactory(t *testing.T){
 	g := NewGomegaWithT(t)
 	commitHash = "xxx"
