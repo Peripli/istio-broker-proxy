@@ -15,6 +15,8 @@ const (
 	DefaultPort        = 8080
 	// IstioBrokerVersion is a header entry that contains the commit-shas of istio-broker-proxy
 	IstioBrokerVersion = "X-Istio-Broker-Versions"
+
+	healthEnpoint = "/health"
 )
 
 var commitHash string
@@ -204,14 +206,22 @@ func registerConsumerRelevantRoutes(prefix string, mux *gin.Engine, client *osbP
 }
 
 func logAndAddVersionHeader(ctx *gin.Context) {
+	path := ctx.Request.URL.Path
 	istioBrokerVersion := ctx.Request.Header.Get(IstioBrokerVersion)
 	ctx.Next()
 	ctx.Header(IstioBrokerVersion, commitHash)
-	log.Infof("Header %s:  received \"%s\", responded \"%s\"\n",IstioBrokerVersion, istioBrokerVersion, commitHash)
+	if path != healthEnpoint {
+		log.Infof("Header %s:  received \"%s\", responded \"%s\"\n",IstioBrokerVersion, istioBrokerVersion, commitHash)
+	}
 }
 
 //SetupRouter creates the istio-broker-proxy's endpoints
 func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig Config) *gin.Engine {
+	return SetupRouterWithCommitHash(interceptor,routerConfig,"")
+}
+//SetupRouterWithCommitHash creates the istio-broker-proxy's endpoints
+func SetupRouterWithCommitHash(interceptor ServiceBrokerInterceptor, routerConfig Config, ch string) *gin.Engine {
+	commitHash = ch
 	if routerConfig.HTTPClientFactory == nil {
 		routerConfig.HTTPClientFactory = httpClientFactory
 	}
@@ -223,13 +233,13 @@ func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig Config) *gin
 	}
 
 	mux := gin.New()
-	mux.Use(gin.LoggerWithWriter(gin.DefaultWriter, "/health"), gin.Recovery())
+	mux.Use(gin.LoggerWithWriter(gin.DefaultWriter, healthEnpoint), gin.Recovery())
 	mux.Use(logAndAddVersionHeader)
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: routerConfig.SkipVerifyTLS},
 	}
 	client := osbProxy{routerConfig.HTTPClientFactory(tr), interceptor, routerConfig}
-	mux.GET("/health", func(ctx *gin.Context) {
+	mux.GET(healthEnpoint, func(ctx *gin.Context) {
 		ctx.Status(http.StatusOK)
 	})
 	if interceptor.HasAdaptCredentials() {

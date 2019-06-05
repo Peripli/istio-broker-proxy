@@ -16,4 +16,4 @@ golint  -set_exit_status main.go
 go build ./pkg/config/client
 ./client --help
 BROKER_VERSION=$(git rev-parse HEAD)
-go build --ldflags="-X router.commitHash=$BROKER_VERSION"
+go build --ldflags="-X main.commitHash=$BROKER_VERSION"

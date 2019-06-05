@@ -798,44 +798,11 @@ func TestFailedProvision(t *testing.T) {
 
 	g.Expect(response.Code).To(Equal(http.StatusForbidden))
 }
-func TestSetBrokerVersionInRequestFactory(t *testing.T){
-	g := NewGomegaWithT(t)
-	commitHash = "xxx"
-	request, err := httpRequestFactory(http.MethodGet,"", nil, bytes.NewReader([]byte{}))
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(request).NotTo(BeNil())
-	g.Expect(request.Header.Get("X-Istio-Broker-Versions")).To(Equal("xxx"))
-}
 
-func TestAddBrokerVersionInRequestFactory(t *testing.T){
-	g := NewGomegaWithT(t)
-	commitHash = "xxx"
-	header := http.Header{}
-	header.Add("X-test-header", "testValue")
-	request, err := httpRequestFactory(http.MethodGet,"", header, bytes.NewReader([]byte{}))
-
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(request).NotTo(BeNil())
-	g.Expect(request.Header.Get("X-test-header")).To(Equal("testValue"))
-	g.Expect(request.Header.Get("X-Istio-Broker-Versions")).To(Equal("xxx"))
-}
-
-func TestAppendBrokerVersionInRequestFactory(t *testing.T){
-	g := NewGomegaWithT(t)
-	commitHash = "xxx"
-	header := http.Header{}
-	header.Add("X-Istio-Broker-Versions", "yyy")
-	request, err := httpRequestFactory(http.MethodGet,"", header, bytes.NewReader([]byte{}))
-
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(request).NotTo(BeNil())
-	g.Expect(request.Header["X-Istio-Broker-Versions"]).To(ConsistOf("yyy", "xxx"))
-}
 
 
 func TestAddVersionHeaderHTTPFactoryInDo(t *testing.T) {
 	g := NewGomegaWithT(t)
-	commitHash = "xxx"
 	body := []byte(`{}`)
 	handlerStub := newHandlerStub(http.StatusOK, body)
 	server := httptest.NewServer(handlerStub)
@@ -854,17 +821,19 @@ func TestAddVersionHeaderHTTPFactoryInDo(t *testing.T) {
 	defer server.Close()
 
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/v2/catalog", bytes.NewReader(make([]byte, 0)))
+	request.Header.Add("X-Test-Header", "testValue")
+	request.Header.Add(IstioBrokerVersion, "client")
 	response := httptest.NewRecorder()
-	router := SetupRouter(ConsumerInterceptor{}, routerConfig)
+	router := SetupRouterWithCommitHash(ConsumerInterceptor{}, routerConfig,"xxx")
 	router.ServeHTTP(response, request)
 	g.Expect(response.Code).To(Equal(http.StatusOK))
-	g.Expect(spyHeader["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
+	g.Expect(spyHeader["X-Test-Header"]).To(ConsistOf("testValue"))
+	g.Expect(spyHeader[IstioBrokerVersion]).To(ConsistOf( "client","xxx"))
 }
 
 
 func TestAddVersionHeaderHTTPFactoryInForward(t *testing.T) {
 	g := NewGomegaWithT(t)
-	commitHash = "xxx"
 	body := []byte(`{}`)
 	handlerStub := newHandlerStub(http.StatusOK, body)
 	server := httptest.NewServer(handlerStub)
@@ -884,15 +853,14 @@ func TestAddVersionHeaderHTTPFactoryInForward(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/anyurl", bytes.NewReader(make([]byte, 0)))
 	response := httptest.NewRecorder()
-	router := SetupRouter(ConsumerInterceptor{}, routerConfig)
+	router := SetupRouterWithCommitHash(ConsumerInterceptor{}, routerConfig,"xxx")
 	router.ServeHTTP(response, request)
 	g.Expect(response.Code).To(Equal(http.StatusOK))
-	g.Expect(spyHeader["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
+	g.Expect(spyHeader[IstioBrokerVersion]).To(ConsistOf( "xxx"))
 }
 
 func TestAddVersionToGetCatalogResponseProducer(t *testing.T) {
 	g := NewGomegaWithT(t)
-	commitHash = "xxx"
 	body := []byte(`{}`)
 	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
@@ -900,17 +868,16 @@ func TestAddVersionToGetCatalogResponseProducer(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/v2/catalog", bytes.NewReader(make([]byte, 0)))
 	response := httptest.NewRecorder()
-	router := SetupRouter(ProducerInterceptor{}, *routerConfig)
+	router := SetupRouterWithCommitHash(ProducerInterceptor{}, *routerConfig,"xxx")
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusOK))
 	responseHeader := response.Header()
-	g.Expect(responseHeader["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
+	g.Expect(responseHeader[IstioBrokerVersion]).To(ConsistOf( "xxx"))
 }
 
 func TestAddVersionForForwardInResponse(t *testing.T) {
 	g := NewGomegaWithT(t)
-	commitHash = "consumerVersion"
 	body := []byte(`{}`)
 	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
@@ -918,16 +885,15 @@ func TestAddVersionForForwardInResponse(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/some/path", bytes.NewReader(make([]byte, 0)))
 	response := httptest.NewRecorder()
-	router := SetupRouter(ConsumerInterceptor{}, *routerConfig)
+	router := SetupRouterWithCommitHash(ConsumerInterceptor{}, *routerConfig,"xxx")
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusOK))
-	g.Expect(response.Header()[IstioBrokerVersion]).To(ConsistOf( "consumerVersion"))
+	g.Expect(response.Header()[IstioBrokerVersion]).To(ConsistOf( "xxx"))
 }
 
 func TestAddVersionToBindResponse(t *testing.T) {
 	g := NewGomegaWithT(t)
-	commitHash = "xxx"
 
 	body := []byte(`{}`)
 	requestBody := []byte(`{
@@ -946,16 +912,15 @@ func TestAddVersionToBindResponse(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(requestBody))
 	response := httptest.NewRecorder()
-	router := SetupRouter(ProducerInterceptor{ConfigStore: configStore(), NetworkProfile: "urn:local.test:public"}, *routerConfig)
+	router := SetupRouterWithCommitHash(ProducerInterceptor{ConfigStore: configStore(), NetworkProfile: "urn:local.test:public"}, *routerConfig,"xxx")
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusOK))//StatusCreated
-	g.Expect(response.Header()["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
+	g.Expect(response.Header()[IstioBrokerVersion]).To(ConsistOf( "xxx"))
 }
 
 func TestAddVersionToUnbindResponse(t *testing.T) {
 	g := NewGomegaWithT(t)
-	commitHash = "xxx"
 	body := []byte{'{', '}'}
 	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
@@ -966,14 +931,14 @@ func TestAddVersionToUnbindResponse(t *testing.T) {
 
 	response := httptest.NewRecorder()
 	var bindID = ""
-	router := SetupRouter(&DeleteInterceptor{deleteCallback: func(innerBindId string) {
+	router := SetupRouterWithCommitHash(&DeleteInterceptor{deleteCallback: func(innerBindId string) {
 		bindID = innerBindId
-	}}, *routerConfig)
+	}}, *routerConfig,"xxx")
 	router.ServeHTTP(response, request)
 
 	g.Expect(bindID).To(Equal("456"))
 	g.Expect(response.Code).To(Equal(http.StatusOK))
-	g.Expect(response.Header()["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
+	g.Expect(response.Header()[IstioBrokerVersion]).To(ConsistOf( "xxx"))
 }
 
 func TestAddVersionToProvisionResponse(t *testing.T) {
@@ -992,7 +957,7 @@ func TestAddVersionToProvisionResponse(t *testing.T) {
 		preProvisionCallback: func(){preProvisioned = true},
 		postProvisionCallback: func(){postProvisioned = true},
 	}
-	router := SetupRouter(&interceptor, *routerConfig)
+	router := SetupRouterWithCommitHash(&interceptor, *routerConfig,"xxx")
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusOK))
@@ -1001,7 +966,7 @@ func TestAddVersionToProvisionResponse(t *testing.T) {
 
 	g.Expect(preProvisioned).To(BeTrue())
 	g.Expect(postProvisioned).To(BeTrue())
-	g.Expect(response.Header()["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
+	g.Expect(response.Header()[IstioBrokerVersion]).To(ConsistOf( "xxx"))
 }
 
 type DeleteInterceptor struct {
