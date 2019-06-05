@@ -13,7 +13,6 @@ import (
 	"testing"
 )
 
-
 func newMockConfigStore(dummy string) router.ConfigStore {
 	return router.NewMockConfigStore()
 }
@@ -78,7 +77,7 @@ func TestNewConfigStoreInvalidURL(t *testing.T) {
 
 func TestLogLevelDebug(t *testing.T) {
 	g := NewGomegaWithT(t)
-	fmt.Printf("%s",os.Getenv("LOG") )
+	fmt.Printf("%s", os.Getenv("LOG"))
 	if os.Getenv("LOG") == "1" {
 		args := strings.Split("--logLevel 5", " ")
 		flag.CommandLine.Parse(args)
@@ -89,7 +88,7 @@ func TestLogLevelDebug(t *testing.T) {
 	}
 	cmd := exec.Command(os.Args[0], "-test.run=TestLogLevelDebug")
 	cmd.Env = append(os.Environ(), "LOG=1")
-	var out,err bytes.Buffer
+	var out, err bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &err
 	cmd.Run()
@@ -101,7 +100,7 @@ func TestLogLevelDebug(t *testing.T) {
 
 func TestDefaultLogLevelInfo(t *testing.T) {
 	g := NewGomegaWithT(t)
-	fmt.Printf("%s",os.Getenv("LOG") )
+	fmt.Printf("%s", os.Getenv("LOG"))
 	if os.Getenv("LOG") == "1" {
 		flag.CommandLine.Parse([]string{})
 		configureLogging()
@@ -117,7 +116,7 @@ func TestDefaultLogLevelInfo(t *testing.T) {
 
 func TestNoDebugMessageInInfo(t *testing.T) {
 	g := NewGomegaWithT(t)
-	fmt.Printf("%s",os.Getenv("LOG") )
+	fmt.Printf("%s", os.Getenv("LOG"))
 	if os.Getenv("LOG") == "1" {
 		args := strings.Split("--logLevel 4 --networkProfile xxx.yyy", " ")
 		flag.CommandLine.Parse(args)

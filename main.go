@@ -17,15 +17,16 @@ var networkProfile string
 var configStore string
 var logLevel int
 
-
 func newConfigStore(configStoreURL string) (router.ConfigStore, error) {
-	uri , err := url.Parse(configStoreURL)
+	uri, err := url.Parse(configStoreURL)
 	if err != nil {
 		return nil, err
 	}
 	switch uri.Scheme {
-	case "k8s":return router.NewInClusterConfigStore(), nil
-	case "file": return router.NewFileConfigStore(uri.Path), nil
+	case "k8s":
+		return router.NewInClusterConfigStore(), nil
+	case "file":
+		return router.NewFileConfigStore(uri.Path), nil
 	default:
 		return nil, errors.New("Invalid schema for config store:" + uri.Scheme)
 	}
@@ -73,7 +74,7 @@ func configureInterceptor(configStoreFactory func(configStoreUrl string) router.
 	return interceptor
 }
 
-func configureLogging(){
+func configureLogging() {
 	options := log.DefaultOptions()
 	options.SetOutputLevel(log.DefaultScopeName, log.Level(logLevel))
 	options.SetStackTraceLevel(log.DefaultScopeName, log.FatalLevel)

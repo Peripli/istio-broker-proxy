@@ -63,7 +63,6 @@ func (client osbProxy) forwardUnbindRequest(ctx *gin.Context) {
 		httpError(ctx, err, http.StatusInternalServerError)
 		return
 	}
-	addIstioBrokerVersionHeader(ctx)
 	ctx.JSON(http.StatusOK, map[string]string{})
 }
 
@@ -74,7 +73,6 @@ func (client osbProxy) forwardCatalog(ctx *gin.Context) {
 		httpError(ctx, err, http.StatusInternalServerError)
 		return
 	}
-	addIstioBrokerVersionHeader(ctx)
 	ctx.JSON(http.StatusOK, catalog)
 }
 
@@ -106,8 +104,6 @@ func (client osbProxy) forwardWithCallback(ctx *gin.Context, postCallback func(c
 			return
 		}
 	}
-	response.Header.Add(IstioBrokerVersion, commitHash)
-	log.Infof("Added header %s with value %s\n", IstioBrokerVersion, commitHash)
 
 	for name, values := range response.Header {
 		writer.Header()[name] = values
@@ -135,7 +131,6 @@ func (client osbProxy) forwardBindRequest(ctx *gin.Context) {
 		httpError(ctx, err, http.StatusInternalServerError)
 		return
 	}
-	addIstioBrokerVersionHeader(ctx)
 	ctx.JSON(http.StatusOK, bindResponse)
 }
 
@@ -156,13 +151,7 @@ func (client osbProxy) forwardProvisionRequest(ctx *gin.Context) {
 		httpError(ctx, err, http.StatusInternalServerError)
 		return
 	}
-	addIstioBrokerVersionHeader(ctx)
 	ctx.JSON(http.StatusOK, provisionResponse)
-}
-
-func addIstioBrokerVersionHeader(ctx *gin.Context) {
-	ctx.Header(IstioBrokerVersion, commitHash)
-	log.Infof("Added header %s with value %s\n", IstioBrokerVersion, commitHash)
 }
 
 func httpError(ctx *gin.Context, err error, statusCode int) {
@@ -214,6 +203,13 @@ func registerConsumerRelevantRoutes(prefix string, mux *gin.Engine, client *osbP
 	mux.GET(prefix+"/v2/catalog", client.forwardCatalog)
 }
 
+func logAndAddVersionHeader(ctx *gin.Context) {
+	istioBrokerVersion := ctx.Request.Header.Get(IstioBrokerVersion)
+	ctx.Next()
+	ctx.Header(IstioBrokerVersion, commitHash)
+	log.Infof("Header %s:  received \"%s\", responded \"%s\"\n",IstioBrokerVersion, istioBrokerVersion, commitHash)
+}
+
 //SetupRouter creates the istio-broker-proxy's endpoints
 func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig Config) *gin.Engine {
 	if routerConfig.HTTPClientFactory == nil {
@@ -228,6 +224,7 @@ func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig Config) *gin
 
 	mux := gin.New()
 	mux.Use(gin.LoggerWithWriter(gin.DefaultWriter, "/health"), gin.Recovery())
+	mux.Use(logAndAddVersionHeader)
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: routerConfig.SkipVerifyTLS},
 	}

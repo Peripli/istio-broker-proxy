@@ -36,7 +36,7 @@ func newHandlerStub(code int, responseBody []byte) *handlerStub {
 }
 
 func newHandlerStubWithFunc(code int, handler func([]byte) []byte) *handlerStub {
-	stub := handlerStub{code, handler, requestSpy{}}
+	stub := handlerStub{code, handler,requestSpy{}}
 	return &stub
 }
 

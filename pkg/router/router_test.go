@@ -782,7 +782,7 @@ func TestProvision(t *testing.T) {
 	g.Expect(postProvisioned).To(BeTrue())
 }
 
-func TestSetBrokerVersionHeader(t *testing.T){
+func TestSetBrokerVersionInRequestFactory(t *testing.T){
 	g := NewGomegaWithT(t)
 	commitHash = "xxx"
 	request, err := httpRequestFactory(http.MethodGet,"", nil, bytes.NewReader([]byte{}))
@@ -791,7 +791,7 @@ func TestSetBrokerVersionHeader(t *testing.T){
 	g.Expect(request.Header.Get("X-Istio-Broker-Versions")).To(Equal("xxx"))
 }
 
-func TestAddBrokerVersionHeader(t *testing.T){
+func TestAddBrokerVersionInRequestFactory(t *testing.T){
 	g := NewGomegaWithT(t)
 	commitHash = "xxx"
 	header := http.Header{}
@@ -804,7 +804,7 @@ func TestAddBrokerVersionHeader(t *testing.T){
 	g.Expect(request.Header.Get("X-Istio-Broker-Versions")).To(Equal("xxx"))
 }
 
-func TestAppendBrokerVersion(t *testing.T){
+func TestAppendBrokerVersionInRequestFactory(t *testing.T){
 	g := NewGomegaWithT(t)
 	commitHash = "xxx"
 	header := http.Header{}
@@ -817,7 +817,7 @@ func TestAppendBrokerVersion(t *testing.T){
 }
 
 
-func TestAddVersionHeaderForGet(t *testing.T) {
+func TestAddVersionHeaderHTTPFactoryInDo(t *testing.T) {
 	g := NewGomegaWithT(t)
 	commitHash = "xxx"
 	body := []byte(`{}`)
@@ -825,7 +825,7 @@ func TestAddVersionHeaderForGet(t *testing.T) {
 	server := httptest.NewServer(handlerStub)
 	client := server.Client()
 
-	routerConfig := Config{ForwardURL: "https://httpbin.org"}
+	routerConfig := Config{ForwardURL: "https://example.org"}
 	routerConfig.HTTPClientFactory = func(tr *http.Transport) *http.Client {
 		return client
 	}
@@ -846,7 +846,7 @@ func TestAddVersionHeaderForGet(t *testing.T) {
 }
 
 
-func TestAddVersionHeaderForForward(t *testing.T) {
+func TestAddVersionHeaderHTTPFactoryInForward(t *testing.T) {
 	g := NewGomegaWithT(t)
 	commitHash = "xxx"
 	body := []byte(`{}`)
@@ -866,7 +866,7 @@ func TestAddVersionHeaderForForward(t *testing.T) {
 	}
 	defer server.Close()
 
-	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org", bytes.NewReader(make([]byte, 0)))
+	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/anyurl", bytes.NewReader(make([]byte, 0)))
 	response := httptest.NewRecorder()
 	router := SetupRouter(ConsumerInterceptor{}, routerConfig)
 	router.ServeHTTP(response, request)
@@ -874,7 +874,7 @@ func TestAddVersionHeaderForForward(t *testing.T) {
 	g.Expect(spyHeader["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
 }
 
-func TestAddVersionToGetCatalogResponse(t *testing.T) {
+func TestAddVersionToGetCatalogResponseProducer(t *testing.T) {
 	g := NewGomegaWithT(t)
 	commitHash = "xxx"
 	body := []byte(`{}`)
@@ -884,16 +884,17 @@ func TestAddVersionToGetCatalogResponse(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/v2/catalog", bytes.NewReader(make([]byte, 0)))
 	response := httptest.NewRecorder()
-	router := SetupRouter(ConsumerInterceptor{}, *routerConfig)
+	router := SetupRouter(ProducerInterceptor{}, *routerConfig)
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusOK))
-	g.Expect(response.Header()["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
+	responseHeader := response.Header()
+	g.Expect(responseHeader["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
 }
 
-func TestAddVersionDuringForward(t *testing.T) {
+func TestAddVersionForForwardInResponse(t *testing.T) {
 	g := NewGomegaWithT(t)
-	commitHash = "xxx"
+	commitHash = "consumerVersion"
 	body := []byte(`{}`)
 	handlerStub := newHandlerStub(http.StatusOK, body)
 	server, routerConfig := injectClientStub(handlerStub)
@@ -905,10 +906,10 @@ func TestAddVersionDuringForward(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusOK))
-	g.Expect(response.Header()["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
+	g.Expect(response.Header()[IstioBrokerVersion]).To(ConsistOf( "consumerVersion"))
 }
 
-func TestAddVersionToBindResponses(t *testing.T) {
+func TestAddVersionToBindResponse(t *testing.T) {
 	g := NewGomegaWithT(t)
 	commitHash = "xxx"
 
@@ -959,7 +960,7 @@ func TestAddVersionToUnbindResponse(t *testing.T) {
 	g.Expect(response.Header()["X-Istio-Broker-Versions"]).To(ConsistOf( "xxx"))
 }
 
-func TestAddVersionToProvision(t *testing.T) {
+func TestAddVersionToProvisionResponse(t *testing.T) {
 	g := NewGomegaWithT(t)
 	body := []byte{'{', '}'}
 	handlerStub := newHandlerStub(http.StatusOK, body)

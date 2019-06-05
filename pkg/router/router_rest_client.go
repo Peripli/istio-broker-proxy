@@ -77,7 +77,7 @@ func (o *restRequest) Do() api.RESTResponse {
 		log.Errorf("error during execute request: %s\n", osbResponse.err.Error())
 		return &osbResponse
 	}
-	log.Infof("response status from %s: %s\n", o.url, response.Status)
+	log.Infof("response status from %s: %s. %s=\"%s\"\n", o.url, response.Status, IstioBrokerVersion, response.Header.Get(IstioBrokerVersion))
 
 	defer response.Body.Close()
 
