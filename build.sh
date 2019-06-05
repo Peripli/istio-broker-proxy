@@ -15,5 +15,5 @@ golint  -set_exit_status main.go
 #go get github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1
 go build ./pkg/config/client
 ./client --help
-BROKER_VERSION=$(git rev-parse HEAD)
-go build --ldflags="-X main.commitHash=$BROKER_VERSION"
+VERSION=$(git rev-parse HEAD)
+go build --ldflags="-X main.commitHash=$VERSION"
