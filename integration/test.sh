@@ -13,4 +13,4 @@ cd ${SCRIPT_DIR}
 
 go get github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1
 BROKER_VERSION=`git rev-parse HEAD`
-go test -v -timeout 20m -run . --pgbench-output $PGBENCH_OUTPUT --pgbench-time 60 -ldflags="-X router.commitHash=$BROKER_VERSION" 
+go test -v -timeout 20m -run . --pgbench-output $PGBENCH_OUTPUT --pgbench-time 60 -ldflags="-X router.version=$BROKER_VERSION"

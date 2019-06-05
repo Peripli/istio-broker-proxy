@@ -16,4 +16,4 @@ golint  -set_exit_status main.go
 go build ./pkg/config/client
 ./client --help
 VERSION=$(git rev-parse HEAD)
-go build --ldflags="-X main.commitHash=$VERSION"
+go build --ldflags="-X main.version=$VERSION"

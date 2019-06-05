@@ -19,7 +19,7 @@ const (
 	healthEnpoint = "/health"
 )
 
-var commitHash string
+var version string
 
 //Config contains various config
 type Config struct {
@@ -178,8 +178,8 @@ func httpRequestFactory(method string, url string, header http.Header, body io.R
 	} else {
 		request.Header = http.Header{}
 	}
-	request.Header.Add(IstioBrokerVersion, commitHash)
-	log.Infof("Added header %s with value %s\n", IstioBrokerVersion, commitHash)
+	request.Header.Add(IstioBrokerVersion, version)
+	log.Infof("Added header %s with value %s\n", IstioBrokerVersion, version)
 
 	return request, nil
 }
@@ -209,19 +209,19 @@ func logAndAddVersionHeader(ctx *gin.Context) {
 	path := ctx.Request.URL.Path
 	istioBrokerVersion := ctx.Request.Header.Get(IstioBrokerVersion)
 	ctx.Next()
-	ctx.Header(IstioBrokerVersion, commitHash)
+	ctx.Header(IstioBrokerVersion, version)
 	if path != healthEnpoint {
-		log.Infof("Header %s:  received \"%s\", responded \"%s\"\n",IstioBrokerVersion, istioBrokerVersion, commitHash)
+		log.Infof("Header %s:  received \"%s\", responded \"%s\"\n",IstioBrokerVersion, istioBrokerVersion, version)
 	}
 }
 
 //SetupRouter creates the istio-broker-proxy's endpoints
 func SetupRouter(interceptor ServiceBrokerInterceptor, routerConfig Config) *gin.Engine {
-	return SetupRouterWithCommitHash(interceptor,routerConfig,"")
+	return SetupRouterWithVersion(interceptor,routerConfig,"")
 }
-//SetupRouterWithCommitHash creates the istio-broker-proxy's endpoints
-func SetupRouterWithCommitHash(interceptor ServiceBrokerInterceptor, routerConfig Config, ch string) *gin.Engine {
-	commitHash = ch
+//SetupRouterWithVersion creates the istio-broker-proxy's endpoints
+func SetupRouterWithVersion(interceptor ServiceBrokerInterceptor, routerConfig Config, vers string) *gin.Engine {
+	version = vers
 	if routerConfig.HTTPClientFactory == nil {
 		routerConfig.HTTPClientFactory = httpClientFactory
 	}

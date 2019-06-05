@@ -824,7 +824,7 @@ func TestAddVersionHeaderHTTPFactoryInDo(t *testing.T) {
 	request.Header.Add("X-Test-Header", "testValue")
 	request.Header.Add(IstioBrokerVersion, "client")
 	response := httptest.NewRecorder()
-	router := SetupRouterWithCommitHash(ConsumerInterceptor{}, routerConfig,"xxx")
+	router := SetupRouterWithVersion(ConsumerInterceptor{}, routerConfig,"xxx")
 	router.ServeHTTP(response, request)
 	g.Expect(response.Code).To(Equal(http.StatusOK))
 	g.Expect(spyHeader["X-Test-Header"]).To(ConsistOf("testValue"))
@@ -853,7 +853,7 @@ func TestAddVersionHeaderHTTPFactoryInForward(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/anyurl", bytes.NewReader(make([]byte, 0)))
 	response := httptest.NewRecorder()
-	router := SetupRouterWithCommitHash(ConsumerInterceptor{}, routerConfig,"xxx")
+	router := SetupRouterWithVersion(ConsumerInterceptor{}, routerConfig,"xxx")
 	router.ServeHTTP(response, request)
 	g.Expect(response.Code).To(Equal(http.StatusOK))
 	g.Expect(spyHeader[IstioBrokerVersion]).To(ConsistOf( "xxx"))
@@ -868,7 +868,7 @@ func TestAddVersionToGetCatalogResponseProducer(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/v2/catalog", bytes.NewReader(make([]byte, 0)))
 	response := httptest.NewRecorder()
-	router := SetupRouterWithCommitHash(ProducerInterceptor{}, *routerConfig,"xxx")
+	router := SetupRouterWithVersion(ProducerInterceptor{}, *routerConfig,"xxx")
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusOK))
@@ -885,7 +885,7 @@ func TestAddVersionForForwardInResponse(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodGet, "https://blahblubs.org/some/path", bytes.NewReader(make([]byte, 0)))
 	response := httptest.NewRecorder()
-	router := SetupRouterWithCommitHash(ConsumerInterceptor{}, *routerConfig,"xxx")
+	router := SetupRouterWithVersion(ConsumerInterceptor{}, *routerConfig,"xxx")
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusOK))
@@ -912,7 +912,7 @@ func TestAddVersionToBindResponse(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodPut, "https://blahblubs.org/v2/service_instances/123/service_bindings/456", bytes.NewReader(requestBody))
 	response := httptest.NewRecorder()
-	router := SetupRouterWithCommitHash(ProducerInterceptor{ConfigStore: configStore(), NetworkProfile: "urn:local.test:public"}, *routerConfig,"xxx")
+	router := SetupRouterWithVersion(ProducerInterceptor{ConfigStore: configStore(), NetworkProfile: "urn:local.test:public"}, *routerConfig,"xxx")
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusOK))//StatusCreated
@@ -931,7 +931,7 @@ func TestAddVersionToUnbindResponse(t *testing.T) {
 
 	response := httptest.NewRecorder()
 	var bindID = ""
-	router := SetupRouterWithCommitHash(&DeleteInterceptor{deleteCallback: func(innerBindId string) {
+	router := SetupRouterWithVersion(&DeleteInterceptor{deleteCallback: func(innerBindId string) {
 		bindID = innerBindId
 	}}, *routerConfig,"xxx")
 	router.ServeHTTP(response, request)
@@ -957,7 +957,7 @@ func TestAddVersionToProvisionResponse(t *testing.T) {
 		preProvisionCallback: func(){preProvisioned = true},
 		postProvisionCallback: func(){postProvisioned = true},
 	}
-	router := SetupRouterWithCommitHash(&interceptor, *routerConfig,"xxx")
+	router := SetupRouterWithVersion(&interceptor, *routerConfig,"xxx")
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusOK))

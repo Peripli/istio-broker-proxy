@@ -16,7 +16,7 @@ var serviceNamePrefix string
 var networkProfile string
 var configStore string
 var logLevel int
-var commitHash string
+var version string
 
 func newConfigStore(configStoreURL string) (router.ConfigStore, error) {
 	uri, err := url.Parse(configStoreURL)
@@ -45,7 +45,7 @@ func main() {
 	SetupConfiguration()
 	flag.Parse()
 	configureLogging()
-	engine := router.SetupRouterWithCommitHash(configureInterceptor(newConfigStoreOrFail), routerConfig, commitHash)
+	engine := router.SetupRouterWithVersion(configureInterceptor(newConfigStoreOrFail), routerConfig, version)
 	engine.Run(fmt.Sprintf(":%d", routerConfig.Port))
 }
 
