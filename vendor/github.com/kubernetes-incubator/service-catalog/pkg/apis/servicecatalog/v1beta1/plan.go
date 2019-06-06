@@ -108,22 +108,22 @@ func (p *ServicePlan) GetDefaultProvisionParameters() *runtime.RawExtension {
 
 // GetInstanceCreateSchema returns the instance create schema from plan.
 func (p *ClusterServicePlan) GetInstanceCreateSchema() *runtime.RawExtension {
-	return p.Spec.InstanceCreateParameterSchema
+	return p.Spec.ServiceInstanceCreateParameterSchema
 }
 
 // GetInstanceCreateSchema returns the instance create schema from plan.
 func (p *ServicePlan) GetInstanceCreateSchema() *runtime.RawExtension {
-	return p.Spec.InstanceCreateParameterSchema
+	return p.Spec.ServiceInstanceCreateParameterSchema
 }
 
 // GetInstanceUpdateSchema returns the instance update schema from plan.
 func (p *ClusterServicePlan) GetInstanceUpdateSchema() *runtime.RawExtension {
-	return p.Spec.InstanceUpdateParameterSchema
+	return p.Spec.ServiceInstanceUpdateParameterSchema
 }
 
 // GetInstanceUpdateSchema returns the instance update schema from plan.
 func (p *ServicePlan) GetInstanceUpdateSchema() *runtime.RawExtension {
-	return p.Spec.InstanceUpdateParameterSchema
+	return p.Spec.ServiceInstanceUpdateParameterSchema
 }
 
 // GetBindingCreateSchema returns the instance create schema from plan.

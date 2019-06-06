@@ -221,23 +221,16 @@
   version = "v1.1.5"
 
 [[projects]]
-  digest = "1:b3754cb51a8181d3aef289afa76066b13a5bf990e6625347c5a17f38431976eb"
+  digest = "1:54807670e7c10a093eade9a7e55a2eff5cc506fb59e95db291de74dc68f80cf3"
   name = "github.com/kubernetes-incubator/service-catalog"
   packages = [
     "pkg/apis/servicecatalog",
+    "pkg/apis/servicecatalog/v1beta1",
     "pkg/filter",
   ]
   pruneopts = "UT"
   revision = "d65a0d7078ef12a3f36d971b17988ae4db6abc21"
   version = "v0.1.40"
-
-[[projects]]
-  digest = "1:f0025a975029f67ba0132d7194497117361fbf0acd0127fdadbb33c302bbcbdd"
-  name = "github.com/kubernetes-sigs/service-catalog"
-  packages = ["pkg/apis/servicecatalog/v1beta1"]
-  pruneopts = "UT"
-  revision = "2f4d37413ff5ebf816788aa94fa2613682f3b543"
-  version = "v0.1.43"
 
 [[projects]]
   digest = "1:fd54bf7b2ed868354f34178c1d81930250bf978901ad7b0dc649223d79356ae7"
@@ -908,14 +901,12 @@
     "github.com/gin-gonic/gin",
     "github.com/gin-gonic/gin/json",
     "github.com/gogo/protobuf/proto",
-    "github.com/kubernetes-sigs/service-catalog/pkg/apis/servicecatalog/v1beta1",
+    "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1",
     "github.com/onsi/gomega",
     "istio.io/api/networking/v1alpha3",
     "istio.io/istio/pilot/pkg/config/kube/crd",
     "istio.io/istio/pilot/pkg/model",
-    "istio.io/istio/pkg/log",
     "k8s.io/api/core/v1",
-    "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/client-go/kubernetes",
