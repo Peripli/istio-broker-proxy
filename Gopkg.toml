@@ -26,10 +26,12 @@
 
 #ignored = ["github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"]
 
+#[[constraint]]
+#  name = "github.com/kubernetes-incubator/service-catalog"
+#  version = "0.1.36"
 [[constraint]]
-  name = "github.com/kubernetes-incubator/service-catalog"
-  version = "0.1.36"
-
+  name = "github.com/kubernetes-sigs/service-catalog"
+  version = "0.1.40"
 [[override]]
   name = "github.com/golang/glog"
   source = "github.com/istio/glog"
