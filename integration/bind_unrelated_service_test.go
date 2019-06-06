@@ -2,7 +2,7 @@ package integration
 
 import (
 	"encoding/json"
-	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
+	"github.com/kubernetes-sigs/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	. "github.com/onsi/gomega"
 	"k8s.io/api/core/v1"
 	"net/url"
