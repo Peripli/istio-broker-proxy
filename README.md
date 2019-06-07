@@ -173,3 +173,6 @@ curl https://istio-broker.cfapps.<landscape-domain>/info
 ### Integration tests
 
 Running the integration tests in a k8s cluster requires setting up a cloudfoundry back-end with a separate example broker. In order to get detailed information on how to do this, please open an [issue](https://github.com/Peripli/istio-broker-proxy/issues/new).
+
+#Some extra part
+This is just to have a test commit.
