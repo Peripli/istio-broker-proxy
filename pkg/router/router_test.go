@@ -116,7 +116,7 @@ func TestConsumerForwardsAdpotCredentials(t *testing.T) {
 	code := response.Code
 
 	g.Expect(code).To(Equal(499))
-	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
+	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "", "application/json")
 	g.Expect(err.Error()).To(Equal("error: 'abc', description: ': from call to  '"))
 
 }
@@ -223,7 +223,7 @@ func TestBadGateway(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusBadGateway))
-	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
+	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "", "application/json")
 	g.Expect(err.(*model.HTTPError).Description).To(ContainSubstring(`Get doesntexist.org/get: unsupported protocol scheme ""`))
 }
 
@@ -477,7 +477,7 @@ func TestIstioConfigFilesAreNotWritable(t *testing.T) {
 	router := SetupRouter(producerConfig, *routerConfig)
 	router.ServeHTTP(response, request)
 	g.Expect(response.Code).To(Equal(500))
-	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
+	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "", "application/json")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*model.HTTPError).Description).To(ContainSubstring("unable to write istio configuration to file"))
 }
@@ -495,7 +495,7 @@ func TestBindWithInvalidRequest(t *testing.T) {
 	router := SetupRouter(producerConfig, *routerConfig)
 	router.ServeHTTP(response, request)
 	g.Expect(response.Code).To(Equal(http.StatusBadRequest))
-	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
+	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "", "application/json")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*model.HTTPError).Description).To(ContainSubstring("cannot unmarshal array into Go value"))
 }
@@ -526,7 +526,7 @@ func TestHttpClientError(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(http.StatusNotFound))
-	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
+	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "", "application/json")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*model.HTTPError).ErrorMsg).To(Equal("Not found"))
 	g.Expect(err.(*model.HTTPError).Description).To(ContainSubstring("Unable to find entry"))
@@ -602,7 +602,7 @@ func TestErrorCodeOfForwardIsReturned(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	g.Expect(response.Code).To(Equal(503))
-	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "")
+	err := model.HTTPErrorFromResponse(response.Code, response.Body.Bytes(), "", "", "application/json")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*model.HTTPError).ErrorMsg).To(Equal("xxx"))
 	g.Expect(err.(*model.HTTPError).Description).To(ContainSubstring("yyy"))

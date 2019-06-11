@@ -35,13 +35,23 @@ func TestHTTPErrorFromHTTPError(t *testing.T) {
 func TestHTTPErrorFromResponseOK(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	g.Expect(HTTPErrorFromResponse(200, []byte(""), "", "")).NotTo(HaveOccurred())
+	g.Expect(HTTPErrorFromResponse(200, []byte(""), "", "", "application/json")).NotTo(HaveOccurred())
+}
+
+func TestHTTPErrorFromResponseForwardsUpstreamErrorCorrectly(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	err := HTTPErrorFromResponse(503, []byte("upstream connect error or disconnect/reset before headers"), "http://egress", "POST", "text/plain")
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.(*HTTPError).StatusCode).To(Equal(503))
+	g.Expect(err.(*HTTPError).ErrorMsg).To(Equal("POST to http://egress failed"))
+	g.Expect(err.(*HTTPError).Description).To(Equal("upstream connect error or disconnect/reset before headers"))
 }
 
 func TestHTTPErrorFromResponseNotOKInvalidBody(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	err := HTTPErrorFromResponse(401, []byte("Invalid body"), "http://localhost", "GET")
+	err := HTTPErrorFromResponse(401, []byte("Invalid body"), "http://localhost", "GET", "application/json")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*HTTPError).StatusCode).To(Equal(401))
 	g.Expect(err.(*HTTPError).ErrorMsg).To(Equal("InvalidJSON"))
@@ -51,7 +61,7 @@ func TestHTTPErrorFromResponseNotOKInvalidBody(t *testing.T) {
 func TestHTTPErrorFromResponseNotOK(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	err := HTTPErrorFromResponse(504, []byte(`{ "error": "my-error", "description": "my-description"}`), "http://localhost", "GET")
+	err := HTTPErrorFromResponse(504, []byte(`{ "error": "my-error", "description": "my-description"}`), "http://localhost", "GET", "application/json")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*HTTPError).StatusCode).To(Equal(504))
 	g.Expect(err.(*HTTPError).ErrorMsg).To(Equal("my-error"))

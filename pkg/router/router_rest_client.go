@@ -8,6 +8,7 @@ import (
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"io/ioutil"
 	"istio.io/istio/pkg/log"
+	"mime"
 	"net/http"
 )
 
@@ -87,7 +88,11 @@ func (o *restRequest) Do() api.RESTResponse {
 		return &osbResponse
 	}
 
-	osbResponse.err = model.HTTPErrorFromResponse(response.StatusCode, osbResponse.response, o.url, o.method)
+	contentType, _, err := mime.ParseMediaType(response.Header.Get("Content-type"))
+	if err != nil {
+		contentType = "application/octet-stream"
+	}
+	osbResponse.err = model.HTTPErrorFromResponse(response.StatusCode, osbResponse.response, o.url, o.method, contentType)
 	if osbResponse.err != nil {
 		return &osbResponse
 	}

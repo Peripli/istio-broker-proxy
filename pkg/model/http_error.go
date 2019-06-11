@@ -31,14 +31,19 @@ func HTTPErrorFromError(err error, statusCode int) *HTTPError {
 }
 
 //HTTPErrorFromResponse returns an HTTPError if the provided request was unsuccessful
-func HTTPErrorFromResponse(statusCode int, body []byte, url string, method string) error {
+func HTTPErrorFromResponse(statusCode int, body []byte, url string, method string, contentType string) error {
 	okResponse := statusCode/100 == 2
 	if !okResponse {
 		var httpError HTTPError
-		err := json.Unmarshal(body, &httpError)
-		if err != nil {
-			return &HTTPError{StatusCode: statusCode, ErrorMsg: "InvalidJSON", Description: fmt.Sprintf("invalid JSON '%s': from call to %s %s", string(body), method, url)}
+		if contentType == "application/json" {
+			err := json.Unmarshal(body, &httpError)
+			if err != nil {
+				return &HTTPError{StatusCode: statusCode, ErrorMsg: "InvalidJSON", Description: fmt.Sprintf("invalid JSON '%s': from call to %s %s", string(body), method, url)}
+			}
+		} else {
+			return &HTTPError{StatusCode: statusCode, ErrorMsg: fmt.Sprintf("%s to %s failed", method, url), Description: string(body)}
 		}
+
 		httpError.StatusCode = statusCode
 		httpError.Description = httpError.Description + fmt.Sprintf(": from call to %s %s", method, url)
 		return &httpError
