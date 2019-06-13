@@ -44,8 +44,8 @@ func TestHTTPErrorFromResponseForwardsUpstreamErrorCorrectly(t *testing.T) {
 	err := HTTPErrorFromResponse(503, []byte("upstream connect error or disconnect/reset before headers"), "http://egress", "POST", "text/plain")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.(*HTTPError).StatusCode).To(Equal(503))
-	g.Expect(err.(*HTTPError).ErrorMsg).To(Equal("POST to http://egress failed"))
-	g.Expect(err.(*HTTPError).Description).To(Equal("upstream connect error or disconnect/reset before headers"))
+	g.Expect(err.(*HTTPError).ErrorMsg).To(Equal("UnknownError"))
+	g.Expect(err.(*HTTPError).Description).To(Equal("'upstream connect error or disconnect/reset before headers': from call to POST http://egress"))
 }
 
 func TestHTTPErrorFromResponseNotOKInvalidBody(t *testing.T) {

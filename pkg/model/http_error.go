@@ -41,7 +41,7 @@ func HTTPErrorFromResponse(statusCode int, body []byte, url string, method strin
 				return &HTTPError{StatusCode: statusCode, ErrorMsg: "InvalidJSON", Description: fmt.Sprintf("invalid JSON '%s': from call to %s %s", string(body), method, url)}
 			}
 		} else {
-			return &HTTPError{StatusCode: statusCode, ErrorMsg: fmt.Sprintf("%s to %s failed", method, url), Description: string(body)}
+			return &HTTPError{StatusCode: statusCode, ErrorMsg: "UnknownError", Description: fmt.Sprintf("'%s': from call to %s %s", string(body), method, url)}
 		}
 
 		httpError.StatusCode = statusCode

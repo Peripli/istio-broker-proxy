@@ -26,6 +26,7 @@ func (stub handlerStub) ServeHTTP(writer http.ResponseWriter, request *http.Requ
 	if nil != err {
 		panic(err)
 	}
+	writer.Header().Add("Content-Type","application/json")
 	writer.WriteHeader(stub.code)
 	writer.Write(stub.handler(bodyAsBytes))
 }
