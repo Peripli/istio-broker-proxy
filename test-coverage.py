@@ -43,7 +43,7 @@ print(command)
 try:
     test = subprocess.check_output(command, shell=True)
 except subprocess.CalledProcessError as e:
-    print(e.output.decode("unicode_escape"))
+    print(e.output.decode("utf-8"))
     raise
 
 test_output = test.decode("utf-8")
