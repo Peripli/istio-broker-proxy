@@ -10,5 +10,4 @@ export CLEANUP_ORPHANED_OBJECTS=true
 
 cd ${SCRIPT_DIR}
 
-go get github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1
 go test -v -run TestCleanup
