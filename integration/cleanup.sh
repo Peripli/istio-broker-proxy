@@ -10,4 +10,4 @@ export CLEANUP_ORPHANED_OBJECTS=true
 
 cd ${SCRIPT_DIR}
 
-go test -v -run TestCleanup
+go test -mod=vendor -v -run TestCleanup

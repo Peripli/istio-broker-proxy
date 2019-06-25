@@ -37,7 +37,7 @@ src_path = os.path.join(go_path, "src", args.go_package)
 filename = os.path.join(src_path,"coverage.csv")
 reference_coverage_map = read_coverage(filename)
 package = args.go_package
-command = "go test -cover %s/..." % package
+command = "go test -mod=vendor -cover %s/..." % package
 print(command)
 
 try:
