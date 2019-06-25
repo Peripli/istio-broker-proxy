@@ -31,8 +31,8 @@ parser.add_argument("-g", "--go-package", dest="go_package", default="github.com
                     help="the go package to check the coverage for")
 
 args = parser.parse_args()
-go_path = os.environ['GOPATH']
-src_path = os.path.join(go_path, "src", args.go_package)
+os.environ["GO111MODULE"] = "on"
+src_path = os.path.dirname(os.path.realpath(__file__))
 
 filename = os.path.join(src_path,"coverage.csv")
 reference_coverage_map = read_coverage(filename)
