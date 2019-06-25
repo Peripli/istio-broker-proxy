@@ -34,7 +34,8 @@ src_path = os.path.dirname(os.path.realpath(__file__))
 
 filename = os.path.join(src_path,"coverage.csv")
 reference_coverage_map = read_coverage(filename)
-command = "go test -mod=vendor -cover %s/..." % src_path
+os.chdir(src_path)
+command = "go test -mod=vendor -cover ./..."
 print(command)
 
 try:
