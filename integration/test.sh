@@ -6,7 +6,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 PGBENCH_OUTPUT=${1:-/tmp/pgbench.out}
 
-export GOPATH=${SCRIPT_DIR}/../../../../..
+export GO111MODULE=on
 export CGO_ENABLED=0
 
 cd ${SCRIPT_DIR}
