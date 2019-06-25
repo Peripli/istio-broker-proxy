@@ -27,8 +27,6 @@ parser.add_argument("-w", "--write-new-ref", dest="write_new_ref", default=False
 parser.add_argument("-c", "--commit-better-ref", dest="commit_better_ref", default=True,
                     help="commit new reference file if coverage got better")
 
-parser.add_argument("-g", "--go-package", dest="go_package", default="github.com/Peripli/istio-broker-proxy",
-                    help="the go package to check the coverage for")
 
 args = parser.parse_args()
 os.environ["GO111MODULE"] = "on"
@@ -36,8 +34,7 @@ src_path = os.path.dirname(os.path.realpath(__file__))
 
 filename = os.path.join(src_path,"coverage.csv")
 reference_coverage_map = read_coverage(filename)
-package = args.go_package
-command = "go test -mod=vendor -cover %s/..." % package
+command = "go test -mod=vendor -cover %s/..." % src_path
 print(command)
 
 try:
