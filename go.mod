@@ -2,6 +2,8 @@ module github.com/Peripli/istio-broker-proxy
 
 go 1.12
 
+replace github.com/golang/glog => github.com/istio/glog v0.0.0-20190424172949-d7cfb6fa2ccd
+
 require (
 	cloud.google.com/go v0.35.1 // indirect
 	github.com/envoyproxy/go-control-plane v0.6.7 // indirect
